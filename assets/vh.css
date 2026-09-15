@@ -1,0 +1,145 @@
+/* VendHjem — designsystemet fra det eksisterende site, udvidet med mørkt tema.
+   Tokens er hentet fra vendhjem.dk/index.html (:root), marts 2026. */
+:root{
+  --bg:#F4F5EF; --bg-warm:#EAECE2; --surface:#FDFFF4;
+  --text:#2C3530; --text-soft:#5A6B60;
+  --green:#3E524F; --green-light:#5A7A6A; --green-pale:#D5DDD4;
+  --accent:#8B6F47; --accent-pale:#F0E8DA;
+  --line:#D8DCD2; --flag:#8C3A2B; --flag-bg:#F6E4E0; --ok:#4A6B52;
+  --font-h:'Lora',Georgia,'Times New Roman',serif;
+  --font-b:'Nunito',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --wrap:1080px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#1B211E; --bg-warm:#222A26; --surface:#232B27;
+    --text:#E6E9E0; --text-soft:#A3B0A6;
+    --green:#9FBCAE; --green-light:#8FA898; --green-pale:#33403A;
+    --accent:#C9A877; --accent-pale:#3A3125;
+    --line:#35403A; --flag:#E8A192; --flag-bg:#3A2723; --ok:#8FBE9C;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1B211E; --bg-warm:#222A26; --surface:#232B27;
+  --text:#E6E9E0; --text-soft:#A3B0A6;
+  --green:#9FBCAE; --green-light:#8FA898; --green-pale:#33403A;
+  --accent:#C9A877; --accent-pale:#3A3125;
+  --line:#35403A; --flag:#E8A192; --flag-bg:#3A2723; --ok:#8FBE9C;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:var(--font-b);font-size:17px;line-height:1.65;
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:var(--wrap);margin:0 auto;padding-inline:20px}
+h1,h2,h3{font-family:var(--font-h);font-weight:600;line-height:1.2;
+  text-wrap:balance;margin:0}
+h1{font-size:clamp(2rem,5vw,3.1rem);letter-spacing:-.01em}
+h2{font-size:clamp(1.4rem,3vw,1.9rem);margin-top:0}
+h3{font-size:1.12rem}
+p{margin:0}
+a{color:var(--accent);text-underline-offset:3px}
+a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+
+/* topbar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;
+  background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:22px;flex-wrap:wrap;
+  padding-block:13px}
+.brand{font-family:var(--font-h);font-size:1.16rem;font-weight:600;
+  color:var(--text);text-decoration:none;margin-right:auto;letter-spacing:.01em}
+.brand span{color:var(--accent)}
+.top nav{display:flex;gap:18px;flex-wrap:wrap}
+.top nav a{color:var(--text-soft);text-decoration:none;font-size:.92rem}
+.top nav a:hover,.top nav a[aria-current]{color:var(--text)}
+.top nav a[aria-current]{box-shadow:0 2px 0 var(--accent)}
+
+/* sektioner */
+main{display:block}
+section{padding-block:clamp(38px,6vw,68px)}
+section+section{border-top:1px solid var(--line)}
+.lede{font-size:1.16rem;color:var(--text-soft);max-width:62ch}
+.stack{display:flex;flex-direction:column;gap:18px}
+.stack-lg{display:flex;flex-direction:column;gap:30px}
+.eyebrow{font-size:.74rem;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--accent);font-weight:700}
+.prose{max-width:66ch;display:flex;flex-direction:column;gap:16px}
+.prose p{max-width:66ch}
+
+/* hero */
+.hero{padding-block:clamp(46px,9vw,96px);background:var(--bg-warm)}
+.hero .wrap{display:flex;flex-direction:column;gap:22px}
+.hero h1{max-width:18ch}
+.hero .lede{font-size:1.24rem;max-width:56ch}
+
+/* grid af kort */
+.grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(248px,1fr))}
+.card{background:var(--surface);border:1px solid var(--line);
+  border-radius:3px;padding:22px;display:flex;flex-direction:column;gap:9px}
+.card h3{font-family:var(--font-h)}
+.card p{color:var(--text-soft);font-size:.96rem}
+.card a{margin-top:auto;font-size:.93rem;font-weight:600}
+
+/* liste uden kort — til spor og regler */
+.rows{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.row{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;
+  padding-block:20px;border-bottom:1px solid var(--line)}
+@media(min-width:720px){.row{grid-template-columns:230px minmax(0,1fr);gap:28px}}
+.row h3{font-family:var(--font-h);color:var(--text)}
+.row p{color:var(--text-soft)}
+.row .meta{font-size:.84rem;color:var(--accent);font-weight:600}
+
+/* tabel */
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:3px;
+  background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.92rem;
+  font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);
+  white-space:nowrap}
+th{background:var(--green-pale);font-weight:700;font-size:.78rem;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--text)}
+tr:last-child td{border-bottom:none}
+td.num{text-align:right}
+.flag{color:var(--flag);background:var(--flag-bg);padding:2px 7px;
+  border-radius:2px;font-weight:700;font-size:.82rem;white-space:nowrap}
+.muted{color:var(--text-soft)}
+
+/* noter */
+.note{border-left:3px solid var(--accent);padding:2px 0 2px 16px;
+  color:var(--text-soft);max-width:66ch}
+.note strong{color:var(--text)}
+.kilde{font-size:.85rem;color:var(--text-soft)}
+
+/* knapper */
+.btn{display:inline-block;background:var(--green);color:var(--bg);
+  padding:12px 24px;border-radius:2px;text-decoration:none;font-weight:700;
+  font-size:.95rem;border:1px solid var(--green);width:fit-content}
+.btn:hover{background:transparent;color:var(--green)}
+.btn-2{display:inline-block;border:1px solid var(--accent);color:var(--accent);
+  padding:12px 24px;border-radius:2px;text-decoration:none;font-weight:700;
+  font-size:.95rem;width:fit-content}
+.btns{display:flex;gap:12px;flex-wrap:wrap}
+
+/* trin */
+ol.trin{list-style:none;margin:0;padding:0;counter-reset:t;
+  display:flex;flex-direction:column;gap:2px}
+ol.trin li{counter-increment:t;display:grid;gap:4px 16px;
+  grid-template-columns:34px minmax(0,1fr);padding-block:15px;
+  border-bottom:1px solid var(--line)}
+ol.trin li::before{content:counter(t);font-family:var(--font-h);
+  color:var(--accent);font-size:1.15rem;font-weight:600;line-height:1.35}
+ol.trin strong{display:block}
+ol.trin span{grid-column:2;color:var(--text-soft);font-size:.96rem}
+
+/* tal */
+.tal{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(168px,1fr))}
+.tal div{background:var(--surface);border:1px solid var(--line);padding:18px}
+.tal b{display:block;font-family:var(--font-h);font-size:1.7rem;
+  font-variant-numeric:tabular-nums;color:var(--green)}
+.tal small{display:block;color:var(--text-soft);font-size:.86rem;margin-top:3px}
+
+footer{background:var(--bg-warm);border-top:1px solid var(--line);
+  padding-block:34px;color:var(--text-soft);font-size:.9rem}
+footer .wrap{display:flex;flex-direction:column;gap:10px}
+img{max-width:100%}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
