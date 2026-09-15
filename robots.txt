@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /internt/
 
 Sitemap: https://vendhjem.dk/sitemap.xml
