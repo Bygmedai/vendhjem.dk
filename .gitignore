@@ -1,0 +1,6 @@
+node_modules/
+test-results/
+playwright-report/
+# Interne Agersø-sider bygges af build.py men må ALDRIG ligge på GitHub Pages (kan ikke beskyttes).
+# De udrulles kun til Cloudflare Workers bag Access.
+internt/
