@@ -100,7 +100,7 @@ pages["index.html"] = head("Vend Hjem · Agersø", "En gammel campingplads på A
 </script>
 <div class="over"><div class="inner">
 <p class="meta">§ Agersø · Storebælt · færgen fra Stigsnæs</p>
-<h1>En gammel campingplads på en ø - som bliver et sted, man <em>bor</em>.</h1>
+<h1>Vi laver en gammel campingplads på Agersø om til et fællesskab, man kan <em>bo</em> i.</h1>
 </div></div>
 </section>
 
@@ -108,7 +108,7 @@ pages["index.html"] = head("Vend Hjem · Agersø", "En gammel campingplads på A
 <div class="g g-32 nb">
 <div>
 <p class="lead" style="color:var(--blaek)">Syv bygninger fra 1920. 25 senge, en sal til 50, 60.000 kvadratmeter - og det meste af det trænger.</p>
-<p class="lead">Det er ikke et "sommerhus". Det er et sted, man bor - med alt det, der følger med, når man ikke kan tage hjem fra det.</p>
+<p class="lead">Her bor man og driver stedet sammen. Nogle er her fast, andre kommer for at arbejde med i perioder, og nogle lejer sig ind til deres eget forløb.</p>
 <p class="mt3"><a class="lnk" href="bliv-en-del">Skriv → én vej ind</a></p>
 </div>
 <div class="fakta">
@@ -119,15 +119,15 @@ pages["index.html"] = head("Vend Hjem · Agersø", "En gammel campingplads på A
 
 <section class="stage">
 <div class="g g-3 nb">
-<div><p class="sec">Sporene</p><p class="small soft">Mandegrupper, rites of passage, byg-med-uger, stille uger. <a class="lnk" href="sporene">Se →</a></p></div>
-<div><p class="sec">Fundamentet</p><p class="small soft">Fire perspektiver på alt, der er stort nok. To måder at beslutte på. Manifestet, dateret, når det er klar. <a class="lnk" href="fundamentet">Læs →</a></p></div>
-<div><p class="sec">Døren ud</p><p class="small soft">Der er en dør ind, og en dør ud - og den sidste skal du kende først. <a class="lnk" href="bliv-en-del">Forløbet →</a></p></div>
+<div><p class="sec">Sporene</p><p class="small soft">Mandeweekender, retreats, byg-med-uger og stille uger. Hvad der foregår på stedet, og hvem det er for. <a class="lnk" href="sporene">Se →</a></p></div>
+<div><p class="sec">Fundamentet</p><p class="small soft">Sådan træffer vi beslutninger, fordeler ansvar og taler sammen, når vi er uenige. <a class="lnk" href="fundamentet">Læs →</a></p></div>
+<div><p class="sec">Bliv en del</p><p class="small soft">Forløbet fra den første samtale til en aftale, og hvad der gælder, hvis du vil stoppe. <a class="lnk" href="bliv-en-del">Se forløbet →</a></p></div>
 </div>
 </section>
 ''' + foot()
 
 # ───────────────────────────── FUNDAMENTET (1d) ─────────────────────────────
-pages["fundamentet.html"] = head("Fundamentet · Vend Hjem", "Det, stedet hviler på: fire perspektiver, to måder at beslutte på, fem energier, manifestet og Hjulet.", "fundamentet.html", current="fundamentet") + '''
+pages["fundamentet.html"] = head("Fundamentet · Vend Hjem", "Det, stedet hviler på: fire perspektiver, to måder at beslutte på, og fem energier.", "fundamentet.html", current="fundamentet") + '''
 <section class="stage topmeta">
 <p class="meta">Fundamentet · manifestet lægges op med version og dato</p>
 </section>
@@ -135,7 +135,7 @@ pages["fundamentet.html"] = head("Fundamentet · Vend Hjem", "Det, stedet hviler
 <section class="stage blok">
 <p class="sec">Fire perspektiver på alt, der er stort nok</p>
 <h1 style="font-size:clamp(26px,3.4vw,34px)">Hvert rum og hvert projekt beskrives fire gange.</h1>
-<!-- COPY-FELT F1: indledning til firedelingen. Afventer Sirius. -->
+<p class="lead maxw mt2">Når vi planlægger et rum eller begynder et projekt, bruger vi de fire perspektiver til at få de berørtes erfaringer med og undersøge, hvad opgaven kræver. Det indgår i beslutningen om, hvad vi gør, og hvem der tager ansvar.</p>
 </section>
 
 <section class="stage">
@@ -155,7 +155,7 @@ pages["fundamentet.html"] = head("Fundamentet · Vend Hjem", "Det, stedet hviler
 <div class="ramme"><p class="meta-s" style="color:var(--accent);font-weight:500">FAGLIG</p><p class="small mt1">Den, der kan det, bestemmer hvordan - inden for formål, budget og aftalte grænser. Taget lægges ikke efter stemmetal. Alle andre kan være med som lærende.</p></div>
 <div class="ramme"><p class="meta-s" style="color:var(--accent);font-weight:500">FÆLLES</p><p class="small mt1">De berørte er med. Hvad salen bruges til om lørdagen, afgør den, der kan snedkerere, ikke. Der noteres bidrag, aftale og en dato, hvor det tages op igen.</p></div>
 </div>
-<!-- COPY-FELT F2: de to beslutningsformer, afrunding. Afventer Sirius. -->
+<p class="xs soft mt2">Når en opgave både rummer faglige valg og fælles hensyn, aftaler den fagligt ansvarlige løsningen med dem, den berører. Alle kan sige til ved fare, fejl eller brud på en aftale; den ansvarlige tager det op, før arbejdet fortsætter.</p>
 </div>
 <div>
 <p class="sec">Fem energier - spørgsmål, ikke karakterer</p>
@@ -166,20 +166,16 @@ pages["fundamentet.html"] = head("Fundamentet · Vend Hjem", "Det, stedet hviler
 <li><span>Seksuel</span><span class="r">er grænserne sagt højt?</span></li>
 <li><span>Åndelig</span><span class="r">er der stille nogensinde?</span></li>
 </ul>
-<!-- COPY-FELT F3: de fem energier, afrunding. Afventer Sirius. -->
+<p class="xs soft mt2">Spørgsmålene bruges, når vi indretter et rum eller planlægger en aktivitet. Svarene kan føre til bedre plads at bevæge sig på, tid til en pause eller tydeligere aftaler om nærhed og grænser.</p>
 </div>
 </div>
 </section>
 
 <section class="stage">
-<div class="g g-2 nb">
-<div>
+<div class="g nb" style="grid-template-columns:1fr">
+<div class="maxw">
 <p class="sec">Største drøm og største frygt</p>
-<p class="small">Den ene trækker, den anden skubber. Det er den følelsesmæssige akse i alt, der laves her - og vi spørger til begge, inden du skriver under. Ikke for at sortere. For at vide, hvad vi hver især kommer med.</p>
-</div>
-<div>
-<p class="sec">Hjulet - Stevens model</p>
-<div class="ramme-stiplet"><p class="meta-s" style="color:var(--accent);font-weight:500">IKKE SKREVET ENDNU</p><p class="small mt1">Den skrives ud af samtalerne på stedet, ikke før dem. Når den er skrevet, står den her med dato. Indtil da står der det her. <a class="lnk" href="hjulet">Hvad den skal svare på →</a></p></div>
+<p class="small">Før du skriver under på en aftale, taler vi om din største drøm for at være med og det, du frygter mest. Samtalen hjælper os med at få dine ønsker og forbehold med i det, vi aftaler.</p>
 </div>
 </div>
 </section>
@@ -188,7 +184,7 @@ pages["fundamentet.html"] = head("Fundamentet · Vend Hjem", "Det, stedet hviler
 <div class="g g-2">
 <div>
 <p class="sec">Refleksionssprog, ikke adgangskrav</p>
-<p class="small">Spiral Dynamics, Enneagram, arketyperne, udviklingslinjerne - det er sprog til at forstå sig selv og hinanden. Ingen farve, type eller niveau afgør, om nogen kan være her, hvad de må bestemme, eller hvad de er værd.</p>
+<p class="small">Spiral Dynamics, Enneagrammet, arketyperne og udviklingslinjerne kan bruges til at undersøge egne mønstre og tale om forskelle. Ingen farve, type eller niveau afgør, om nogen kan være her, hvad de må bestemme, eller hvad de er værd.</p>
 </div>
 <div>
 <p class="sec">Det integrale landkort</p>
@@ -199,72 +195,46 @@ pages["fundamentet.html"] = head("Fundamentet · Vend Hjem", "Det, stedet hviler
 </section>
 ''' + foot()
 
-# ───────────────────────────── HJULET ─────────────────────────────
-pages["hjulet.html"] = head("Hjulet · Vend Hjem", "Stevens model. Ikke skrevet endnu - og det står her, så ingen er i tvivl.", "hjulet.html", current="fundamentet") + '''
-<section class="stage blok">
-<p class="sec">Fundamentet · under udarbejdelse</p>
-<h1>Hjulet</h1>
-<p class="lead maxw mt2">Stevens model. Den er ikke skrevet færdig, og den bliver det ikke ved et skrivebord.</p>
-</section>
-<section class="stage">
-<div class="g g-2">
-<div>
-<p class="sec">Hvorfor der ikke står mere her endnu</p>
-<p class="small">Fundamentet er skævt lige nu. Lais integrale grundlag er skrevet gennem mange år og kan læses i dag. Hjulet er ikke - og et halvfærdigt fundament, der ser færdigt ud, er værre end et tomt felt.</p>
-<p class="small">Den kommer, når vi har styr på stedet, og den kommer ud af samtaler med de mennesker, der er her. Ikke ud af en model, der bliver præsenteret for dem bagefter.</p>
-</div>
-<div>
-<p class="sec">Det, den skal svare på</p>
-<ul class="liste">
-<li><span>Hvad et menneske skal kunne</span><span class="r">hvilke sider af et liv der skal være plads til</span></li>
-<li><span>Hvordan man bliver hel</span><span class="r">rejsen ind og ud af et fællesskab</span></li>
-<li><span>Hvad der holder</span><span class="r">hvad man kan skifte ud uden at miste stedet</span></li>
-</ul>
-<p class="note mt2">Spørgsmålene kan blive andre, når de møder virkeligheden på øen. Det er meningen.</p>
-</div>
-</div>
-</section>
-''' + foot()
 
 # ───────────────────────────── SPORENE (oversigt) ─────────────────────────────
 pages["sporene.html"] = head("Sporene · Vend Hjem", "Det, der sker på stedet: mandegrupper og rites of passage, retreats, festival, byg-med-uger, stille uger, campingvogne.", "sporene.html", current="sporene") + '''
 <section class="stage blok">
 <p class="sec">Sporene</p>
 <h1>Det, der sker på stedet.</h1>
-<p class="lead maxw mt2">To mennesker med hver sit felt og et sted, der kan bære begge. Stevens ti år i mandearbejde og rites of passage. Lais integrale praksis og skuespilmetode.</p>
+<p class="lead maxw mt2">Steven står for mandegrupperne og rites of passage. Lai står for den integrale praksis og skuespilmetoden. Resten laver vi sammen med dem, der er her.</p>
 </section>
 
 <section class="stage">
 <div class="g g-2">
 <div class="loeft">
 <p class="sec">Mandegrupper og rites of passage</p>
-<p class="small">Stevens spor. Weekender for femten mænd: seng, mad, tre-fire timers arbejde på stedet og noget alvorligt om aftenen. Arbejdet er ikke betaling - det er grunden til, at prisen er en tredjedel af markedets.</p>
+<p class="small">Weekender for femten mænd. Vi laver mad sammen, arbejder nogle timer på stedet og mødes om aftenen i en talerunde, hvor hver mand taler uden at blive afbrudt. Steven har været i mandegruppemiljøet i ti år.</p>
 <p class="meta mt2">Weekender · 2027 · datoer kommer</p>
 <p class="mt2"><a class="lnk" href="maend">Sådan ligger en weekend →</a></p>
 </div>
 <div>
 <p class="sec">Retreats - vi er værter</p>
-<p class="small">Andres forløb, midt i ugen. Hele stedet fra onsdag til mandag, med eller uden mad fra vores køkken. De første facilitatorer tager en chance på et sted uden anmeldelser - og det ved vi godt.</p>
+<p class="small">Du kan holde dit eget forløb her. Hele stedet fra onsdag til mandag, plads til femogtyve overnattende, med eller uden mad fra køkkenet. Du står selv for indholdet.</p>
 <p class="meta mt2">Onsdag til mandag · op til 25 senge</p>
 </div>
 <div>
 <p class="sec">Festival</p>
-<p class="small">Én vi selv laver, og én vi lægger plads til. Steven var partner i og medskaber af Tribal Vibe, så det er ikke et forsøg - det er dét, han kommer fra.</p>
+<p class="small">Vi laver vores egen, og vi lægger plads til en, andre arrangerer. Steven var partner i og medskaber af Tribal Vibe.</p>
 <p class="meta mt2">Fire dage · juli</p>
 </div>
 <div>
 <p class="sec">Byg-med-uger</p>
-<p class="small">En uge, hvor man arbejder på stedet, spiser med og bor her. Længere end en weekend og roligere. Ligger ikke samtidig med andet.</p>
+<p class="small">En uge, hvor du bor her, spiser med og arbejder på stedets opgaver. Vi går på værkstedet og i bygningerne sammen.</p>
 <p class="meta mt2">Forår og efterår</p>
 </div>
 <div>
 <p class="sec">Stille uger og vinter</p>
-<p class="small">Eget værelse, intet program, ingen mad. For dem der skal skrive, tænke eller bare væk. Om vinteren kan et værelse lejes på måneden.</p>
+<p class="small">Et værelse og fred til at skrive, tænke eller holde fri i dit eget tempo. Du står selv for maden og for dagens indhold. Om vinteren kan et værelse lejes månedsvis.</p>
 <p class="meta mt2">November til april</p>
 </div>
 <div>
 <p class="sec">Campingvogne</p>
-<p class="small">Plads til dem, der vil bo her i perioder. To priser: én for dem der kommer for at være, og en lavere for dem der kommer for at arbejde med.</p>
+<p class="small">Plads til at bo i din egen campingvogn i perioder. Prisen afhænger af, om opholdet også omfatter en aftale om at arbejde med.</p>
 <p class="meta mt2">Månedsvis</p>
 </div>
 </div>
@@ -273,7 +243,7 @@ pages["sporene.html"] = head("Sporene · Vend Hjem", "Det, der sker på stedet: 
 <section class="stage blok">
 <div class="maxw">
 <p class="sec">Syv uger om året er lukkede</p>
-<!-- COPY-FELT S1: de syv lukkede uger. Afventer Sirius. -->
+<p class="small soft">Syv uger om året holder stedet lukket for gæster. De står i kalenderen fra årets begyndelse, så alle kan planlægge efter dem.</p>
 </div>
 </section>
 ''' + foot()
@@ -289,8 +259,8 @@ pages["maend.html"] = head("Mandegrupper · Vend Hjem", "Femten mænd, en weeken
 <div>
 <p class="sec">Det, der fylder weekenderne</p>
 <h1 style="font-size:clamp(26px,3.4vw,34px)">Femten mænd, en sal, og ingen der skal <em>ordnes</em>.</h1>
-<p class="mt3">Steven har stået i det her i ti år - Tomas Friis-linjen, medskaber af Tribal Vibe.</p>
-<p class="soft">Der bliver talt. Der bliver også siddet stille i lang tid, og det er den del, de fleste husker.</p>
+<p class="mt3">Steven har været i det danske mandegruppemiljø i ti år. Han begyndte hos Tomas Friis og var partner i og medskaber af Tribal Vibe.</p>
+<p class="soft">Om dagen arbejder vi på stedet. Om aftenen sidder vi i en talerunde, hvor hver mand taler uden at blive afbrudt, og hvor ingen kommenterer bagefter.</p>
 </div>
 <div class="media">''' + HORIZON("h-side", "58%", "Foto · salen, lørdag morgen · kommer", "F-014") + '''</div>
 </div>
@@ -301,7 +271,7 @@ pages["maend.html"] = head("Mandegrupper · Vend Hjem", "Femten mænd, en weeken
 <div class="tl">
 <div><div class="pkt"></div><p class="t">Fredag eftermiddag</p><p class="b">Færgen fra Stigsnæs, et kvarter. Kaffe, rundtur - og telefonen i en kasse ved døren, hvis du vil. De fleste lægger den.</p></div>
 <div><div class="pkt"></div><p class="t">Fredag aften</p><p class="b">Mad fra storkøkkenet. Bål. En runde: hvorfor er du kommet, og hvad er du bange for at sige. Ingen kommenterer.</p></div>
-<div><div class="pkt a"></div><p class="t">Lørdag</p><p class="b">Arbejde om formiddagen - rigtigt arbejde, valgt fordi femten utrænede hænder faktisk kan flytte det. Sauna og havet om eftermiddagen. Workshop om aftenen. Det er der, weekenden enten betyder noget eller ikke gør.</p></div>
+<div><div class="pkt a"></div><p class="t">Lørdag</p><p class="b">Arbejde om formiddagen - rigtigt arbejde, valgt fordi femten utrænede hænder faktisk kan flytte det. Sauna og havet om eftermiddagen. Workshop om aftenen.</p></div>
 <div><div class="pkt"></div><p class="t">Søndag</p><p class="b">Morgenmad, oprydning, en sidste runde: hvad tager du med. Så færgen igen. Ingen gruppe på nettet bagefter.</p></div>
 </div>
 </section>
@@ -336,7 +306,7 @@ pages["bliv-en-del.html"] = head("Bliv en del · Vend Hjem", "Forløbet fra brev
 <div class="maxw">
 <p class="sec">Forløbet</p>
 <h1 style="font-size:clamp(26px,3.4vw,34px)">Der er en dør ind, og der er en dør ud - og den sidste skal du kende, før du går ind ad den første.</h1>
-<p class="lead mt2">Det har vi ikke været gode til før. Derfor står slutdatoen i aftalen fra dag ét, og derfor siger alle ja til mediation, inden der er noget at mediere om. Det er ikke til forhandling - og vi lytter altid.</p>
+<p class="lead mt2">Det har vi ikke været gode til før. Du og vi aftaler fra begyndelsen, hvornår forløbet slutter, hvordan du kan stoppe undervejs, og hvordan en mægler kommer ind, hvis vi bliver uenige.</p>
 </div>
 </section>
 
@@ -344,7 +314,7 @@ pages["bliv-en-del.html"] = head("Bliv en del · Vend Hjem", "Forløbet fra brev
 <div class="g g-4">
 <div class="trin"><p class="nr">01</p><p class="t">Du skriver</p><p class="b">Et brev. Ikke en formular med felter til "interesseområde".</p><p class="m">Svar inden 7 dage</p></div>
 <div class="trin"><p class="nr">02</p><p class="t">To samtaler</p><p class="b">Én om hvad du vil. Én om hvad du har svært ved. Den anden er den vigtige.</p><p class="m">3–6 uger</p></div>
-<div class="trin loeft"><p class="nr a">03</p><p class="t">Prøveaftale</p><p class="b">Du bor og arbejder her. Der er en slutdato, og den er ikke en trussel.</p><p class="m">6 måneder · skriftlig</p></div>
+<div class="trin loeft"><p class="nr a">03</p><p class="t">Prøveaftale</p><p class="b">Du bor og arbejder her. Slutdatoen står i aftalen fra begyndelsen.</p><p class="m">6 måneder · skriftlig</p></div>
 <div class="trin"><p class="nr">04</p><p class="t">Medlem</p><p class="b">Begge siger ja igen. Timer, indskud og mandat skrives ned, som de er aftalt.</p><p class="m">Tages op hvert år</p></div>
 </div>
 </section>
@@ -359,7 +329,7 @@ pages["bliv-en-del.html"] = head("Bliv en del · Vend Hjem", "Forløbet fra brev
 <li><span>Dine timer opgøres på det grundlag, de blev aftalt på. Ikke på hvad nogen husker.</span></li>
 <li><span>Går det i hårdknude, kommer der en tredje part ind. Aftalt på forhånd.</span></li>
 </ul>
-<!-- COPY-FELT B1: hvad vi ikke lover. Afventer Sirius. -->
+<p class="xs soft mt3">Prøveaftalen beskriver dit ophold, dine opgaver og den periode, vi sammen har aftalt. Den giver dig ikke en ejerandel eller tilsagn om en bolig eller en varig plads i fællesskabet.</p>
 </div>
 <div>
 <p class="sec">Skriv</p>
@@ -410,7 +380,7 @@ pages["internt/index.html"] = head("Internt · Vend Hjem", "Agersø-projektet ba
 <section class="stage blok">
 <div class="maxw">
 <p class="sec">Hvorfor der er en mur her</p>
-<p class="small">Fællesskabets økonomi skal være gennemsigtig for dem, der er med. Den skal ikke være gennemsigtig for alle andre. </p>
+<p class="small">Som medlem har du adgang til fællesskabets økonomi, indskud og aftaler her. Oplysningerne deles i medlemsområdet bag login.</p>
 <p class="small soft">Udadtil viser vi fremdrift. Indadtil viser vi tallene. Ingen rangliste over, hvem der har knoklet mest, nogen af stederne.</p>
 </div>
 </section>
@@ -476,7 +446,7 @@ pages["internt/timer.html"] = head("Timer og indskud · Internt", "Hvem har lagt
 </ul>
 <p class="small mt3">Karakteren vælges, når pengene går ind, ikke bagefter. En beregnet værdi af frivilligt arbejde er ikke en kontant udgift og heller ikke et krav på løn.</p>
 <p class="sec mt4">Paradokset, tabellen løser</p>
-<p class="small soft">For den, der har lagt timerne, vokser de over tid. For alle andre daler de. Det er ikke ond vilje - det er sådan hukommelse virker.</p>
+<p class="small soft">Din egen indsats kan fylde mere i hukommelsen med tiden, mens den træder i baggrunden hos andre. Registrér timerne, mens du kan huske arbejdet, og knyt dem til den aftale, de er udført under.</p>
 <p class="sec mt4">Hvad der ligger under</p>
 <p class="small soft">Registreringen på telefonen skriver til én fælles tabel. Mandater, beløbsrammer og aftaler ligger i samme system, så en linje altid kan slås op mod det, den blev aftalt under. Systemvalget er beskrevet i den digitale plan.</p>
 </div>
