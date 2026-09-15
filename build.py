@@ -100,14 +100,14 @@ pages["index.html"] = head("Vend Hjem · Agersø", "En gammel campingplads på A
 </script>
 <div class="over"><div class="inner">
 <p class="meta">§ Agersø · Storebælt · færgen fra Stigsnæs</p>
-<h1>Vi laver en gammel campingplads på Agersø om til et fællesskab, man kan <em>bo</em> i.</h1>
+<h1>Vi laver en gammel campingplads på Agersø om til en <em>genkolonisering</em> af Jorden ud fra integrale modeller og humanistiske idealer.</h1>
 </div></div>
 </section>
 
 <section class="stage">
 <div class="g g-32 nb">
 <div>
-<p class="lead" style="color:var(--blaek)">Syv bygninger fra 1920. 25 senge, en sal til 50, 60.000 kvadratmeter - og det meste af det trænger.</p>
+<p class="lead" style="color:var(--blaek)">En unik oase på 6 hektar med syv bygninger fra 1920. 25 senge, en sal til 50, industrikøkken og plads til at drømme stort.</p>
 <p class="lead">Her bor man og driver stedet sammen. Nogle er her fast, andre kommer for at arbejde med i perioder, og nogle lejer sig ind til deres eget forløb.</p>
 <p class="mt3"><a class="lnk" href="bliv-en-del">Skriv → én vej ind</a></p>
 </div>
@@ -119,7 +119,7 @@ pages["index.html"] = head("Vend Hjem · Agersø", "En gammel campingplads på A
 
 <section class="stage">
 <div class="g g-3 nb">
-<div><p class="sec">Sporene</p><p class="small soft">Mandeweekender, retreats, byg-med-uger og stille uger. Hvad der foregår på stedet, og hvem det er for. <a class="lnk" href="sporene">Se →</a></p></div>
+<div><p class="sec">Sporene</p><p class="small soft">Mandeweekender, retreats, byg-med-uger, festivaler, burns, raves og stille uger. <a class="lnk" href="sporene">Se →</a></p></div>
 <div><p class="sec">Fundamentet</p><p class="small soft">Sådan træffer vi beslutninger, fordeler ansvar og taler sammen, når vi er uenige. <a class="lnk" href="fundamentet">Læs →</a></p></div>
 <div><p class="sec">Bliv en del</p><p class="small soft">Forløbet fra den første samtale til en aftale, og hvad der gælder, hvis du vil stoppe. <a class="lnk" href="bliv-en-del">Se forløbet →</a></p></div>
 </div>
@@ -135,7 +135,7 @@ pages["fundamentet.html"] = head("Fundamentet · Vend Hjem", "Det, stedet hviler
 <section class="stage blok">
 <p class="sec">Fire perspektiver på alt, der er stort nok</p>
 <h1 style="font-size:clamp(26px,3.4vw,34px)">Hvert rum og hvert projekt beskrives fire gange.</h1>
-<p class="lead maxw mt2">Når vi planlægger et rum eller begynder et projekt, bruger vi de fire perspektiver til at få de berørtes erfaringer med og undersøge, hvad opgaven kræver. Det indgår i beslutningen om, hvad vi gør, og hvem der tager ansvar.</p>
+<p class="lead maxw mt2">Når vi planlægger et rum eller begynder et projekt, bruger vi de fire perspektiver til at få de berørtes erfaringer med og undersøge, hvad opgaven kræver. Det indgår i beslutningen om, hvad vi gør, og hvem der tager ansvar. Men i sidste ende er vi et do-ocracy, med fokus på at belønne dem der tør agere.</p>
 </section>
 
 <section class="stage">
@@ -239,13 +239,6 @@ pages["sporene.html"] = head("Sporene · Vend Hjem", "Det, der sker på stedet: 
 </div>
 </div>
 </section>
-
-<section class="stage blok">
-<div class="maxw">
-<p class="sec">Syv uger om året er lukkede</p>
-<p class="small soft">Syv uger om året holder stedet lukket for gæster. De står i kalenderen fra årets begyndelse, så alle kan planlægge efter dem.</p>
-</div>
-</section>
 ''' + foot()
 
 # ───────────────────────────── MÆND (1e) ─────────────────────────────
@@ -260,7 +253,7 @@ pages["maend.html"] = head("Mandegrupper · Vend Hjem", "Femten mænd, en weeken
 <p class="sec">Det, der fylder weekenderne</p>
 <h1 style="font-size:clamp(26px,3.4vw,34px)">Femten mænd, en sal, og ingen der skal <em>ordnes</em>.</h1>
 <p class="mt3">Steven har været i det danske mandegruppemiljø i ti år. Han begyndte hos Tomas Friis og var partner i og medskaber af Tribal Vibe.</p>
-<p class="soft">Om dagen arbejder vi på stedet. Om aftenen sidder vi i en talerunde, hvor hver mand taler uden at blive afbrudt, og hvor ingen kommenterer bagefter.</p>
+<p class="soft">Om dagen arbejder vi på stedet. Om aftenen dykker vi dybt og bygger bro mellem dem vi var og dem vi gerne vil være, omringet af andre mænd der lytter og spejler os.</p>
 </div>
 <div class="media">''' + HORIZON("h-side", "58%", "Foto · salen, lørdag morgen · kommer", "F-014") + '''</div>
 </div>
@@ -306,7 +299,7 @@ pages["bliv-en-del.html"] = head("Bliv en del · Vend Hjem", "Forløbet fra brev
 <div class="maxw">
 <p class="sec">Forløbet</p>
 <h1 style="font-size:clamp(26px,3.4vw,34px)">Der er en dør ind, og der er en dør ud - og den sidste skal du kende, før du går ind ad den første.</h1>
-<p class="lead mt2">Det har vi ikke været gode til før. Du og vi aftaler fra begyndelsen, hvornår forløbet slutter, hvordan du kan stoppe undervejs, og hvordan en mægler kommer ind, hvis vi bliver uenige.</p>
+<p class="lead mt2">Du og vi aftaler fra begyndelsen, hvornår forløbet slutter, hvordan du kan stoppe undervejs, og hvordan en mægler kommer ind, hvis vi bliver uenige.</p>
 </div>
 </section>
 
