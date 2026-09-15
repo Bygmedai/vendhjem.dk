@@ -427,7 +427,7 @@ pages["bliv-en-del.html"] = head("Bliv en del · Vend Hjem", "Forløbet fra brev
     e.preventDefault();
     var n=f.navn.value.trim(), m=f.mail.value.trim(), b=f.brevet.value.trim();
     var body='Fra: '+n+' <'+m+'>\\n\\n'+b;
-    location.href='mailto:kontakt@vendhjem.dk?subject='+encodeURIComponent('Brev til Vend Hjem fra '+n)+'&body='+encodeURIComponent(body);
+    location.href='mailto:laiydeh@gmail.com?subject='+encodeURIComponent('Brev til Vend Hjem fra '+n)+'&body='+encodeURIComponent(body);
   });
 })();
 </script>
@@ -448,7 +448,7 @@ pages["privatlivspolitik.html"] = head("Privatlivspolitik · Vend Hjem", "Hvilke
 <p class="lead mt4">Vi behandler kun det, du selv sender os. Vi indsamler intet i det skjulte, profilerer ikke og videresælger ikke.</p>
 
 <div class="stak mt4">
-<div><p class="sec">Dataansvarlig</p><p class="small">Vend Hjem drives af Lai Yde, Egholmvej 23, Agersø. Spørgsmål til behandlingen af dine oplysninger: <a href="mailto:kontakt@vendhjem.dk">kontakt@vendhjem.dk</a>.</p></div>
+<div><p class="sec">Dataansvarlig</p><p class="small">Vend Hjem drives af Lai Yde, Egholmvej 23, Agersø. Spørgsmål til behandlingen af dine oplysninger: <a href="mailto:laiydeh@gmail.com">laiydeh@gmail.com</a>.</p></div>
 
 <div><p class="sec">Hvad vi får</p><p class="small">Brevet på <a href="bliv-en-del">Bliv en del</a> beder om navn, mailadresse og din tekst. Formularen sender intet selv - den åbner en mail i dit eget program, som du selv afsender. Vi modtager altså kun det, du vælger at sende, og vi ser det først, når mailen ligger hos os.</p></div>
 
@@ -458,7 +458,7 @@ pages["privatlivspolitik.html"] = head("Privatlivspolitik · Vend Hjem", "Hvilke
 
 <div><p class="sec">Hvem ser det</p><p class="small">Kun de mennesker i Vend Hjem, der skal svare dig. Mailen ligger hos vores mailudbyder. Vi overfører ikke oplysninger til tredjelande på eget initiativ.</p></div>
 
-<div><p class="sec">Dine rettigheder</p><p class="small">Du kan bede om indsigt, rettelse eller sletning, om begrænsning, og du kan gøre indsigelse. Skriv til <a href="mailto:kontakt@vendhjem.dk">kontakt@vendhjem.dk</a>. Er du utilfreds med vores svar, kan du klage til Datatilsynet, <a href="https://www.datatilsynet.dk/">datatilsynet.dk</a>.</p></div>
+<div><p class="sec">Dine rettigheder</p><p class="small">Du kan bede om indsigt, rettelse eller sletning, om begrænsning, og du kan gøre indsigelse. Skriv til <a href="mailto:laiydeh@gmail.com">laiydeh@gmail.com</a>. Er du utilfreds med vores svar, kan du klage til Datatilsynet, <a href="https://www.datatilsynet.dk/">datatilsynet.dk</a>.</p></div>
 </div>
 
 <p class="meta mt4"><a href="cookies">Cookies og tredjepart →</a></p>

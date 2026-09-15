@@ -1,23 +1,38 @@
-# Worker for vendhjem.dk. Statisk site bygget af ../build.py.
+# Worker for vendhjem.dk.
 #
-# VIGTIGT: `routes` SKAL staa foer [assets]. Ellers parses det som et
-# assets-felt og ryger stille ud. (Laert i S591.)
+# To ting i én: det statiske site (bygget af ../build.py) og Fonds-CRM'et på
+# /internt/fonde, som kun Workeren selv besvarer.
+#
+# MAA IKKE FJERNES: uden workers_dev = false slaar wrangler workers.dev til igen
+# ved hvert deploy, og saa ligger /internt aabent paa
+# vendhjem.<subdomain>.workers.dev uden for Access, som er bundet til
+# vendhjem.dk-stier. Maalt aabent i S592.
 #
 # Deploy:  cd vh-worker && CLOUDFLARE_API_TOKEN=$(cat /tmp/.cf_token_vh) npx wrangler@4 deploy
-# Det sidste kald til workers/routes fejler med det scopede token. Det er
-# forventet — assets er uploadet foer den fejl. Verificer altid med curl.
 
 name = "vendhjem"
+main = "src/index.js"
 compatibility_date = "2026-09-01"
+compatibility_flags = ["nodejs_compat"]
 account_id = "e91b41e73aafbedf6e0512076e0544c2"
 
-# MAA IKKE FJERNES. Uden disse to linjer slaar wrangler workers.dev til igen ved
-# hvert deploy, og saa ligger /internt aabent paa vendhjem.<subdomain>.workers.dev
-# uden for Access, som er bundet til vendhjem.dk-stier. Maalt aabent i S592.
 workers_dev = false
 preview_urls = false
 
 [assets]
 directory = "../"
+binding = "ASSETS"
 not_found_handling = "404-page"
 html_handling = "auto-trailing-slash"
+# Workeren skal se fonds-stierne foer assets faar dem. Alt andet gaar
+# udenom koden og serveres direkte som filer.
+run_worker_first = ["/internt/fonde", "/internt/fonde/*"]
+
+[[d1_databases]]
+binding = "FONDE_DB"
+database_name = "vendhjem-fonde"
+database_id = "00000000-0000-0000-0000-000000000000"
+
+[[r2_buckets]]
+binding = "FONDE_FILER"
+bucket_name = "vendhjem-fonde-bilag"
