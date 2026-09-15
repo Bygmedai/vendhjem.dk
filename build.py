@@ -9,7 +9,7 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 FOOT_DATE = "15. september 2026"
 # Indtil vendhjem.dk peger på Cloudflare, ligger de interne sider kun på Workeren.
 # Sæt til "" ved cutover, så "Log ind" bliver et relativt link.
-INTERN_BASE = "https://vendhjem.steven-e91.workers.dev"
+INTERN_BASE = ""  # domaenet er live; "Log ind" er nu et relativt link
 
 def head(title, desc, path, intern=False, current=None):
     depth = "../" if path.startswith("internt/") else ""
