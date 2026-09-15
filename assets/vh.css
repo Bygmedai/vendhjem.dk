@@ -301,3 +301,21 @@ button.lnk { background: none; border: 0; border-bottom: 1px solid var(--streg-m
 .xs { font-size: 13px; line-height: 1.55; }
 .note { font-family: var(--mono); font-size: 11px; line-height: 1.55; color: var(--blaek-mat); }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ─── Feltregistrering ─── */
+.grp { padding-block: 18px; border-bottom: 1px solid var(--streg-svag); }
+.grp:last-child { border-bottom: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.chip {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .08em;
+  padding: 9px 11px; border: 1px solid var(--streg-mork); background: var(--papir);
+  color: var(--blaek); cursor: pointer; border-radius: 0; line-height: 1;
+}
+.chip:hover { border-color: var(--blaek); }
+.chip.gjort { background: var(--dybde); border-color: var(--dybde); color: var(--papir); }
+.chip.valgt { border-color: var(--accent); border-width: 2px; padding: 8px 10px; color: var(--accent); }
+.chip.gjort.valgt { color: var(--papir); border-color: var(--accent); }
+select.felt { -webkit-appearance: none; appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--blaek-mat) 50%), linear-gradient(135deg, var(--blaek-mat) 50%, transparent 50%); background-position: right 6px center, right 1px center; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; padding-right: 20px; }
+button.tag { cursor: pointer; background: var(--papir); }
+button.tag:hover { border-color: var(--blaek); }
+input[type="file"].felt { font-family: var(--mono); font-size: 12px; padding: 10px 0; }

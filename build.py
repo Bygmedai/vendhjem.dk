@@ -23,6 +23,7 @@ def head(title, desc, path, intern=False, current=None):
 <a href="{depth}internt/oekonomi"{' aria-current="page"' if current=="oekonomi" else ""}>Økonomi</a>
 <a href="{depth}internt/anlaeg"{' aria-current="page"' if current=="anlaeg" else ""}>Anlæg</a>
 <a href="{depth}internt/timer"{' aria-current="page"' if current=="timer" else ""}>Timer og indskud</a>
+<a href="{depth}internt/registrering"{' aria-current="page"' if current=="registrering" else ""}>Registrering</a>
 </nav>'''
         brand = f'<a class="brand" href="{depth}internt/">Vend <em>Hjem</em> <span class="meta" style="margin-left:10px">Internt</span></a>'
     else:
@@ -43,6 +44,7 @@ def head(title, desc, path, intern=False, current=None):
 {robots}{canon}<meta name="theme-color" content="#e9e7e0">
 <link rel="preload" href="{depth}assets/fonts/lora-var.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="{depth}assets/fonts/jetbrains-mono-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="icon" href="{depth}assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="{depth}assets/vh.css">
 </head>
 <body>
@@ -105,14 +107,12 @@ pages["index.html"] = head("Vend Hjem · Agersø", "En gammel campingplads på A
 <section class="stage">
 <div class="g g-32 nb">
 <div>
-<p class="lead" style="color:var(--blaek)">Syv bygninger fra 1920. 25 senge, en sal til 50, 60.000 kvadratmeter - og det meste af det trænger. Vi lægger det frem, som det er, før der står noget pænt.</p>
+<p class="lead" style="color:var(--blaek)">Syv bygninger fra 1920. 25 senge, en sal til 50, 60.000 kvadratmeter - og det meste af det trænger.</p>
 <p class="lead">Det er ikke et "sommerhus". Det er et sted, man bor - med alt det, der følger med, når man ikke kan tage hjem fra det.</p>
 <p class="mt3"><a class="lnk" href="bliv-en-del">Skriv → én vej ind</a></p>
 </div>
 <div class="fakta">
 <div><p class="meta-s">Færge fra Stigsnæs</p><p class="v">Et kvarter · omkring 170 fastboende</p></div>
-<div><p class="meta-s">Hvem står bag</p><p class="v">Lai Yde ejer stedet. Steven Wensley bygger med.</p></div>
-<div><p class="meta-s">Lige nu</p><p class="v">Bygningerne registreres rum for rum 19.–21. september.</p></div>
 </div>
 </div>
 </section>
@@ -135,7 +135,7 @@ pages["fundamentet.html"] = head("Fundamentet · Vend Hjem", "Det, stedet hviler
 <section class="stage blok">
 <p class="sec">Fire perspektiver på alt, der er stort nok</p>
 <h1 style="font-size:clamp(26px,3.4vw,34px)">Hvert rum og hvert projekt beskrives fire gange.</h1>
-<p class="lead maxw mt2">Ikke fordi det er pænt at have en model. Men fordi et projekt, der kun er beskrevet fra det ene hjørne, bliver bygget fra det ene hjørne - og så står de tre andre og betaler for det bagefter.</p>
+<!-- COPY-FELT F1: indledning til firedelingen. Afventer Sirius. -->
 </section>
 
 <section class="stage">
@@ -145,7 +145,6 @@ pages["fundamentet.html"] = head("Fundamentet · Vend Hjem", "Det, stedet hviler
 <div><p class="q-akse">INDRE · FÆLLES</p><p class="q-navn">VI</p><p class="q-tekst">Hvordan taler vi sammen om det? Går vi til kilden - eller til hinanden om hinanden?</p></div>
 <div><p class="q-akse">YDRE · FÆLLES</p><p class="q-navn">DET HELE</p><p class="q-tekst">Hvad koster det, hvad slider det på øen, og holder det om tre år uden at nogen brænder ud?</p></div>
 </div>
-<p class="note mt2">Ved en lille reparation arves formålet fra det projekt, den hører til. Registreringen skal forblive lille - ellers bliver den ikke udfyldt.</p>
 </section>
 
 <section class="stage sektion">
@@ -156,7 +155,7 @@ pages["fundamentet.html"] = head("Fundamentet · Vend Hjem", "Det, stedet hviler
 <div class="ramme"><p class="meta-s" style="color:var(--accent);font-weight:500">FAGLIG</p><p class="small mt1">Den, der kan det, bestemmer hvordan - inden for formål, budget og aftalte grænser. Taget lægges ikke efter stemmetal. Alle andre kan være med som lærende.</p></div>
 <div class="ramme"><p class="meta-s" style="color:var(--accent);font-weight:500">FÆLLES</p><p class="small mt1">De berørte er med. Hvad salen bruges til om lørdagen, afgør den, der kan snedkerere, ikke. Der noteres bidrag, aftale og en dato, hvor det tages op igen.</p></div>
 </div>
-<p class="xs soft mt2">Hver beslutning på sitet bærer mærket. Blandede deles op: først fælles formål og ramme, så fagligt løsningsforslag. Og alle kan altid sige fra ved fare, fejl og overskredne aftaler - fagligt mandat er ikke tavshedspligt.</p>
+<!-- COPY-FELT F2: de to beslutningsformer, afrunding. Afventer Sirius. -->
 </div>
 <div>
 <p class="sec">Fem energier - spørgsmål, ikke karakterer</p>
@@ -167,7 +166,7 @@ pages["fundamentet.html"] = head("Fundamentet · Vend Hjem", "Det, stedet hviler
 <li><span>Seksuel</span><span class="r">er grænserne sagt højt?</span></li>
 <li><span>Åndelig</span><span class="r">er der stille nogensinde?</span></li>
 </ul>
-<p class="xs soft mt2">Aldrig en score for mennesker. Timer, kroner og kilowatt-timer registreres hver for sig og lægges aldrig sammen til et tal for, om nogen giver nok.</p>
+<!-- COPY-FELT F3: de fem energier, afrunding. Afventer Sirius. -->
 </div>
 </div>
 </section>
@@ -190,11 +189,10 @@ pages["fundamentet.html"] = head("Fundamentet · Vend Hjem", "Det, stedet hviler
 <div>
 <p class="sec">Refleksionssprog, ikke adgangskrav</p>
 <p class="small">Spiral Dynamics, Enneagram, arketyperne, udviklingslinjerne - det er sprog til at forstå sig selv og hinanden. Ingen farve, type eller niveau afgør, om nogen kan være her, hvad de må bestemme, eller hvad de er værd.</p>
-<p class="small soft">Det står her, fordi det skal være svært at lave om på.</p>
 </div>
 <div>
 <p class="sec">Det integrale landkort</p>
-<p class="small">Kvadranter, niveauer, linjer, tilstande og typer. Lais grundlag, skrevet ud i seks dele på det nuværende site. De flyttes herind, som de er, i næste runde.</p>
+<p class="small">Kvadranter, niveauer, linjer, tilstande og typer. Lais grundlag, skrevet ud i seks dele på det nuværende site.</p>
 <p class="meta mt2">Manifestet · dateret version · kommer</p>
 </div>
 </div>
@@ -275,7 +273,7 @@ pages["sporene.html"] = head("Sporene · Vend Hjem", "Det, der sker på stedet: 
 <section class="stage blok">
 <div class="maxw">
 <p class="sec">Syv uger om året er lukkede</p>
-<p class="small soft">De står i kalenderen som ro: ingen gæster, intet salg. Et sted, der kan fylde 52 uger, brænder sine ejere af i år ét. Det har vi set før.</p>
+<!-- COPY-FELT S1: de syv lukkede uger. Afventer Sirius. -->
 </div>
 </section>
 ''' + foot()
@@ -291,7 +289,7 @@ pages["maend.html"] = head("Mandegrupper · Vend Hjem", "Femten mænd, en weeken
 <div>
 <p class="sec">Det, der fylder weekenderne</p>
 <h1 style="font-size:clamp(26px,3.4vw,34px)">Femten mænd, en sal, og ingen der skal <em>ordnes</em>.</h1>
-<p class="mt3">Steven har stået i det her i ti år - Tomas Friis-linjen, medskaber af Tribal Vibe. Det er ikke terapi, og det er ikke et kursus. Du får ikke et diplom, og der er ingen der spørger, hvad du laver til daglig.</p>
+<p class="mt3">Steven har stået i det her i ti år - Tomas Friis-linjen, medskaber af Tribal Vibe.</p>
 <p class="soft">Der bliver talt. Der bliver også siddet stille i lang tid, og det er den del, de fleste husker.</p>
 </div>
 <div class="media">''' + HORIZON("h-side", "58%", "Foto · salen, lørdag morgen · kommer", "F-014") + '''</div>
@@ -310,19 +308,14 @@ pages["maend.html"] = head("Mandegrupper · Vend Hjem", "Femten mænd, en weeken
 
 <section class="stage">
 <div class="g g-3 nb">
-<div><p class="meta-s">Praktisk</p><p class="small mt1">15 pladser · 850 kr. · seng og al mad indgår · sauna · færgen betaler du selv</p></div>
+<div><p class="meta-s">Praktisk</p><p class="small mt1">15 pladser · 850 kr. · seng og al mad indgår · sauna · færgen og sovepose selv</p></div>
 <div><p class="meta-s">Næste</p><p class="small mt1">Datoer for 2027 kommer, når stedet er registreret og kalenderen ligger fast.</p></div>
 <div><p class="meta-s">Hvis du vil med</p><p class="mt1"><a class="lnk" href="bliv-en-del">Skriv → vi ringer</a></p></div>
 </div>
 </section>
 
 <section class="stage sektion">
-<div class="g g-2">
-<div>
-<p class="sec">Hvorfor prisen ser sådan ud</p>
-<p class="small">En manderetreat i Danmark koster typisk 4.500–5.200 kroner for en weekend med mad og program. Forskellen her er arbejdet. Det er ikke en skjult udgift for dig - det er grunden til, at prisen ser ud, som den gør.</p>
-<p class="small soft">Sovepose eller eget sengetøj tager du selv med. Det er der ingen, der brokker sig over, og det holder prisen nede.</p>
-</div>
+<div class="g nbb" style="grid-template-columns:1fr">
 <div>
 <p class="sec">Hvad vi laver, når vi arbejder</p>
 <ul class="liste">
@@ -366,7 +359,7 @@ pages["bliv-en-del.html"] = head("Bliv en del · Vend Hjem", "Forløbet fra brev
 <li><span>Dine timer opgøres på det grundlag, de blev aftalt på. Ikke på hvad nogen husker.</span></li>
 <li><span>Går det i hårdknude, kommer der en tredje part ind. Aftalt på forhånd.</span></li>
 </ul>
-<p class="xs soft mt3">Vi lover ikke en bolig, en ejerandel eller en permanent plads. Et prøveforløb er et forsøg - for dig og for os - og det er sagt højt, fordi det modsatte har kostet dyrt før.</p>
+<!-- COPY-FELT B1: hvad vi ikke lover. Afventer Sirius. -->
 </div>
 <div>
 <p class="sec">Skriv</p>
@@ -417,7 +410,7 @@ pages["internt/index.html"] = head("Internt · Vend Hjem", "Agersø-projektet ba
 <section class="stage blok">
 <div class="maxw">
 <p class="sec">Hvorfor der er en mur her</p>
-<p class="small">Fællesskabets økonomi skal være gennemsigtig for dem, der er med. Den skal ikke være gennemsigtig for alle andre. Forskellen er ikke hemmelighedskræmmeri - det er, at et regnskab uden sammenhæng bliver læst forkert af folk, der ikke kender sagen.</p>
+<p class="small">Fællesskabets økonomi skal være gennemsigtig for dem, der er med. Den skal ikke være gennemsigtig for alle andre. </p>
 <p class="small soft">Udadtil viser vi fremdrift. Indadtil viser vi tallene. Ingen rangliste over, hvem der har knoklet mest, nogen af stederne.</p>
 </div>
 </section>
@@ -483,7 +476,7 @@ pages["internt/timer.html"] = head("Timer og indskud · Internt", "Hvem har lagt
 </ul>
 <p class="small mt3">Karakteren vælges, når pengene går ind, ikke bagefter. En beregnet værdi af frivilligt arbejde er ikke en kontant udgift og heller ikke et krav på løn.</p>
 <p class="sec mt4">Paradokset, tabellen løser</p>
-<p class="small soft">For den, der har lagt timerne, vokser de over tid. For alle andre daler de. Det er ikke ond vilje - det er sådan hukommelse virker. Derfor er der en tabel. Den koster lidt tid i starten og redder et fællesskab senere.</p>
+<p class="small soft">For den, der har lagt timerne, vokser de over tid. For alle andre daler de. Det er ikke ond vilje - det er sådan hukommelse virker.</p>
 <p class="sec mt4">Hvad der ligger under</p>
 <p class="small soft">Registreringen på telefonen skriver til én fælles tabel. Mandater, beløbsrammer og aftaler ligger i samme system, så en linje altid kan slås op mod det, den blev aftalt under. Systemvalget er beskrevet i den digitale plan.</p>
 </div>
@@ -646,6 +639,158 @@ pages["internt/anlaeg.html"] = head("Anlæg · Internt", "Registrering, fund og 
 </section>
 ''' + foot(intern=True, path="internt/anlaeg.html")
 
+
+# ───────────────────────────── INTERNT / FELTREGISTRERING ─────────────────────────────
+pages["internt/registrering.html"] = head("Registrering · Internt", "Feltregistrering 19.–21. september. Virker offline.", "internt/registrering.html", intern=True, current="registrering") + '''
+<section class="stage blok">
+<p class="sec">Internt · feltregistrering</p>
+<h1 style="font-size:clamp(26px,3.4vw,34px)">Rum for rum.</h1>
+<p class="lead maxw mt2">Kun det, der skal fanges, mens du står i rummet. Resten — ønsket brug, de fire perspektiver, de fem energier — udfyldes ved bordet bagefter, når I kan se på fotoet sammen.</p>
+<div class="tags mt3">
+<span class="tag" id="net">online</span>
+<span class="tag" id="gemstatus">Intet gemt endnu</span>
+</div>
+</section>
+
+<section class="stage">
+<div class="g g-2 nb">
+<div>
+<label class="felt-label" for="hvem">Hvem registrerer (initialer)</label>
+<input class="felt" id="hvem" type="text" autocomplete="off" placeholder="SW">
+<p class="note">Står på hver linje, så to telefoner kan flettes bagefter.</p>
+</div>
+<div>
+<label class="felt-label" for="filter">Vis</label>
+<select class="felt" id="filter">
+<option value="alle">Alle steder</option>
+<option value="mangler">Kun dem der mangler</option>
+<option value="faerdige">Kun færdige</option>
+</select>
+<p class="mt2"><button class="lnk" type="button" id="visoversigt">Oversigt og eksport →</button></p>
+</div>
+</div>
+</section>
+
+<section class="stage blok" id="liste"></section>
+
+<section class="stage sektion" id="oversigt" hidden>
+<p class="sec">Hvor langt er vi</p>
+<div class="g g-3">
+<div><p class="stor"><span id="o_gjort">0</span> <span class="soft" style="font-size:.5em">af <span id="o_ialt">0</span></span></p><p class="meta-s mt1">steder færdige</p><div class="frem mt2" id="o_frem"></div></div>
+<div><p class="stor" id="o_fund">0</p><p class="meta-s mt1">fund registreret</p></div>
+<div class="loeft"><p class="stor" id="o_haster" style="color:var(--accent)">0</p><p class="meta-s mt1">haster · skal afklares nu</p></div>
+</div>
+<div class="g g-2 nb mt3">
+<div>
+<p class="sec">Tilstand fordelt</p>
+<ul class="liste" id="o_k"></ul>
+<p class="note mt2">Fugt 2 eller 3: <span id="o_fugt"></span></p>
+</div>
+<div>
+<p class="sec">Eksport</p>
+<p class="small soft">Filerne lægges ind i feltarket bagefter. Eksportér ved hver pause — telefonen er ikke et arkiv.</p>
+<p class="mt2"><button class="lnk" type="button" id="eks_rum">Rum som CSV</button></p>
+<p class="mt2"><button class="lnk" type="button" id="eks_fund">Fund som CSV</button></p>
+<p class="mt2"><button class="lnk" type="button" id="eks_json">Alt som JSON (til fletning)</button></p>
+<p class="mt3"><label class="felt-label" for="import">Flet den anden telefons JSON ind</label>
+<input class="felt" id="import" type="file" accept="application/json,.json"></p>
+<p class="note" id="importsvar"></p>
+<p class="note mt2" id="o_datamangel"></p>
+</div>
+</div>
+</section>
+
+<section class="stage sektion" id="form" hidden>
+<div class="g nbb" style="grid-template-columns:1fr">
+<div>
+<p class="sec"><span id="formtitel"></span></p>
+<p class="note" id="formhint"></p>
+
+<div class="g g-4 nb mt3" style="gap:1px">
+<div style="padding:12px"><label class="felt-label" for="f_l">Længde m</label><input class="felt" id="f_l" type="text" inputmode="decimal"></div>
+<div style="padding:12px"><label class="felt-label" for="f_b">Bredde m</label><input class="felt" id="f_b" type="text" inputmode="decimal"></div>
+<div style="padding:12px"><label class="felt-label" for="f_h">Loftshøjde m</label><input class="felt" id="f_h" type="text" inputmode="decimal"></div>
+<div style="padding:12px"><label class="felt-label" for="f_dor">Dørbredde cm</label><input class="felt" id="f_dor" type="text" inputmode="numeric"></div>
+</div>
+
+<p class="felt-label mt3">Rumnavn, som I kalder det</p>
+<input class="felt" id="f_navn" type="text" autocomplete="off">
+
+<p class="felt-label mt3">Tilstand</p>
+<div class="tags">
+<button type="button" class="tag" data-valg="k" data-v="K0">K0 ingen skade</button>
+<button type="button" class="tag" data-valg="k" data-v="K1">K1 let</button>
+<button type="button" class="tag" data-valg="k" data-v="K2">K2 moderat</button>
+<button type="button" class="tag" data-valg="k" data-v="K3">K3 alvorlig</button>
+<button type="button" class="tag" data-valg="k" data-v="UN">UN skal undersøges</button>
+</div>
+
+<p class="felt-label mt3">Fugt</p>
+<div class="tags">
+<button type="button" class="tag" data-valg="fugt" data-v="0">0 ingen</button>
+<button type="button" class="tag" data-valg="fugt" data-v="1">1 lugt</button>
+<button type="button" class="tag" data-valg="fugt" data-v="2">2 pletter</button>
+<button type="button" class="tag" data-valg="fugt" data-v="3">3 synlig skimmel</button>
+</div>
+
+<p class="felt-label mt3">Der er</p>
+<div class="tags">
+<button type="button" class="tag" id="tek0">Varmekilde</button>
+<button type="button" class="tag" id="tek1">Stik</button>
+<button type="button" class="tag" id="tek2">Loftudtag</button>
+<button type="button" class="tag" id="tek3">Vand</button>
+<button type="button" class="tag" id="tek4">Afløb</button>
+<button type="button" class="tag" id="tek5">Ventilation</button>
+<button type="button" class="tag" id="tek6">Vindue kan åbnes</button>
+</div>
+
+<p class="felt-label mt3">Fotonumre</p>
+<input class="felt" id="f_foto" type="text" autocomplete="off" placeholder="IMG_2231-2234">
+<p class="note">Foto først, note bagefter. Et foto med en dårlig note kan reddes.</p>
+
+<p class="felt-label mt3">Hvad så du</p>
+<textarea class="felt" id="f_note" placeholder="Beskriv det sete uden at gætte årsagen."></textarea>
+
+<div class="tags mt3">
+<button class="lnk" type="button" id="gem">Gem rummet</button>
+<button class="lnk" type="button" id="luk">Luk</button>
+</div>
+<p class="note mt2" id="gemsvar"></p>
+</div>
+</div>
+
+<div class="g nbb mt4" style="grid-template-columns:1fr">
+<div class="loeft">
+<p class="sec">Fund her — <span id="fundsted" class="mono"></span></p>
+<p class="felt-label">Hvad blev observeret</p>
+<input class="felt" id="fund_hvad" type="text" autocomplete="off">
+<p class="felt-label mt2">Haster</p>
+<div class="tags">
+<button type="button" class="tag tag-accent" data-valg="haster" data-v="nu">nu</button>
+<button type="button" class="tag" data-valg="haster" data-v="1-2 år">1–2 år</button>
+<button type="button" class="tag" data-valg="haster" data-v="senere">senere</button>
+</div>
+<p class="felt-label mt2">Hvem udfører</p>
+<div class="tags">
+<button type="button" class="tag" data-valg="udf" data-v="selv">selv</button>
+<button type="button" class="tag" data-valg="udf" data-v="fagmand">fagmand</button>
+</div>
+<p class="felt-label mt2">Foto</p>
+<input class="felt" id="fund_foto" type="text" autocomplete="off">
+<p class="mt2"><button class="lnk" type="button" id="fundgem">Gem fund</button></p>
+<p class="note mt2" id="fundsvar"></p>
+</div>
+</div>
+</section>
+
+<section class="stage sektion">
+<p class="sec">Fund i alt</p>
+<div id="fundliste"></div>
+</section>
+
+<script src="registrering.js"></script>
+''' + foot(intern=True, path="internt/registrering.html")
+
 for path, html in pages.items():
     full = os.path.join(ROOT, path)
     os.makedirs(os.path.dirname(full), exist_ok=True)
@@ -653,3 +798,11 @@ for path, html in pages.items():
     with open(full, "w", encoding="utf-8") as f:
         f.write(html)
     print("skrev", path, len(html))
+
+# app-filer (feltregistrering) kopieres med, så de altid følger bygget
+import shutil
+for f in ("registrering.js", "sw.js"):
+    src = os.path.join(ROOT, "app", f)
+    if os.path.exists(src):
+        shutil.copy2(src, os.path.join(ROOT, "internt", f))
+        print("kopierede", f)
