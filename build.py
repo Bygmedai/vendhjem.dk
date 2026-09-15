@@ -75,11 +75,80 @@ def foot(intern=False, path=""):
 <div class="stage row">
 <p>Vend Hjem · Agersø · Slagelse Kommune</p>
 <p>Udkast · {FOOT_DATE} · Lederudvikling og foredrag ligger på <a href="https://www.humandirection.dk/">humandirection.dk</a></p>
+<p><a href="{depth}privatlivspolitik">Privatlivspolitik</a> · <a href="{depth}cookies">Cookies</a></p>
 </div>
 </footer>
 </body>
 </html>
 '''
+
+# ─── Fotos fra stedet ───────────────────────────────────────────────────────
+# Kilderne er ca. 900 px brede (skærmbilleder, ikke rå foto), så billederne
+# vises bevidst i spaltebredde og aldrig full-bleed. Se BYG-551.
+import json as _json
+FOTO_MAN = _json.load(open(os.path.join(ROOT, "images/sted/_manifest.json"), encoding="utf-8"))
+FOTO_ALT = {
+ "oppefra": "Stedet set fra luften i aftensol: seks hektar eng og læhegn med Storebælt bagved.",
+ "udefra": "Sti gennem hæk og buske op mod det hvide hus med rødt tag.",
+ "salen": "Salen med sofaer og tæpper under et loft af tang og synlige bjælker.",
+ "salen-2": "Salen med sofa, tæppe og maleri under skråt træloft.",
+ "koekken": "Industrikøkkenet med stålborde, komfur, opvaskemaskine og et langt træbord i midten.",
+ "koekken-2": "Mindre køkken med hvide skabe, komfur og køleskab.",
+ "spisestue": "Langbord med stole og bænk langs vinduet i spisestuen.",
+ "sovesal": "Sovesal med senge under skråvæg og gardiner imellem.",
+ "vaerelse": "Værelse med dobbeltseng, hvide vægge og et rødt maleri.",
+ "vaerelse-dobbelt": "Værelse med dobbeltseng op ad en rå murstensvæg.",
+ "hyggekrog": "Overdækket terrasse med bord, stole og en bemalet væg.",
+ "solnedgang": "Solnedgang over engen.",
+ "bordet-i-marken": "Et langt dækket bord midt i engen med horisonten bagved.",
+ "udeplads": "Udendørs opholdsplads med bålsted og bænke.",
+ "cafe": "Udendørs bar med tavler og skilte i aftenlys.",
+ "faellesspisning": "Mange mennesker spiser sammen ved langborde udenfor.",
+}
+
+def _srcset(slug, d, ext):
+    w = FOTO_MAN[slug]["w"]
+    parts = []
+    if w > 480:
+        parts.append(f"{d}images/sted/{slug}-s.{ext} 480w")
+    parts.append(f"{d}images/sted/{slug}.{ext} {w}w")
+    return ", ".join(parts)
+
+def _pic(slug, d, sizes):
+    m = FOTO_MAN[slug]
+    return (f'<picture>\n'
+            f'<source type="image/avif" srcset="{_srcset(slug, d, "avif")}" sizes="{sizes}">\n'
+            f'<source type="image/webp" srcset="{_srcset(slug, d, "webp")}" sizes="{sizes}">\n'
+            f'<img src="{d}images/sted/{slug}.webp" width="{m["w"]}" height="{m["h"]}" '
+            f'alt="{FOTO_ALT[slug]}" loading="lazy" decoding="async">\n'
+            f'</picture>')
+
+def foto(slug, cap, path="", sizes="(max-width: 760px) 100vw, 700px", cls=""):
+    """Foto som figur i spalten: billede, 1px streg, mono-tekst. Ingen ramme, ingen skygge."""
+    d = "../" if path.startswith("internt/") else ""
+    k = (" " + cls) if cls else ""
+    return (f'<figure class="foto{k}">\n' + _pic(slug, d, sizes) +
+            f'\n<figcaption class="meta">{cap}</figcaption>\n</figure>')
+
+def foto_i_horisont(slug, cap, path="", cls="h-side"):
+    """Foto der udfylder en horisont-figur (designsystemets .horizon > img)."""
+    d = "../" if path.startswith("internt/") else ""
+    sizes = "(max-width: 860px) 100vw, 420px"
+    return (f'<div class="horizon {cls}">\n' + _pic(slug, d, sizes) +
+            f'\n<p class="cap">{cap}</p>\n</div>')
+
+
+
+def foto_gitter(items, path=""):
+    """Dokumentarisk gitter: smaa fotos med mono-label. Kun internt."""
+    d = "../" if path.startswith("internt/") else ""
+    sizes = "(max-width: 600px) 50vw, (max-width: 900px) 33vw, 260px"
+    ud = []
+    for slug, label in items:
+        m = FOTO_MAN[slug]
+        ud.append(f'<figure class="fg-i">\n' + _pic(slug, d, sizes) +
+                  f'\n<figcaption class="meta-s">{label}</figcaption>\n</figure>')
+    return '<div class="fg mt3">\n' + "\n".join(ud) + '\n</div>'
 
 HORIZON = lambda cls, h, cap, tag="": f'''<div class="horizon {cls}" style="--h:{h}" aria-hidden="true">{f'<p class="tag-tr">{tag}</p>' if tag else ''}<p class="cap">{cap}</p></div>'''
 
@@ -107,7 +176,7 @@ pages["index.html"] = head("Vend Hjem · Agersø", "En gammel campingplads på A
 <section class="stage">
 <div class="g g-32 nb">
 <div>
-<p class="lead" style="color:var(--blaek)">En unik oase på 6 hektar med syv bygninger fra 1920. 25 senge, en sal til 50, industrikøkken og plads til at drømme stort.</p>
+<p class="lead" style="color:var(--blaek)">En unik oase på 6 hektar med syv bygninger, de ældste fra 1920. 25 senge, en sal til 50, industrikøkken og plads til at drømme stort.</p>
 <p class="lead">Her bor man og driver stedet sammen. Nogle er her fast, andre kommer for at arbejde med i perioder, og nogle lejer sig ind til deres eget forløb.</p>
 <p class="mt3"><a class="lnk" href="bliv-en-del">Skriv → én vej ind</a></p>
 </div>
@@ -115,6 +184,10 @@ pages["index.html"] = head("Vend Hjem · Agersø", "En gammel campingplads på A
 <div><p class="meta-s">Færge fra Stigsnæs</p><p class="v">Et kvarter · omkring 170 fastboende</p></div>
 </div>
 </div>
+</section>
+
+<section class="stage mt4">
+''' + foto("oppefra", "Stedet fra luften · 6 hektar · Storebælt mod vest", sizes="(max-width: 1180px) 100vw, 1100px", cls="foto-bred") + '''
 </section>
 
 <section class="stage">
@@ -189,8 +262,8 @@ pages["fundamentet.html"] = head("Fundamentet · Vend Hjem", "Det, stedet hviler
 </div>
 <div>
 <p class="sec">Det integrale landkort</p>
-<p class="small">Kvadranter, niveauer, linjer, tilstande og typer. Lais grundlag, skrevet ud i seks dele på det nuværende site.</p>
-<p class="meta mt2">Manifestet · dateret version · kommer</p>
+<p class="small">Kvadranter, niveauer, linjer, tilstande og typer. Lais grundlag. Det er ikke skrevet ud her endnu.</p>
+<p class="meta mt2">Landkortet og manifestet · dateret version · kommer</p>
 </div>
 </div>
 </section>
@@ -202,7 +275,12 @@ pages["sporene.html"] = head("Sporene · Vend Hjem", "Det, der sker på stedet: 
 <section class="stage blok">
 <p class="sec">Sporene</p>
 <h1>Det, der sker på stedet.</h1>
-<p class="lead maxw mt2">Steven står for mandegrupperne og rites of passage. Lai står for den integrale praksis og skuespilmetoden. Resten laver vi sammen med dem, der er her.</p>
+<div class="g g-54 nb mt3" style="background:transparent;border:0;gap:32px">
+<div style="padding:0">
+<p class="lead">Steven står for mandegrupperne og rites of passage. Lai står for den integrale praksis og skuespilmetoden. Resten laver vi sammen med dem, der er her.</p>
+</div>
+<div style="padding:0">''' + foto("bordet-i-marken", "Bordet i marken · sommer", sizes="(max-width: 600px) 100vw, 380px") + '''</div>
+</div>
 </section>
 
 <section class="stage">
@@ -221,7 +299,7 @@ pages["sporene.html"] = head("Sporene · Vend Hjem", "Det, der sker på stedet: 
 <div>
 <p class="sec">Festival, burns og raves</p>
 <p class="small">Vi laver vores egen, og vi lægger plads til dem, andre arrangerer. Sal, køkken og seks hektar gør stedet brugbart til både festival, burn og rave. Steven var partner i og medskaber af Tribal Vibe.</p>
-<p class="meta mt2">Fire dage · juli</p>
+<p class="meta mt2">Vores egen: fire dage i juli</p>
 </div>
 <div>
 <p class="sec">Byg-med-uger</p>
@@ -256,7 +334,7 @@ pages["maend.html"] = head("Mandegrupper · Vend Hjem", "Femten mænd, en weeken
 <p class="mt3">Steven har været i det danske mandegruppemiljø i ti år. Han begyndte hos Tomas Friis og var partner i og medskaber af Tribal Vibe.</p>
 <p class="soft">Om dagen arbejder vi på stedet. Om aftenen dykker vi dybt og bygger bro mellem dem vi var og dem vi gerne vil være, omringet af andre mænd der lytter og spejler os.</p>
 </div>
-<div class="media">''' + HORIZON("h-side", "58%", "Foto · salen, lørdag morgen · kommer", "F-014") + '''</div>
+<div class="media">''' + foto_i_horisont("salen", "Salen · hvor aftenrunden holdes") + '''</div>
 </div>
 </section>
 
@@ -301,6 +379,7 @@ pages["bliv-en-del.html"] = head("Bliv en del · Vend Hjem", "Forløbet fra brev
 <p class="sec">Forløbet</p>
 <h1 style="font-size:clamp(26px,3.4vw,34px)">Der er en dør ind, og der er en dør ud - og den sidste skal du kende, før du går ind ad den første.</h1>
 <p class="lead mt2">Du og vi aftaler fra begyndelsen, hvornår forløbet slutter, hvordan du kan stoppe undervejs, og hvordan en mægler kommer ind, hvis vi bliver uenige.</p>
+''' + foto("udefra", "Vejen op til huset", sizes="(max-width: 760px) 100vw, 700px", cls="mt3") + '''
 </div>
 </section>
 
@@ -355,6 +434,75 @@ pages["bliv-en-del.html"] = head("Bliv en del · Vend Hjem", "Forløbet fra brev
 ''' + foot()
 
 # ───────────────────────────── INTERNT / OVERSIGT ─────────────────────────────
+# ─────────────────────── PRIVATLIV OG COOKIES ───────────────────────
+# De gamle sider laa stadig live og beskrev et site, der ikke findes mere:
+# YouTube-videoer paa forsiden, CDN-biblioteker og en formular med telefon
+# og "interessefelt". Maalt 15-09-2026: sitet henter fra vendhjem.dk og
+# static.cloudflareinsights.com, og saetter ingen cookies.
+pages["privatlivspolitik.html"] = head("Privatlivspolitik · Vend Hjem", "Hvilke oplysninger vi behandler, hvorfor, og hvor længe.", "privatlivspolitik.html") + '''
+<section class="stage stage-n sektion">
+<p class="sec">Privatlivspolitik</p>
+<h1 class="stor">Hvad vi gør med det, du skriver.</h1>
+<p class="meta mt3">Senest opdateret 15. september 2026</p>
+
+<p class="lead mt4">Vi behandler kun det, du selv sender os. Vi indsamler intet i det skjulte, profilerer ikke og videresælger ikke.</p>
+
+<div class="stak mt4">
+<div><p class="sec">Dataansvarlig</p><p class="small">Vend Hjem drives af Lai Yde, Egholmvej 23, Agersø. Spørgsmål til behandlingen af dine oplysninger: <a href="mailto:kontakt@vendhjem.dk">kontakt@vendhjem.dk</a>.</p></div>
+
+<div><p class="sec">Hvad vi får</p><p class="small">Brevet på <a href="bliv-en-del">Bliv en del</a> beder om navn, mailadresse og din tekst. Formularen sender intet selv - den åbner en mail i dit eget program, som du selv afsender. Vi modtager altså kun det, du vælger at sende, og vi ser det først, når mailen ligger hos os.</p></div>
+
+<div><p class="sec">Hvorfor</p><p class="small">For at kunne svare dig og for at forberede eller indgå en aftale om ophold, medlemskab eller leje. Retsgrundlag: databeskyttelsesforordningens artikel 6, stk. 1, litra b, og litra a, hvor du har givet samtykke.</p></div>
+
+<div><p class="sec">Hvor længe</p><p class="small">Henvendelser, der ikke fører til noget, slettes senest efter to år. Fører de til en aftale, gemmer vi det, aftalen kræver, så længe den løber, og derefter så længe bogførings- og forældelsesregler kræver det.</p></div>
+
+<div><p class="sec">Hvem ser det</p><p class="small">Kun de mennesker i Vend Hjem, der skal svare dig. Mailen ligger hos vores mailudbyder. Vi overfører ikke oplysninger til tredjelande på eget initiativ.</p></div>
+
+<div><p class="sec">Dine rettigheder</p><p class="small">Du kan bede om indsigt, rettelse eller sletning, om begrænsning, og du kan gøre indsigelse. Skriv til <a href="mailto:kontakt@vendhjem.dk">kontakt@vendhjem.dk</a>. Er du utilfreds med vores svar, kan du klage til Datatilsynet, <a href="https://www.datatilsynet.dk/">datatilsynet.dk</a>.</p></div>
+</div>
+
+<p class="meta mt4"><a href="cookies">Cookies og tredjepart →</a></p>
+</section>
+''' + foot()
+
+pages["cookies.html"] = head("Cookies · Vend Hjem", "Sitet sætter ingen cookies. Her står, hvad der så hentes udefra.", "cookies.html") + '''
+<section class="stage stage-n sektion">
+<p class="sec">Cookies</p>
+<h1 class="stor">Sitet sætter ingen cookies.</h1>
+<p class="meta mt3">Senest opdateret 15. september 2026 · målt samme dag</p>
+
+<p class="lead mt4">Ingen sporings-cookies, ingen analyse-cookies, ingen samtykkeboks - fordi der ikke er noget at give samtykke til. Ingen Google Analytics, ingen Facebook-pixel, ingen profilering.</p>
+
+<div class="stak mt4">
+<div><p class="sec">Hvad der hentes udefra</p><p class="small">Skrifttyper og video ligger på vores eget domæne. Det eneste, der hentes et andet sted fra, er Cloudflares besøgstælling fra <span class="mono">static.cloudflareinsights.com</span>. Den tæller sidevisninger uden cookies og uden at følge dig mellem sites.</p></div>
+
+<div><p class="sec">Log hos vores udbyder</p><p class="small">Cloudflare leverer sitet og logger som enhver webserver IP-adresse, tidspunkt og hvilken side der blev hentet, af drifts- og sikkerhedshensyn. Det er ikke noget, vi bruger til at genkende dig.</p></div>
+
+<div><p class="sec">Bag login</p><p class="small">Logger du ind på de interne sider, sætter Cloudflare Access en cookie, som holder dig logget ind. Den er nødvendig for at siderne virker, og den findes kun for medlemmer.</p></div>
+
+<div><p class="sec">Sådan styrer du det</p><p class="small">Du kan altid slette eller blokere cookies i din browsers indstillinger. Datatilsynet har en vejledning på <a href="https://www.datatilsynet.dk/">datatilsynet.dk</a>.</p></div>
+</div>
+
+<p class="meta mt4"><a href="privatlivspolitik">Privatlivspolitik →</a></p>
+</section>
+''' + foot()
+
+# ───────────────────────────── 404 ─────────────────────────────
+# Et tomt 404-svar er en blind vej. Siden giver vej tilbage.
+pages["404.html"] = head("Siden findes ikke · Vend Hjem", "Siden findes ikke.", "404.html") + '''
+<section class="stage sektion">
+<p class="sec">404</p>
+<h1 class="stor maxw">Den side findes ikke.</h1>
+<p class="lead maxw mt3">Måske er den flyttet, da sitet blev bygget om. Herfra kommer du videre:</p>
+<ul class="liste maxw mt3">
+<li><a href="/">Forsiden</a><span class="r">Vend Hjem</span></li>
+<li><a href="/fundamentet">Fundamentet</a><span class="r">Sådan beslutter vi</span></li>
+<li><a href="/sporene">Sporene</a><span class="r">Det, der sker på stedet</span></li>
+<li><a href="/bliv-en-del">Bliv en del</a><span class="r">Forløbet</span></li>
+</ul>
+</section>
+''' + foot()
+
 pages["internt/index.html"] = head("Internt · Vend Hjem", "Agersø-projektet bag login.", "internt/index.html", intern=True, current="internt") + '''
 <section class="stage blok">
 <p class="sec">Internt · bag login</p>
@@ -419,7 +567,7 @@ pages["internt/timer.html"] = head("Timer og indskud · Internt", "Hvem har lagt
   <div style="padding:18px;border-bottom:1px solid var(--streg)">
     <p class="meta-s" style="margin-bottom:10px">Din aftale</p>
     <p class="small">Prøveaftale · slutter 1. april 2027. Aftalte timer: 12 om måneden. Indskud: 40.000 kr. som lån.</p>
-    <p class="mt1"><a class="lnk" href="#">Se aftalen →</a></p>
+    <p class="meta mt1">Aftalen ligger ikke digitalt endnu</p>
   </div>
   <div style="padding:18px">
     <p class="meta-s" style="margin-bottom:10px">Fælles fremdrift</p>
@@ -485,6 +633,34 @@ pages["internt/stedet.html"] = head("Stedet · Internt", "Bygningerne som BBR ke
 <div><p class="meta-500 meta-s">Beskyttet dige</p><p class="small mt1">Et udskiftningsdige på cirka 591 meter ligger på matriklen. Det må ikke gennembrydes eller fjernes uden dispensation. Markeres på kortet, før der graves nogen steder.</p><p class="note mt1">BD.056.813 · Slots- og Kulturstyrelsen</p></div>
 <div><p class="meta-500 meta-s">Natura 2000</p><p class="small mt1">Habitatområdet "Skælskør Fjord og havet og kysten mellem Agersø og Glænø" gav træf på begge testede punkter på matriklen. Skal bekræftes visuelt, før der lægges tidsplan for noget som helst.</p><p class="note mt1">DK005Y229 · Danmarks Miljøportal · <em>skal verificeres</em></p></div>
 <div><p class="meta-500 meta-s">Campingtilladelse</p><p class="small mt1">Slagelse Kommune, 4. maj 2021, sagsnr. 2020-140542. Gyldig til 4. maj 2029, 250 enheder. Udstedt til ejendomsselskabet - den følger selskabet, ikke ejendommen.</p><p class="note mt1">Kommunens afgørelse</p></div>
+</div>
+</section>
+
+<section class="stage sektion">
+<p class="sec">Rum og bygninger · foto</p>
+<p class="small soft maxw">Billeder fra stedet, som det ser ud nu. De er ikke registreringsfotos - de har hverken ID, målestok eller dato. Weekendens registrering leverer dem, og så udskiftes disse.</p>
+''' + foto_gitter([
+ ("salen", "Salen"),
+ ("salen-2", "Salen · den anden ende"),
+ ("koekken", "Industrikøkkenet"),
+ ("koekken-2", "Det lille køkken"),
+ ("spisestue", "Spisestuen"),
+ ("sovesal", "Sovesal"),
+ ("vaerelse", "Værelse"),
+ ("vaerelse-dobbelt", "Værelse · dobbeltseng"),
+ ("hyggekrog", "Overdækket terrasse"),
+ ("udeplads", "Udeplads med bålsted"),
+ ("cafe", "Udendørs bar"),
+ ("faellesspisning", "Fællesspisning ude"),
+ ("udefra", "Stien op til huset"),
+ ("oppefra", "Matriklen fra luften"),
+ ("solnedgang", "Engen mod vest"),
+ ("bordet-i-marken", "Bordet i marken"),
+], path="internt/stedet.html") + '''
+</section>
+
+<section class="stage blok blok-top">
+<div class="g g-2 nb nbb">
 <div class="loeft"><p class="meta-500 meta-s">Registreringen 19.–21. september</p><p class="small mt1">To mennesker, to telefoner og en lasermåler. Hver bygning, hvert rum, hvert udeområde og hvert teknisk anlæg får et ID, et foto og en tilstand. Hvis tiden bliver knap: asbest, fugt og afløb først. Det er dem, der koster mest at opdage sent.</p></div>
 </div>
 </section>

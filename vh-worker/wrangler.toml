@@ -1,0 +1,23 @@
+# Worker for vendhjem.dk. Statisk site bygget af ../build.py.
+#
+# VIGTIGT: `routes` SKAL staa foer [assets]. Ellers parses det som et
+# assets-felt og ryger stille ud. (Laert i S591.)
+#
+# Deploy:  cd vh-worker && CLOUDFLARE_API_TOKEN=$(cat /tmp/.cf_token_vh) npx wrangler@4 deploy
+# Det sidste kald til workers/routes fejler med det scopede token. Det er
+# forventet — assets er uploadet foer den fejl. Verificer altid med curl.
+
+name = "vendhjem"
+compatibility_date = "2026-09-01"
+account_id = "e91b41e73aafbedf6e0512076e0544c2"
+
+# MAA IKKE FJERNES. Uden disse to linjer slaar wrangler workers.dev til igen ved
+# hvert deploy, og saa ligger /internt aabent paa vendhjem.<subdomain>.workers.dev
+# uden for Access, som er bundet til vendhjem.dk-stier. Maalt aabent i S592.
+workers_dev = false
+preview_urls = false
+
+[assets]
+directory = "../"
+not_found_handling = "404-page"
+html_handling = "auto-trailing-slash"
