@@ -42,6 +42,19 @@ beslutningsbærende felter og præcis hvilke bilagsversioner der lå der.
 sagen siger det højt, og forsøg på at registrere den som indsendt afvises.
 Det er hele pointen. En godkendelse gælder det, bestyrelsen faktisk så.
 
+## Navigationen har én kilde
+
+`nav-internt.json` i repo-roden. `build.py` renderer de statiske interne sider
+fra den og **genererer** `src/nav-internt.js`, som `views.js` importerer.
+
+Redigér aldrig `src/nav-internt.js` i hånden — den overskrives ved hvert build.
+
+Baggrund: listen lå to steder og drev fra hinanden. Fonde manglede på de
+statiske sider, Registrering manglede i fondsværktøjet, og man kunne derfor
+ikke komme fra Økonomi til Fonde. To lister holdt i sync af hukommelse er et
+løfte, hukommelsen ikke kan holde. Prøve 11 i `test/koer.mjs` sammenligner de
+to renderede navigationer og fejler, hvis de igen er forskellige.
+
 ## Kør prøverne
 
     node test/koer.mjs

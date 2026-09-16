@@ -2,18 +2,19 @@
 // (/assets/vh.css) — ingen nye farver, ingen runde hjørner, ingen skygger.
 // Serverrenderet. Ingen framework, intet byggetrin.
 
+import { PUNKTER } from "./nav-internt.js";
+
 export const esc = (v) =>
   String(v ?? "").replace(/[&<>"']/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
+// Navigationen kommer fra nav-internt.json via build.py's generator.
+// Den var haandskrevet her og drev fra de statiske sider: Fonde manglede der,
+// Registrering manglede her, og man kunne ikke komme fra OEkonomi til Fonde.
 const nav = (aktiv) => `<nav class="nav" aria-label="Internt">
-<a href="/">← Offentlig side</a>
-<a href="/internt/">Oversigt</a>
-<a href="/internt/stedet">Stedet</a>
-<a href="/internt/oekonomi">Økonomi</a>
-<a href="/internt/anlaeg">Anlæg</a>
-<a href="/internt/timer">Timer og indskud</a>
-<a href="/internt/fonde/"${aktiv === "fonde" ? ' aria-current="page"' : ""}>Fonde</a>
+${PUNKTER.map((p) =>
+  `<a href="/${p.sti}"${p.id === aktiv ? ' aria-current="page"' : ""}>${esc(p.label)}</a>`
+).join("\n")}
 </nav>`;
 
 export function side({ titel, aktiv, bruger, indhold }) {

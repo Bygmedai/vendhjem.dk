@@ -148,5 +148,32 @@ console.log("\n10 · Stier uden for fonde rører ikke koden");
   t("sendes til assets", (await tekst(r)) === "asset");
 }
 
+console.log("\n11 · Navigationen er den samme begge steder");
+{
+  // Den her proeve findes, fordi navigationen laa to steder og drev fra
+  // hinanden: Fonde manglede paa de statiske sider, Registrering manglede i
+  // fondsvaerktoejet, og man kunne ikke komme fra OEkonomi til Fonde.
+  const { PUNKTER } = await import("../src/nav-internt.js");
+  const statisk = readFileSync(new URL("../../internt/oekonomi.html", import.meta.url), "utf8");
+  const navStatisk = statisk.match(/<nav class="nav" aria-label="Internt">([\s\S]*?)<\/nav>/)?.[1] ?? "";
+  const stierStatisk = [...navStatisk.matchAll(/href="\.\.\/([^"]*)"/g)].map((m) => m[1]);
+
+  const h = await tekst(await hent("/internt/fonde/"));
+  const navWorker = h.match(/<nav class="nav" aria-label="Internt">([\s\S]*?)<\/nav>/)?.[1] ?? "";
+  const stierWorker = [...navWorker.matchAll(/href="\/([^"]*)"/g)].map((m) => m[1]);
+
+  const forventet = PUNKTER.map((p) => p.sti);
+  t("kilden har baade fonde og registrering",
+     forventet.includes("internt/fonde/") && forventet.includes("internt/registrering"));
+  t("statiske sider har alle punkter",
+     JSON.stringify(stierStatisk) === JSON.stringify(forventet),
+     JSON.stringify(stierStatisk));
+  t("fondsvaerktoejet har alle punkter",
+     JSON.stringify(stierWorker) === JSON.stringify(forventet),
+     JSON.stringify(stierWorker));
+  t("de to navigationer er identiske",
+     JSON.stringify(stierStatisk) === JSON.stringify(stierWorker));
+}
+
 console.log(`\n${ok} bestået, ${fejl} fejlet\n`);
 process.exit(fejl ? 1 : 0);
