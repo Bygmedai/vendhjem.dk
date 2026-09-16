@@ -43,6 +43,41 @@ export default {
       return Response.redirect(url.toString(), 301);
     }
 
+    // Sundhedstjek. Ligger UDEN for /internt, fordi Access ellers svarer foer
+    // Workeren og tjekket aldrig naar frem. Kraever en hemmelig header; uden
+    // den svarer den 404 og roeber ikke engang at den findes.
+    //
+    // Den returnerer TAL, aldrig indhold: ingen sagstitler, ingen beloeb, ingen
+    // navne, ingen filnavne. Formaalet er at opdage at en binding er faldet ud,
+    // foer et menneske opdager det.
+    if (url.pathname === "/sundhed/fonde") {
+      if (!env.SUNDHED_NOEGLE || request.headers.get("X-VH-Sundhed") !== env.SUNDHED_NOEGLE)
+        return new Response("Findes ikke.", { status: 404 });
+      const svar = { tid: new Date().toISOString() };
+      try {
+        const r = await env.FONDE_DB.prepare(
+          `SELECT (SELECT COUNT(*) FROM applications) a,
+                  (SELECT COUNT(*) FROM requirements) k,
+                  (SELECT COUNT(*) FROM documents) d,
+                  (SELECT COUNT(*) FROM approvals) g,
+                  (SELECT COUNT(*) FROM submissions) i`).first();
+        svar.d1 = "ok";
+        svar.antal = { sager: r.a, krav: r.k, bilag: r.d, godkendelser: r.g, indsendelser: r.i };
+        const m = await env.FONDE_DB.prepare(
+          `SELECT name FROM d1_migrations ORDER BY id DESC LIMIT 1`).first();
+        svar.sidste_migration = m?.name ?? null;
+      } catch (e) { svar.d1 = "FEJL: " + (e.message || e); }
+      try {
+        await env.FONDE_FILER.get("__sundhed_findes_ikke__");
+        svar.r2 = "ok";
+      } catch (e) { svar.r2 = "FEJL: " + (e.message || e); }
+      const sundt = svar.d1 === "ok" && svar.r2 === "ok";
+      return new Response(JSON.stringify(svar, null, 1), {
+        status: sundt ? 200 : 503,
+        headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
+      });
+    }
+
     if (!url.pathname.startsWith(ROD)) return env.ASSETS.fetch(request);
 
     let bruger = await identitet(request);

@@ -69,6 +69,32 @@ Lukket i to lag, med vilje:
 Ét lag ville have været nok. To betyder, at et fejlgreb i konfigurationen ikke
 åbner hullet igen alene.
 
+## Migrationer
+
+Tokenet har nu D1 Write, så det normale virker:
+
+    npx wrangler@4 d1 migrations apply vendhjem-fonde --remote
+
+`0001_init.sql` og `0002_seed_ldp.sql` blev kørt gennem Cloudflare-connectoren,
+før tokenet havde skriveadgang, og er bagefter registreret i `d1_migrations`.
+De køres ikke igen.
+
+Produktionsdatabasen: `vendhjem-fonde`, `f1cacc8c-2720-400e-906a-64f2627789e8`,
+WEUR. Bilag i R2-bucket'en `vendhjem-fonde-bilag`.
+
+## Sundhedstjek
+
+    curl -H "X-VH-Sundhed: $(cat /tmp/.vh_sundhed)" https://vendhjem.dk/sundhed/fonde
+
+Ligger **uden for** `/internt`, fordi Access ellers svarer før Workeren og
+tjekket aldrig når frem. Uden den rigtige header svarer den 404 og røber ikke
+engang at den findes. Nøglen hedder «Vendhjem sundhedsnøgle» i Bitwarden.
+
+Den returnerer **tal, aldrig indhold**: antal sager, krav, bilag, godkendelser
+og indsendelser, plus om D1 og R2 svarer. Ingen titler, beløb, navne eller
+filnavne. Formålet er at opdage at en binding er faldet ud, før et menneske
+opdager det. `test/flader.sh` bruger den.
+
 ## Deploy
 
     CLOUDFLARE_API_TOKEN=$(cat /tmp/.cf_token_vh) npx wrangler@4 deploy
