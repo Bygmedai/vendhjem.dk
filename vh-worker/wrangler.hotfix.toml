@@ -11,35 +11,21 @@
 # Deploy:  cd vh-worker && CLOUDFLARE_API_TOKEN=$(cat /tmp/.cf_token_vh) npx wrangler@4 deploy
 
 name = "vendhjem"
-main = "src/index.js"
+main = "src/hotfix.js"
 compatibility_date = "2026-09-01"
-compatibility_flags = ["nodejs_compat"]
 account_id = "e91b41e73aafbedf6e0512076e0544c2"
 
 workers_dev = false
 preview_urls = false
 
 [assets]
-directory = "../"
 binding = "ASSETS"
+directory = "../"
 not_found_handling = "404-page"
 html_handling = "auto-trailing-slash"
-# SKAL vaere true, ikke en liste over fonds-stier.
-#
-# Med en liste serveres alle andre stier direkte fra assets, og saa naar
-# host-tjekket i index.js aldrig at koere — og www.vendhjem.dk/internt ligger
-# aabent igen. Praecis den fejl blev maalt 16.09.2026: hullet var lukket i
-# koden, men wrangler koerte den aldrig.
-#
-# Med true gaar alt gennem Workeren, som selv kalder env.ASSETS.fetch() for
-# alt uden for /internt/fonde. _headers og _redirects gaelder stadig.
+# Uden denne serveres statiske filer FOER Workeren, og saa naar host-tjekket
+# aldrig at koere. Det var derfor foerste forsoeg paa at lukke www-hullet slog fejl.
 run_worker_first = true
+# Workeren skal se fonds-stierne foer assets faar dem. Alt andet gaar
+# udenom koden og serveres direkte som filer.
 
-[[d1_databases]]
-binding = "FONDE_DB"
-database_name = "vendhjem-fonde"
-database_id = "00000000-0000-0000-0000-000000000000"
-
-[[r2_buckets]]
-binding = "FONDE_FILER"
-bucket_name = "vendhjem-fonde-bilag"

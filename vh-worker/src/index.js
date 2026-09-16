@@ -31,6 +31,18 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
+    // www har sin egen vaert og var IKKE daekket af Access, som er bundet til
+    // vendhjem.dk/internt og /internt/*. Resultat: hele /internt laa aabent paa
+    // www.vendhjem.dk. Maalt aabent 16.09.2026, fundet af Steven.
+    //
+    // Her sendes alt paa www til apex, foer noget som helst serveres. Saa findes
+    // der kun én flade at beskytte. Access-apps paa www er lagt oven i som andet
+    // lag, saa det ikke afhaenger af denne ene linje.
+    if (url.hostname === "www.vendhjem.dk") {
+      url.hostname = "vendhjem.dk";
+      return Response.redirect(url.toString(), 301);
+    }
+
     if (!url.pathname.startsWith(ROD)) return env.ASSETS.fetch(request);
 
     let bruger = await identitet(request);

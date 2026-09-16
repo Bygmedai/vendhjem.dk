@@ -49,6 +49,26 @@ Det er hele pointen. En godkendelse gælder det, bestyrelsen faktisk så.
 33 prøver. Rigtige migrationer og rigtig SQL mod `node:sqlite`; kun D1, R2 og
 Access er stubbet. Prøverne skal være grønne før deploy.
 
+## Flader — mål dem, husk dem ikke
+
+    ./test/flader.sh
+
+Køres efter **hvert** deploy. Den måler hver intern sti på **begge** værter og
+leder efter interne tal i svarene, også gennem redirects.
+
+Baggrund: i S592 målte jeg kun apex og meldte grønt. `www.vendhjem.dk/internt`
+lå åbent med BBR-data og økonomi frit læsbart, indtil Steven fandt det dagen
+efter. Access var bundet til `vendhjem.dk`-stier; www er en anden vært og var
+ikke dækket.
+
+Lukket i to lag, med vilje:
+
+1. Egne Access-apps på `www.vendhjem.dk/internt` og `/internt/*`.
+2. Workeren sender alt på www til apex, før noget serveres.
+
+Ét lag ville have været nok. To betyder, at et fejlgreb i konfigurationen ikke
+åbner hullet igen alene.
+
 ## Deploy
 
     CLOUDFLARE_API_TOKEN=$(cat /tmp/.cf_token_vh) npx wrangler@4 deploy
