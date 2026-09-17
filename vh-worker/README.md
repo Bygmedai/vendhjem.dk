@@ -113,17 +113,36 @@ Lukket i to lag, med vilje:
 Cloudflare-connectoren, før tokenet havde skriveadgang, og er bagefter
 registreret i `d1_migrations`. De køres ikke igen.
 
-`0003_people.sql` (BYG-555 A1) og `0004_mit.sql` (BYG-556 A2) ligger på
-main (PR #20). `0005_korpus.sql` (BYG-567 E1) og `0006_fonde_e2.sql`
-(BYG-568 E2) ligger på main (PR #21). `0007_ophold.sql` (BYG-561 C1) ligger
-på main (PR #22) og **er applied remote** — målt 17/9: `/sporene` serveres
-fra D1 (typerne, ikke ophold). `0008_foresporgsel.sql` (BYG-562 C2) ligger
-på main (PR #27). `0009_kalender_2027.sql` er **seed** (syv lukkede uger +
-et minimalt sæt åbne 2027-ophold) og **skal applies remote**, ellers bliver
-`/sporene` ved med at sige «ingen datoer». Denne PR deployer ikke.
+`0003`–`0009` ligger alle på main. **Status i produktion, målt 17.09.2026
+kl. ~19:30 med kald mod den levende flade — ikke læst i en fil:**
 
-Denne agent har ingen Cloudflare-token (`/tmp/.cf_token_vh` findes ikke her).
-Steven kører, når D1 Write er på det token der deployer:
+| Migration | Målt | Hvordan |
+|---|---|---|
+| `0003_people` · `0004_mit` | **applied** | `GET /mit` → 200 med magic-link-formularen. Uden `people`, `magic_links` og `passkeys` kan siden ikke rendere; uden `SESSION_NOEGLE` svarer den 500 |
+| `0005_korpus` · `0006_fonde_e2` | **ikke målt herfra** | `/internt/korpus` ligger bag Access (302), `/sundhed/fonde` kræver headeren. Måles med sundhedstjekket, som tæller `korpus_dokumenter` |
+| `0007_ophold` | **applied** | `GET /sporene` serveres fra D1, ikke fra assets: den leverede side skriver «Retreats — vi er værter» med tankestreg, og den findes kun i seed-rækken i `0007`. Den statiske `sporene.html` har bindestreg |
+| `0008_foresporgsel` (PR #27) | **ikke målt herfra** | Tilføjer kolonner til `pladser`. Udefra kan den ikke skelnes fra en tom kalender |
+| `0009_kalender_2027` (PR #28) | **IKKE applied** | `/sporene` siger stadig «Ingen datoer åbne» seks steder og viser ingen 2027-dato. `0009` er ren seed, og C1 er deployet — var den applied, ville datoerne stå der |
+
+**`0009` er den, der betyder noget lige nu.** Den er syv lukkede uger plus et
+minimalt sæt åbne 2027-ophold. Uden den bliver `/sporene` ved med at sige
+«ingen datoer» på den side, der skal sælge året. Det er ét `apply` fra at
+være løst.
+
+Afsnittet her stod indtil 17/9 som «`0007_ophold.sql` er **ikke** applied
+remote fra denne PR». Det var sandt da PR'en blev skrevet og forkert
+bagefter, og en agent, der troede på den, brugte en time på at planlægge en
+bygning af noget, der allerede kørte. **Det er derfor hver række siger
+hvordan den er målt, og ikke bare hvad der gælder** — jf. repoets egen
+regel: enhver påstand om tilstand skal komme fra et kald. «Ikke målt herfra»
+er ikke sjusk; det er forskellen på en status og en formodning.
+
+Kører du en migration, så mål bagefter og ret tabellen. En status skrevet ud
+fra hvad man lige har gjort, er en hukommelse, ikke en måling.
+
+En agent uden Cloudflare-token (`/tmp/.cf_token_vh` findes ikke i alle
+kørsler) kan ikke køre apply. Steven kører, når D1 Write er på det token
+der deployer:
 
     npx wrangler@4 d1 migrations apply vendhjem-fonde --remote
 
