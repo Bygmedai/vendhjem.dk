@@ -17,8 +17,8 @@ const init = readFileSync(new URL("../migrations/0001_init.sql", import.meta.url
 const seed = readFileSync(new URL("../migrations/0002_seed_ldp.sql", import.meta.url), "utf8");
 const peopleSql = readFileSync(new URL("../migrations/0003_people.sql", import.meta.url), "utf8");
 const mitSql = readFileSync(new URL("../migrations/0004_mit.sql", import.meta.url), "utf8");
-const korpusSql = readFileSync(new URL("../migrations/0004_korpus.sql", import.meta.url), "utf8");
-const fondeE2 = readFileSync(new URL("../migrations/0005_fonde_e2.sql", import.meta.url), "utf8");
+const korpusSql = readFileSync(new URL("../migrations/0005_korpus.sql", import.meta.url), "utf8");
+const fondeE2 = readFileSync(new URL("../migrations/0006_fonde_e2.sql", import.meta.url), "utf8");
 
 let ok = 0, fejl = 0;
 const t = (navn, betingelse, ekstra = "") => {

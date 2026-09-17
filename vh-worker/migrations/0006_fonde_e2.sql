@@ -1,4 +1,5 @@
 -- BYG-568 E2 · Find fondene: vi ejer sagerne, ikke katalogerne.
+-- Nummer 0006: 0004 er A2 (PR #20), 0005 er korpus (E1). Merge #20 først.
 --
 -- Manuel import af fond og runde. Krav udledes med kilde på hvert;
 -- uden kilde er det en antagelse. Adgangskrav og vurderingskriterier

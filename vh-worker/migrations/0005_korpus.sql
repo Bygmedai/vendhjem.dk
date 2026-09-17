@@ -1,4 +1,5 @@
 -- BYG-567 E1 · Korpus og stemmeprofil
+-- Nummer 0005, ikke 0004: 0004_mit.sql er A2 (PR #20). Merge #20 først.
 -- Arbejdsgrundlaget AI'en skal læse. Ikke skriveren.
 --
 -- Tre slags, fordi de bruges forskelligt og ikke må blandes:
