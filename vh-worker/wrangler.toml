@@ -1,0 +1,46 @@
+# Worker for vendhjem.dk.
+#
+# To ting i én: det statiske site (bygget af ../build.py) og Fonds-CRM'et på
+# /internt/fonde, som kun Workeren selv besvarer.
+#
+# MAA IKKE FJERNES: uden workers_dev = false slaar wrangler workers.dev til igen
+# ved hvert deploy, og saa ligger /internt aabent paa
+# vendhjem.<subdomain>.workers.dev uden for Access, som er bundet til
+# vendhjem.dk-stier. Maalt aabent i S592.
+#
+# Deploy:  cd vh-worker && CLOUDFLARE_API_TOKEN=$(cat /tmp/.cf_token_vh) npx wrangler@4 deploy
+
+name = "vendhjem"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+compatibility_flags = ["nodejs_compat"]
+account_id = "e91b41e73aafbedf6e0512076e0544c2"
+
+workers_dev = false
+preview_urls = false
+
+[assets]
+directory = "../"
+binding = "ASSETS"
+not_found_handling = "404-page"
+html_handling = "auto-trailing-slash"
+# SKAL vaere true, ikke en liste over fonds-stier.
+#
+# Med en liste serveres alle andre stier direkte fra assets, og saa naar
+# host-tjekket i index.js aldrig at koere — og www.vendhjem.dk/internt ligger
+# aabent igen. Praecis den fejl blev maalt 16.09.2026: hullet var lukket i
+# koden, men wrangler koerte den aldrig.
+#
+# Med true gaar alt gennem Workeren, som selv kalder env.ASSETS.fetch() for
+# alt uden for /internt/fonde. _headers og _redirects gaelder stadig.
+run_worker_first = true
+
+[[d1_databases]]
+binding = "FONDE_DB"
+database_name = "vendhjem-fonde"
+database_id = "f1cacc8c-2720-400e-906a-64f2627789e8"
+migrations_dir = "migrations"
+
+[[r2_buckets]]
+binding = "FONDE_FILER"
+bucket_name = "vendhjem-fonde-bilag"

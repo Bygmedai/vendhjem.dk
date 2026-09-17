@@ -3,13 +3,30 @@
 Ingen build-kæde på serveren: dette script skriver almindelige HTML-filer,
 som ligger færdige i repoet. Kør: python3 build.py
 """
+import json as _json
 import os, re
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
 FOOT_DATE = "15. september 2026"
-# Indtil vendhjem.dk peger på Cloudflare, ligger de interne sider kun på Workeren.
-# Sæt til "" ved cutover, så "Log ind" bliver et relativt link.
-INTERN_BASE = "https://vendhjem.steven-e91.workers.dev"
+
+# Intern navigation har ÉN kilde: nav-internt.json. Den blev delt i to —
+# build.py og fondsværktøjets views.js — og listerne drev fra hinanden, så
+# man ikke kunne komme fra Økonomi til Fonde. To lister holdt i sync af
+# hukommelse er et løfte, hukommelsen ikke kan holde.
+NAV_INTERNT = _json.load(open(os.path.join(ROOT, "nav-internt.json"), encoding="utf-8"))["punkter"]
+
+def nav_internt(depth, current):
+    ud = []
+    for pkt in NAV_INTERNT:
+        her = ' aria-current="page"' if pkt["id"] == current else ""
+        ud.append(f'<a href="{depth}{pkt["sti"]}"{her}>{pkt["label"]}</a>')
+    return "\n".join(ud)
+
+# "Log ind" peger paa det live Access-beskyttede /internt/ paa vendhjem.dk.
+# Relativt internt/ maa ikke ligge i de offentlige HTML-filer: internt/ er
+# gitignored (maa aldrig paa GitHub Pages), og CI's static crawl ville 404.
+# workers.dev er bevidst lukket (workers_dev = false) og maa ikke vaere maalet.
+INTERN_BASE = "https://vendhjem.dk"
 
 def head(title, desc, path, intern=False, current=None):
     depth = "../" if path.startswith("internt/") else ""
@@ -17,12 +34,7 @@ def head(title, desc, path, intern=False, current=None):
     canon = "" if intern else f'<link rel="canonical" href="https://vendhjem.dk/{path.replace("index.html","").replace(".html","")}">\n'
     if intern:
         nav = f'''<nav class="nav" aria-label="Internt">
-<a href="{depth}">← Offentlig side</a>
-<a href="{depth}internt/"{' aria-current="page"' if current=="internt" else ""}>Oversigt</a>
-<a href="{depth}internt/stedet"{' aria-current="page"' if current=="stedet" else ""}>Stedet</a>
-<a href="{depth}internt/oekonomi"{' aria-current="page"' if current=="oekonomi" else ""}>Økonomi</a>
-<a href="{depth}internt/anlaeg"{' aria-current="page"' if current=="anlaeg" else ""}>Anlæg</a>
-<a href="{depth}internt/timer"{' aria-current="page"' if current=="timer" else ""}>Timer og indskud</a>
+{nav_internt(depth, current)}
 </nav>'''
         brand = f'<a class="brand" href="{depth}internt/">Vend <em>Hjem</em> <span class="meta" style="margin-left:10px">Internt</span></a>'
     else:
@@ -653,3 +665,12 @@ for path, html in pages.items():
     with open(full, "w", encoding="utf-8") as f:
         f.write(html)
     print("skrev", path, len(html))
+
+# Generér Workerens navigation fra samme kilde. Redigér ALDRIG
+# vh-worker/src/nav-internt.js i haanden — den overskrives her.
+_navjs = os.path.join(ROOT, "vh-worker", "src", "nav-internt.js")
+if os.path.isdir(os.path.dirname(_navjs)):
+    with open(_navjs, "w", encoding="utf-8") as f:
+        f.write("// GENERERET af build.py fra nav-internt.json. Ret ikke her.\n")
+        f.write("export const PUNKTER = " + _json.dumps(NAV_INTERNT, ensure_ascii=False, indent=1) + ";\n")
+    print("genererede vh-worker/src/nav-internt.js")

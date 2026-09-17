@@ -1,10 +1,16 @@
-/* ─────────────────────────────────────────────────────────────
-   Vend Hjem · Havkant
-   Designsystem fra Claude Design (S591, 15.09.2026), bygget ud af Haruki.
-   "Horisonten er figuren. Alt andet er papir og streger."
-   Ingen runde hjørner. Ingen skygger. Ingen kort i rækker.
-   Vægten kommer fra afstand og 1px-linjer.
-   ───────────────────────────────────────────────────────────── */
+/* ════════════════════════════════════════════════════════════
+   AGENTKONTRAKT · intern flade · BYG-565 · én skærm, ikke mere.
+   Papir og 1px-streger. Ingen runde hjørner, ingen skygger,
+   ingen kort i rækker. --accent (#8a3a1d) højst to gange pr. sektion.
+   Brug KUN klasser i den her fil. Ny farve = forbudt.
+   Byg med vh-worker/src/flade.js + tekst.js. Ret ikke nav-internt.js.
+   Prøven fejler på ukendt klasse og farve uden for paletten.
+   Intern: intern-flade, intern, row, stage, blok, sektion, sec,
+   lead, soft, small, meta, meta-s, meta-500, mangler, t, felt,
+   felt-label, knap, knap-accent, ramme, ramme-loeft, pil, her,
+   naaet, frist, naer, logl, g, g-2, g-3, nb, nbb, loeft, v,
+   stor, maxw, mono, mt1–mt4, site-head, nav, brand.
+   ════════════════════════════════════════════════════════════ */
 
 @font-face {
   font-family: 'Lora';
@@ -301,3 +307,36 @@ button.lnk { background: none; border: 0; border-bottom: 1px solid var(--streg-m
 .xs { font-size: 13px; line-height: 1.55; }
 .note { font-family: var(--mono); font-size: 11px; line-height: 1.55; color: var(--blaek-mat); }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ─── Intern arbejdsflade (Worker) ───
+   Samme papir. Scoped på body.intern-flade, så det offentlige .knap
+   (brevet) ikke ændrer sig. Matcher den tidligere fonds-inline-CSS. */
+.intern-flade .mangler { color: var(--accent); }
+.intern-flade .frist { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.intern-flade .frist.naer { color: var(--accent); font-weight: 500; }
+.intern-flade .pil { display: flex; gap: 0; flex-wrap: wrap; margin: 0; padding: 0; list-style: none; }
+.intern-flade .pil > li {
+  font-family: var(--mono); font-size: 9px; letter-spacing: .14em; text-transform: uppercase;
+  border: 1px solid var(--streg-mork); border-right: 0; padding: 7px 11px; color: var(--blaek-svag);
+}
+.intern-flade .pil > li:last-child { border-right: 1px solid var(--streg-mork); }
+.intern-flade .pil > li.naaet { color: var(--blaek); }
+.intern-flade .pil > li.her { background: var(--blaek); color: var(--papir); border-color: var(--blaek); font-weight: 500; }
+.intern-flade table.t { width: 100%; border-collapse: collapse; }
+.intern-flade table.t th {
+  font-family: var(--mono); font-size: 9px; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--blaek-svag); text-align: left; font-weight: 400; padding: 0 12px 8px 0;
+}
+.intern-flade table.t td { padding: 11px 12px 11px 0; border-top: 1px solid var(--streg-svag); font-size: 15px; vertical-align: top; }
+.intern-flade .logl {
+  font-family: var(--mono); font-size: 11px; color: var(--blaek-mat); padding: 6px 0;
+  border-bottom: 1px solid var(--streg-svag); display: flex; gap: 14px; justify-content: space-between;
+}
+.intern-flade textarea.felt { min-height: 80px; font-family: var(--serif); }
+.intern-flade .knap {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .16em; text-transform: uppercase;
+  background: transparent; border: 1px solid var(--streg-mork); color: var(--blaek);
+  padding: 9px 14px; cursor: pointer; border-radius: 0;
+}
+.intern-flade .knap:hover { border-color: var(--blaek); }
+.intern-flade .knap-accent { border-color: var(--accent); color: var(--accent); }
