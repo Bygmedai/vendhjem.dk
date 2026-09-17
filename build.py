@@ -22,9 +22,11 @@ def nav_internt(depth, current):
         ud.append(f'<a href="{depth}{pkt["sti"]}"{her}>{pkt["label"]}</a>')
     return "\n".join(ud)
 
-# Domaenet er live paa Cloudflare; "Log ind" er et relativt link til /internt/.
+# "Log ind" peger paa det live Access-beskyttede /internt/ paa vendhjem.dk.
+# Relativt internt/ maa ikke ligge i de offentlige HTML-filer: internt/ er
+# gitignored (maa aldrig paa GitHub Pages), og CI's static crawl ville 404.
 # workers.dev er bevidst lukket (workers_dev = false) og maa ikke vaere maalet.
-INTERN_BASE = ""
+INTERN_BASE = "https://vendhjem.dk"
 
 def head(title, desc, path, intern=False, current=None):
     depth = "../" if path.startswith("internt/") else ""
