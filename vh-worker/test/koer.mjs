@@ -5,11 +5,20 @@
 import { readFileSync } from "node:fs";
 import { lavD1, lavR2, lavAssets } from "./stubs.mjs";
 import { hentPerson, roller, harRolle, opretPerson, tildelRolle, udloebRolle, skiftMail } from "../src/db.js";
+import {
+  somGrundlag, KorpusAfvisning, hentStemmeprofil, hentDokument,
+  opretArbejdsgrundlag, knytKilde, godkendDokument, nyVersion,
+} from "../src/korpus.js";
+import {
+  erAntagelse, kanMarkeresKlar, uopfyldteAdgangskrav, fristUgedagsKonflikt, lokalTilUtc,
+} from "../src/runde.js";
 
 const init = readFileSync(new URL("../migrations/0001_init.sql", import.meta.url), "utf8");
 const seed = readFileSync(new URL("../migrations/0002_seed_ldp.sql", import.meta.url), "utf8");
 const peopleSql = readFileSync(new URL("../migrations/0003_people.sql", import.meta.url), "utf8");
 const mitSql = readFileSync(new URL("../migrations/0004_mit.sql", import.meta.url), "utf8");
+const korpusSql = readFileSync(new URL("../migrations/0005_korpus.sql", import.meta.url), "utf8");
+const fondeE2 = readFileSync(new URL("../migrations/0006_fonde_e2.sql", import.meta.url), "utf8");
 
 let ok = 0, fejl = 0;
 const t = (navn, betingelse, ekstra = "") => {
@@ -22,7 +31,7 @@ const worker = (await import("../src/index.js")).default;
 
 const mails = [];
 const env = {
-  FONDE_DB: lavD1([init, seed, peopleSql, mitSql]),
+  FONDE_DB: lavD1([init, seed, peopleSql, mitSql, korpusSql, fondeE2]),
   FONDE_FILER: lavR2(),
   ASSETS: lavAssets(),
   LOKAL_TEST: "1",
@@ -218,8 +227,8 @@ console.log("\n11 · Navigationen er den samme begge steder");
   const stierWorker = [...navWorker.matchAll(/href="\/([^"]*)"/g)].map((m) => m[1]);
 
   const forventet = PUNKTER.map((p) => p.sti);
-  t("kilden har baade fonde og registrering",
-     forventet.includes("internt/fonde/") && forventet.includes("internt/registrering"));
+  t("kilden har baade fonde, korpus og registrering",
+     forventet.includes("internt/fonde/") && forventet.includes("internt/korpus/") && forventet.includes("internt/registrering"));
   t("statiske sider har alle punkter",
      JSON.stringify(stierStatisk) === JSON.stringify(forventet),
      JSON.stringify(stierStatisk));
@@ -286,6 +295,9 @@ console.log("\n13 · Fladekontrakt (BYG-565 G1)");
   const fladeHtml = [
     await tekst(await hent("/internt/fonde/")),
     await tekst(await hent(`/internt/fonde/sag/${A}`)),
+    await tekst(await hent("/internt/fonde/ny")),
+    await tekst(await hent("/internt/korpus/")),
+    await tekst(await hent("/internt/korpus/dok/korpus-stemmeprofil")),
     oversigt({ bruger: { navn: "x" }, sager: [], org: {} }),
     side({ titel: "Fejl", aktiv: "fonde", bruger: { navn: "x" }, indhold: fejlTilstand() }),
     tomTilstand(),
@@ -298,7 +310,7 @@ console.log("\n13 · Fladekontrakt (BYG-565 G1)");
   t("fondsfladen indfører ingen farve uden for paletten",
      farver.ok, JSON.stringify(farver));
 
-  const kilder = ["flade.js", "sider.js", "views.js", "index.js", "tekst.js", "mit.js", "session.js", "mail.js", "webauthn.js", "krypto.js"]
+  const kilder = ["flade.js", "sider.js", "views.js", "index.js", "tekst.js", "mit.js", "session.js", "mail.js", "webauthn.js", "krypto.js", "korpus.js", "runde.js"]
     .map((f) => readFileSync(new URL(`../src/${f}`, import.meta.url), "utf8")).join("\n");
   const kildeFarver = farverUdenforPalet(kilder, css);
   t("flade-kilden indfører ingen farve uden for paletten",
@@ -447,6 +459,241 @@ console.log("\n14 · Community-login /mit (BYG-556 A2)");
   t("/mit bruger kun klasser fra vh.css", ukendtMit.length === 0, ukendtMit.join(", "));
   const farverMit = fu2(mitHtml, css);
   t("/mit indfører ingen farve uden for paletten", farverMit.ok, JSON.stringify(farverMit));
+}
+
+console.log("\n15 · Korpus: læg op, mærk, godkend (BYG-567)");
+{
+  const h0 = await tekst(await hent("/internt/korpus/"));
+  t("korpus-fladen svarer", h0.includes("Materiale til ansøgninger"));
+  t("stemmeprofilen står på listen", h0.includes("Stemmeprofil · Vend Hjem"));
+
+  const fd = new FormData();
+  fd.set("titel", "Lai om stedet");
+  fd.set("slags", "stemme");
+  fd.set("oprindelse", "Lai, 2024");
+  fd.set("tilladt_brug", "ordvalg");
+  fd.set("indhold", "Syv bygninger fra 1920. Det er det, vi har.");
+  const r = await hent("/internt/korpus/upload", { method: "POST", body: fd });
+  t("upload omdirigerer", r.status === 303, r.status);
+  const loc = r.headers.get("Location") || "";
+  const stemmeId = loc.split("/").pop();
+  t("får et dokument-id", stemmeId && stemmeId.length > 8, loc);
+
+  const kladde = await hentDokument(env.FONDE_DB, stemmeId);
+  t("nyt dokument er kladde", kladde?.godkendelsesstatus === "kladde", kladde?.godkendelsesstatus);
+  t("mærket stemme", kladde?.slags === "stemme");
+
+  await hent(`/internt/korpus/dok/${stemmeId}/godkend`, { method: "POST", body: new URLSearchParams() });
+  const god = await hentDokument(env.FONDE_DB, stemmeId);
+  t("kan godkendes til brug", god?.godkendelsesstatus === "godkendt");
+
+  const fdF = new FormData();
+  fdF.set("titel", "BBR-tal Egholmvej 23");
+  fdF.set("slags", "fakta");
+  fdF.set("dato", "2026-09-01");
+  fdF.set("oprindelse", "BBR");
+  fdF.set("fil", new File(["60.922 m2\n"], "bbr.txt", { type: "text/plain" }));
+  const rF = await hent("/internt/korpus/upload", { method: "POST", body: fdF });
+  const faktaId = (rF.headers.get("Location") || "").split("/").pop();
+  t("fakta-fil landede i R2", env.FONDE_FILER._size() >= 1);
+
+  console.log("\n16 · Ikke-godkendt og stemme-som-fakta afvises");
+  {
+    let kode1 = null;
+    try { await somGrundlag(env.FONDE_DB, faktaId, "fakta"); }
+    catch (e) { kode1 = e instanceof KorpusAfvisning ? e.kode : e.message; }
+    t("ikke-godkendt fakta kan ikke bruges som grundlag", kode1 === "ikke_godkendt", kode1);
+
+    await godkendDokument(env.FONDE_DB, faktaId, "test");
+    const okFakta = await somGrundlag(env.FONDE_DB, faktaId, "fakta");
+    t("godkendt fakta kan bruges som fakta", okFakta?.id === faktaId);
+
+    let kode2 = null;
+    try { await somGrundlag(env.FONDE_DB, stemmeId, "fakta"); }
+    catch (e) { kode2 = e instanceof KorpusAfvisning ? e.kode : e.message; }
+    t("godkendt stemme kan IKKE bruges som fakta", kode2 === "stemme_er_ikke_fakta", kode2);
+
+    const okStemme = await somGrundlag(env.FONDE_DB, stemmeId, "stemme");
+    t("godkendt stemme kan bruges som stemme", okStemme?.id === stemmeId);
+
+    const fdH = new FormData();
+    fdH.set("titel", "LDP-ansøgning 2025");
+    fdH.set("slags", "historik");
+    fdH.set("indhold", "Vi lovede et åbent værksted i 2025.");
+    const rH = await hent("/internt/korpus/upload", { method: "POST", body: fdH });
+    const histId = (rH.headers.get("Location") || "").split("/").pop();
+    await godkendDokument(env.FONDE_DB, histId, "test");
+    let kode3 = null;
+    try { await somGrundlag(env.FONDE_DB, histId, "fakta"); }
+    catch (e) { kode3 = e instanceof KorpusAfvisning ? e.kode : e.message; }
+    t("historik kan ikke bruges som aktuelt faktum", kode3 === "historik_er_ikke_fakta", kode3);
+  }
+
+  console.log("\n17 · Kildedokument ændret: genvurdering, indsendt urørt");
+  {
+    const gAktiv = await opretArbejdsgrundlag(env.FONDE_DB, { titel: "Udkast værksted" });
+    const gSendt = await opretArbejdsgrundlag(env.FONDE_DB, { titel: "LDP indsendt pakke", application_id: A });
+    await knytKilde(env.FONDE_DB, gAktiv.id, faktaId);
+    await knytKilde(env.FONDE_DB, gSendt.id, faktaId);
+
+    const før = await env.FONDE_DB.prepare(`SELECT titel, status FROM applications WHERE id = ?1`).bind(A).first();
+    t("LDP er indsendt før ændringen", før.status === "indsendt", før.status);
+
+    const ud = await nyVersion(env.FONDE_DB, faktaId, { indhold: "Opdateret areal." }, "test");
+    t("aktivt grundlag markeret til genvurdering", ud.genvurdering === 1, JSON.stringify(ud));
+    t("indsendt sags grundlag sprang over", ud.sprunget_indsendt === 1, JSON.stringify(ud));
+
+    const gAktivNu = await env.FONDE_DB.prepare(`SELECT status FROM arbejdsgrundlag WHERE id = ?1`).bind(gAktiv.id).first();
+    const gSendtNu = await env.FONDE_DB.prepare(`SELECT status FROM arbejdsgrundlag WHERE id = ?1`).bind(gSendt.id).first();
+    t("aktivt = til_genvurdering", gAktivNu.status === "til_genvurdering", gAktivNu.status);
+    t("indsendt grundlag uændret status", gSendtNu.status === "kladde", gSendtNu.status);
+
+    const efter = await env.FONDE_DB.prepare(`SELECT titel, status FROM applications WHERE id = ?1`).bind(A).first();
+    t("indsendt ansøgning omskrives ikke", efter.status === "indsendt" && efter.titel === før.titel);
+
+    const dok = await hentDokument(env.FONDE_DB, faktaId);
+    t("ny version kræver ny godkendelse", dok.godkendelsesstatus === "kladde" && dok.version === 2);
+  }
+
+  console.log("\n18 · Stemmeprofilen har de fem forbudte mønstre");
+  {
+    const p = await hentStemmeprofil(env.FONDE_DB);
+    t("stemmeprofilen findes og er godkendt", p?.godkendelsesstatus === "godkendt" && p.slags === "stemme");
+    const txt = p?.indhold || "";
+    t("mønster 1: sitet forklarer/forsvarer sig", txt.includes("forklarer eller forsvarer"));
+    t("mønster 2: aforismen til sidst", /aforismen til sidst/i.test(txt));
+    t("mønster 3: definition ved benægtelse", /benægtelse/i.test(txt));
+    t("mønster 4: spejlet symmetri / parallelisme", /spejlet symmetri/i.test(txt) && /parallelisme/i.test(txt));
+    t("mønster 5: statusfliser", /statusfliser/i.test(txt));
+    let kode = null;
+    try { await somGrundlag(env.FONDE_DB, p.id, "fakta"); }
+    catch (e) { kode = e.kode; }
+    t("stemmeprofilen er stemme, ikke fakta", kode === "stemme_er_ikke_fakta", kode);
+  }
+}
+
+console.log("\n19 · Import af runde og LDP-mønster (BYG-568)");
+let genApp;
+{
+  t("lokal 9. okt 15:00 er 13:00Z", lokalTilUtc("2026-10-09T15:00") === "2026-10-09T13:00:00.000Z",
+     lokalTilUtc("2026-10-09T15:00"));
+  const konflikt = fristUgedagsKonflikt("torsdag 9. oktober 2026 kl. 15.00", "2026-10-09T13:00:00Z");
+  t("ugedagsfejl opdages, datoen rettes ikke",
+     konflikt && konflikt.includes("fredag") && konflikt.includes("torsdag"), konflikt);
+
+  const fd = new FormData();
+  fd.set("fond_navn", "Den Nationale Landdistriktspulje");
+  fd.set("fond_program", "Småøer");
+  fd.set("fond_url", "https://www.livogland.dk/den-nationale-landdistriktspulje/projekter-paa-de-smaa-oeer");
+  fd.set("runde_navn", "2. runde 2026 · småøer");
+  fd.set("frist", "2026-10-09T15:00");
+  fd.set("frist_ordlyd", "torsdag 9. oktober 2026 kl. 15.00");
+  fd.set("frist_kilde_url", "https://www.livogland.dk/nyheder/2026/aug/aabning-af-den-nationale-landdistriktspulje-2-runde-2026");
+  fd.set("krav_label_0", "Vedtægter");
+  fd.set("krav_slags_0", "adgangskrav");
+  fd.set("krav_kilde_0", "LDP-vejledning · ansøgergrundlag");
+  fd.set("krav_label_1", "Interessetilkendegivelser / lokal opbakning");
+  fd.set("krav_slags_1", "vurderingskriterium");
+  fd.set("krav_kilde_1", "LDP-kriterier · småøer");
+  fd.set("krav_label_2", "Rådighed over stedet: lejekontrakt eller tinglysning");
+  fd.set("krav_slags_2", "adgangskrav");
+  fd.set("krav_kilde_2", "");
+  fd.set("krav_note_2", "Ikke verificeret for denne runde.");
+  fd.set("sag_titel", "LDP genskabt");
+  const r = await hent("/internt/fonde/ny", { method: "POST", body: fd });
+  t("import omdirigerer til sagen", r.status === 303 && (r.headers.get("Location") || "").includes("/sag/"), r.headers.get("Location"));
+  genApp = (r.headers.get("Location") || "").split("/").pop();
+
+  const h = await tekst(await hent(`/internt/fonde/sag/${genApp}`));
+  t("genskabt sag har LDP-titlen", h.includes("LDP genskabt"));
+  t("kildens ordlyd er bevaret", h.includes("torsdag 9. oktober 2026 kl. 15.00"));
+  t("ugedagsfejlen står som note, ikke rettet i stilhed", h.includes("er en fredag"));
+  t("vurderingskriterium er adskilt", h.includes("Vurdering") && h.includes("Interessetilkendegivelser"));
+  t("krav uden kilde er antagelse", h.includes("antagelse"));
+
+  const utc = await env.FONDE_DB.prepare(
+    `SELECT c.frist_utc, c.frist_ordlyd FROM applications a JOIN calls c ON c.id = a.call_id WHERE a.id = ?1`
+  ).bind(genApp).first();
+  t("frist_utc er 13:00Z, ordlyden stadig torsdag",
+     utc.frist_utc.startsWith("2026-10-09T13:00:00") && utc.frist_ordlyd.includes("torsdag"),
+     JSON.stringify(utc));
+}
+
+console.log("\n20 · Adgangskrav vs vurdering, klar-blokering");
+{
+  const krav = await env.FONDE_DB.prepare(
+    `SELECT * FROM requirements WHERE application_id = ?1 ORDER BY sortering`
+  ).bind(genApp).all();
+  const liste = krav.results;
+  const vedtaegter = liste.find((k) => k.label.startsWith("Vedtægter"));
+  const vurdering = liste.find((k) => k.slags === "vurderingskriterium");
+  const antag = liste.find((k) => !k.kilde);
+  t("adgangskrav og vurdering i modellen",
+     vedtaegter?.slags === "adgangskrav" && vurdering?.slags === "vurderingskriterium");
+  t("usourcet krav er antagelse", erAntagelse(antag));
+  t("sourced adgangskrav er ikke antagelse", !erAntagelse(vedtaegter));
+
+  await hent(`/internt/fonde/sag/${genApp}/adgang`, {
+    method: "POST", body: new URLSearchParams({ krav: vurdering.id, adgang: "ikke_opfyldt" }),
+  });
+  // vurdering shouldn't be set via UI (hidden), but if set it must not block
+  await env.FONDE_DB.prepare(`UPDATE requirements SET adgang = 'ikke_opfyldt' WHERE id = ?1`).bind(vurdering.id).run();
+  const efterV = (await env.FONDE_DB.prepare(`SELECT * FROM requirements WHERE application_id = ?1`).bind(genApp).all()).results;
+  t("uopfyldt vurdering blokerer ikke klar", kanMarkeresKlar(efterV) && uopfyldteAdgangskrav(efterV).length === 0);
+
+  await hent(`/internt/fonde/sag/${genApp}/adgang`, {
+    method: "POST", body: new URLSearchParams({ krav: vedtaegter.id, adgang: "ikke_opfyldt" }),
+  });
+  const efterA = (await env.FONDE_DB.prepare(`SELECT * FROM requirements WHERE application_id = ?1`).bind(genApp).all()).results;
+  t("bekræftet uopfyldt adgangskrav blokerer klar", !kanMarkeresKlar(efterA));
+
+  const rKlar = await hent(`/internt/fonde/sag/${genApp}/klar`, { method: "POST", body: new URLSearchParams() });
+  const locKlar = decodeURIComponent(rKlar.headers.get("Location") || "");
+  t("POST klar afvises", locKlar.includes("uopfyldt"), locKlar);
+  const st1 = await env.FONDE_DB.prepare(`SELECT status FROM applications WHERE id = ?1`).bind(genApp).first();
+  t("status forbliver kladde", st1.status === "kladde", st1.status);
+
+  const rArk = await hent(`/internt/fonde/sag/${genApp}/arkiver`, { method: "POST", body: new URLSearchParams() });
+  t("arkiv omdirigerer", rArk.status === 303);
+  const st2 = await env.FONDE_DB.prepare(`SELECT status FROM applications WHERE id = ?1`).bind(genApp).first();
+  t("uopfyldt adgangskrav blokerer ikke arkiv", st2.status === "arkiveret", st2.status);
+
+  // Ny sag til historisk indsendelse (arkiveret sag er færdig)
+  const fd2 = new FormData();
+  fd2.set("fond_navn", "Testfond historisk");
+  fd2.set("fond_program", "Pulje");
+  fd2.set("runde_navn", "Runde historisk");
+  fd2.set("frist_ordlyd", "1. januar 2026");
+  fd2.set("krav_label_0", "CVR");
+  fd2.set("krav_slags_0", "adgangskrav");
+  fd2.set("krav_kilde_0", "vejledning");
+  fd2.set("sag_titel", "Historisk sag");
+  const rNy = await hent("/internt/fonde/ny", { method: "POST", body: fd2 });
+  const histApp = (rNy.headers.get("Location") || "").split("/").pop();
+  const kravH = (await env.FONDE_DB.prepare(`SELECT id FROM requirements WHERE application_id = ?1`).bind(histApp).all()).results[0];
+  await hent(`/internt/fonde/sag/${histApp}/adgang`, {
+    method: "POST", body: new URLSearchParams({ krav: kravH.id, adgang: "ikke_opfyldt" }),
+  });
+  const rHist = await hent(`/internt/fonde/sag/${histApp}/historisk`, {
+    method: "POST", body: new URLSearchParams({ ref: "GAMMEL-1", note: "Sendt på papir i 2025" }),
+  });
+  t("historisk indsendelse omdirigerer", rHist.status === 303);
+  const sub = await env.FONDE_DB.prepare(
+    `SELECT historisk, ekstern_ref FROM submissions WHERE application_id = ?1`
+  ).bind(histApp).first();
+  t("historisk indsendelse registreres trods uopfyldt adgangskrav",
+     sub?.historisk === 1 && sub.ekstern_ref === "GAMMEL-1", JSON.stringify(sub));
+}
+
+console.log("\n21 · Fonde.dk-feltet er uafklaret og uden scraping");
+{
+  const org = await env.FONDE_DB.prepare(`SELECT * FROM organizations LIMIT 1`).first();
+  t("status afventer CVR", org.fondedk_status === "afventer_cvr", org.fondedk_status);
+  t("noten siger at det ikke er verificeret", /ikke verificeret/i.test(org.fondedk_note || ""));
+  t("noten siger at vi ikke scraper", /scraper ikke Fonde\.dk/i.test(org.fondedk_note || ""));
+  const ny = await tekst(await hent("/internt/fonde/ny"));
+  t("import-fladen har felt til menneskets svar", ny.includes("Svar fra kommunen"));
+  t("oversigten nævner Fonde.dk", (await tekst(await hent("/internt/fonde/"))).includes("Fonde.dk"));
 }
 
 console.log(`\n${ok} bestået, ${fejl} fejlet\n`);

@@ -7,6 +7,7 @@
     { "id": "oekonomi",     "sti": "internt/oekonomi",     "label": "Økonomi" },
     { "id": "anlaeg",       "sti": "internt/anlaeg",       "label": "Anlæg" },
     { "id": "timer",        "sti": "internt/timer",        "label": "Timer og indskud" },
+    { "id": "korpus",       "sti": "internt/korpus/",      "label": "Korpus" },
     { "id": "fonde",        "sti": "internt/fonde/",       "label": "Fonde" },
     { "id": "registrering", "sti": "internt/registrering", "label": "Registrering" }
   ]

@@ -1,7 +1,8 @@
 # Vendhjem Fonds-CRM
 
-Bor på `vendhjem.dk/internt/fonde`, bag den Cloudflare Access der allerede står
-foran `/internt`. Data i D1, bilag i R2. Alt andet på domænet serveres som
+Bor på `vendhjem.dk/internt/fonde` og `/internt/korpus`, bag den Cloudflare
+Access der allerede står foran `/internt`. `/mit` (fællesskabets login) ligger
+uden for Access. Data i D1, filer i R2. Alt andet på domænet serveres som
 statiske filer af `[assets]` og rører aldrig denne kode.
 
 ## Læs det her, før du bygger en flade
@@ -107,25 +108,30 @@ Lukket i to lag, med vilje:
 Cloudflare-connectoren, før tokenet havde skriveadgang, og er bagefter
 registreret i `d1_migrations`. De køres ikke igen.
 
-`0003_people.sql` (BYG-555 A1) og `0004_mit.sql` (BYG-556 A2) er **ikke**
-applied remote fra denne PR. Denne agent har ingen Cloudflare-token
-(`/tmp/.cf_token_vh` findes ikke her). Steven kører, når D1 Write er på
-det token der deployer:
+`0003_people.sql` (BYG-555 A1) og `0004_mit.sql` (BYG-556 A2) ligger på
+main (PR #20). `0005_korpus.sql` (BYG-567 E1) og `0006_fonde_e2.sql`
+(BYG-568 E2) er **ikke** applied remote fra denne PR.
+
+Denne agent har ingen Cloudflare-token (`/tmp/.cf_token_vh` findes ikke her).
+Steven kører, når D1 Write er på det token der deployer:
 
     npx wrangler@4 d1 migrations apply vendhjem-fonde --remote
 
 Opfind ikke at D1 Write eller Workers R2 Storage Write findes i en given
-kørsel. Uden D1 Write nægter wrangler apply. Uden R2 Write kan bilag ikke
-lægges op, selv om GET-sundhedstjekket kan svare.
+kørsel. Uden D1 Write nægter wrangler apply. Uden R2 Write kan bilag og
+korpusfiler ikke lægges op, selv om GET-sundhedstjekket kan svare.
 
 Workeren med A1-koden skal ikke deployes, før 0003 er applied: `ansvarlig`
 er person_id, og fladen slår navnet op i `people`. A2 (`/mit`) skal ikke
-deployes, før 0004 er applied: magic_links/passkeys-tabellerne.
+deployes, før 0004 er applied: magic_links/passkeys-tabellerne. E1/E2-koden
+skal ikke deployes, før 0005 og 0006 er applied: korpus-tabellerne og
+`requirements.slags` findes ellers ikke, og sundhedstjekket tæller
+`korpus_dokumenter`.
 
 ## Community-login /mit (BYG-556 A2)
 
 `/mit` ligger **uden for** Access. Cloudflare Access bliver på `/internt`
-(fonde, økonomi, kerne). Fællesskabet kan ikke sidde på Access — det
+(fonde, økonomi, kerne, korpus). Fællesskabet kan ikke sidde på Access — det
 gratis loft er 50 brugere.
 
 Flow: skriv mail → få et link → klik → inde. Linket er engangs, 15 minutter,
@@ -171,10 +177,10 @@ Ligger **uden for** `/internt`, fordi Access ellers svarer før Workeren og
 tjekket aldrig når frem. Uden den rigtige header svarer den 404 og røber ikke
 engang at den findes. Nøglen hedder «Vendhjem sundhedsnøgle» i Bitwarden.
 
-Den returnerer **tal, aldrig indhold**: antal sager, krav, bilag, godkendelser
-og indsendelser, plus om D1 og R2 svarer. Ingen titler, beløb, navne eller
-filnavne. Formålet er at opdage at en binding er faldet ud, før et menneske
-opdager det. `test/flader.sh` bruger den.
+Den returnerer **tal, aldrig indhold**: antal sager, krav, bilag, godkendelser,
+indsendelser og korpus-dokumenter, plus om D1 og R2 svarer. Ingen titler, beløb,
+navne eller filnavne. Formålet er at opdage at en binding er faldet ud, før et
+menneske opdager det. `test/flader.sh` bruger den.
 
 ## Deploy
 
@@ -201,10 +207,56 @@ Interne helpers i `src/db.js`: `hentPerson`, `roller`, `harRolle`,
 `opretPerson`, `tildelRolle`, `udloebRolle`, `skiftMail`,
 `personMedGyldigRolle`. Login-UI er `/mit` (A2). Invitationer er B.
 
+## Korpus og stemmeprofil (BYG-567 E1)
+
+`/internt/korpus`, bag samme Access. Metadata i D1 (`korpus_dokumenter`),
+filer i R2 under præfikset `korpus/`.
+
+Tre slags, håndhævet i `src/korpus.js` — ikke i en vejledning:
+
+- **stemme** — ordvalg og rytme. `somGrundlag(..., 'fakta')` afviser.
+- **fakta** — aktuelle oplysninger.
+- **historik** — hvad der er lovet før. Ikke det der er sandt nu.
+
+Et dokument uden `godkendelsesstatus = godkendt` kan ikke bruges som grundlag.
+Ændres et kildedokument, markeres tilknyttede `arbejdsgrundlag` til
+`til_genvurdering`. Arbejdsgrundlag knyttet til en **indsendt** ansøgning
+springes over; ansøgningen omskrives ikke.
+
+Stemmeprofilen er dokumentet `korpus-stemmeprofil` (slags stemme). Den
+indeholder de fem forbudte AI-mønstre fra BYG-544. Agenten kan læse den
+senere via `hentStemmeprofil`. Der skrives ikke ansøgninger her.
+
+## Find fondene (BYG-568 E2)
+
+Vi ejer sagerne. Vi bygger ikke et fondskatalog og scraper ikke Fonde.dk.
+
+`/internt/fonde/ny` lægger fond, runde, frist og krav ind. Fristens
+**ordlyd** gemmes som kilden skriver den. Hvis ugedagen ikke passer med
+datoen, står det som `frist_note`. Datoen rettes aldrig i stilhed.
+
+Krav uden kilde er **antagelse**. `adgangskrav` og `vurderingskriterium`
+er adskilt. Et bekræftet uopfyldt adgangskrav blokerer «Markér klar», men
+ikke arkiv og ikke historisk indsendelse.
+
+LDP-sagen i seed er et eksempel. Den kan genskabes fra importfladen.
+Landdistriktspuljen er ikke produktets mål.
+
+### Fonde.dk via Slagelse Kommune — uafklaret
+
+Slagelse Kommune tilbyder gratis Fonde.dk-adgang til foreninger med CVR
+i kommunen (op til tre bestyrelsesbrugere):
+<https://www.slagelse.dk/da/fritid-og-faellesskab/tilskud-og-puljer/faa-gratis-adgang-til-fondedk/>
+
+Egholmvej 23 ligger i Slagelse Kommune. **Det er ikke verificeret for
+Vendhjem.** Foreningen har ikke CVR endnu (`cvr_status = under_stiftelse`).
+Feltet `organizations.fondedk_note` er til menneskets svar, når kommunen
+har svaret. Status i seed: `afventer_cvr`. Vi scraper ikke Fonde.dk.
+
 ## Det, der bevidst ikke er bygget endnu
 
-AI-skriveren fra BYG-545-AI-KERNE. Korpus, stemmeprofil, fondssøgning,
-kravudtræk og svarudkast. Modellen her er skåret til det, LDP-fristen kræver;
-`awards`, `obligations`, `disbursements` og budgetversioner kommer, når det
-første tilsagn findes. Rækkefølgen er med vilje: sagen skal kunne bæres af
-mennesker, før en model får lov at skrive i den.
+AI-skriveren fra BYG-545-AI-KERNE. Fondssøgning, embeddings, automatisk
+kravudtræk fra PDF, match-scoring og svarudkast. `awards`, `obligations`,
+`disbursements` og budgetversioner kommer, når det første tilsagn findes.
+Rækkefølgen er med vilje: korpus og sager skal kunne bæres af mennesker,
+før en model får lov at skrive i dem.

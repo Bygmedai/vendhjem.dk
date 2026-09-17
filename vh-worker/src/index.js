@@ -1,9 +1,9 @@
 // Vendhjem Fonds-CRM
-// Bor på vendhjem.dk/internt/fonde, bag den Cloudflare Access der allerede
-// står foran /internt. Data i D1, bilag i R2.
+// Bor på vendhjem.dk/internt/fonde og /internt/korpus, bag den Cloudflare
+// Access der allerede står foran /internt. Data i D1, filer i R2.
 //
 // /mit (fællesskabets login) ligger UDEN for Access og besvares her.
-// Alt andet uden for /internt/fonde serveres som statiske filer af [assets].
+// Alt uden for de stier serveres som statiske filer af [assets].
 
 import { identitet } from "./access.js";
 import { sager, sag, organisation, personer, pakkeHash, log, id, nu } from "./db.js";
@@ -11,8 +11,17 @@ import { oversigt, sagside } from "./sider.js";
 import { side, fejlTilstand } from "./flade.js";
 import { TEKST } from "./tekst.js";
 import { mitFetch } from "./mit.js";
+import { haandterKorpus, ROD_KORPUS } from "./korpus.js";
+import {
+  haandterRunde, listerRunder, saetAdgang, saetKlar, arkiverSag, historiskIndsendelse, FONDE,
+} from "./runde.js";
 
-const ROD = "/internt/fonde";
+const ROD = FONDE;
+
+function workerSti(pathname) {
+  return pathname === FONDE || pathname.startsWith(FONDE + "/")
+      || pathname === ROD_KORPUS || pathname.startsWith(ROD_KORPUS + "/");
+}
 
 const redirect = (til, besked) =>
   new Response(null, { status: 303, headers: { Location: besked ? `${til}?m=${encodeURIComponent(besked)}` : til } });
@@ -64,9 +73,10 @@ export default {
                   (SELECT COUNT(*) FROM requirements) k,
                   (SELECT COUNT(*) FROM documents) d,
                   (SELECT COUNT(*) FROM approvals) g,
-                  (SELECT COUNT(*) FROM submissions) i`).first();
+                  (SELECT COUNT(*) FROM submissions) i,
+                  (SELECT COUNT(*) FROM korpus_dokumenter) ko`).first();
         svar.d1 = "ok";
-        svar.antal = { sager: r.a, krav: r.k, bilag: r.d, godkendelser: r.g, indsendelser: r.i };
+        svar.antal = { sager: r.a, krav: r.k, bilag: r.d, godkendelser: r.g, indsendelser: r.i, korpus: r.ko };
         const m = await env.FONDE_DB.prepare(
           `SELECT name FROM d1_migrations ORDER BY id DESC LIMIT 1`).first();
         svar.sidste_migration = m?.name ?? null;
@@ -88,7 +98,7 @@ export default {
       return mitFetch(request, env);
     }
 
-    if (!url.pathname.startsWith(ROD)) return env.ASSETS.fetch(request);
+    if (!workerSti(url.pathname)) return env.ASSETS.fetch(request);
 
     let bruger = await identitet(request);
 
@@ -113,9 +123,15 @@ export default {
     const sti = url.pathname.replace(/\/+$/, "") || ROD;
 
     try {
+      const korpusSvar = await haandterKorpus(request, { db, r2, bruger, url, sti });
+      if (korpusSvar) return korpusSvar;
+
+      const rundeSvar = await haandterRunde(request, { db, r2, bruger, url, sti });
+      if (rundeSvar) return rundeSvar;
+
       if (request.method === "GET" && (sti === ROD)) {
-        const [liste, org] = await Promise.all([sager(db), organisation(db)]);
-        return html(oversigt({ bruger, sager: liste, org }));
+        const [liste, org, runder] = await Promise.all([sager(db), organisation(db), listerRunder(db)]);
+        return html(oversigt({ bruger, sager: liste, org, runder }));
       }
 
       const mSag = sti.match(new RegExp(`^${ROD}/sag/([A-Za-z0-9_-]{4,64})$`));
@@ -142,7 +158,7 @@ export default {
       }
 
       // ── Handlinger ────────────────────────────────────────────────────────
-      const mAkt = sti.match(new RegExp(`^${ROD}/sag/([A-Za-z0-9_-]{4,64})/(gem|upload|kontroller|godkend|indsendt)$`));
+      const mAkt = sti.match(new RegExp(`^${ROD}/sag/([A-Za-z0-9_-]{4,64})/(gem|upload|kontroller|godkend|indsendt|klar|arkiver|historisk|adgang)$`));
       if (request.method === "POST" && mAkt) {
         const [, appId, handling] = mAkt;
         const tilbage = `${ROD}/sag/${appId}`;
@@ -155,6 +171,33 @@ export default {
         if (!s0) return new Response("Sagen findes ikke.", { status: 404 });
         if (s0.status === "indsendt" && handling !== "gem")
           return redirect(tilbage, "Sagen er indsendt. Den kan ikke ændres.");
+
+        if (handling === "klar") {
+          const r = await saetKlar(db, appId, bruger.navn);
+          return redirect(tilbage, r.ok ? null : r.grund);
+        }
+
+        if (handling === "arkiver") {
+          await arkiverSag(db, appId, bruger.navn);
+          return redirect(tilbage);
+        }
+
+        if (handling === "historisk") {
+          await historiskIndsendelse(db, appId, {
+            aktoer: bruger.navn, ref: fd.get("ref") || null, note: fd.get("note") || null,
+          });
+          return redirect(tilbage);
+        }
+
+        if (handling === "adgang") {
+          const kravId = fd.get("krav");
+          const k = await db.prepare(
+            `SELECT id FROM requirements WHERE id = ?1 AND application_id = ?2`
+          ).bind(kravId, appId).first();
+          if (!k) return redirect(tilbage, "Kravet findes ikke på sagen.");
+          await saetAdgang(db, kravId, fd.get("adgang"), bruger.navn);
+          return redirect(tilbage);
+        }
 
         if (handling === "gem") {
           const b = fd.get("beloeb");
