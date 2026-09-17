@@ -21,7 +21,8 @@ ingen den.
 - Prøve 11 og 13 i `test/koer.mjs` fanger drift: to navigationer, ukendt klasse,
   farve uden for paletten. Prøve 14 dækker `/mit`. Prøve 15–21 dækker korpus
   og fondimport. Prøve 22 og 23 dækker ophold og `/sporene`. Prøve 24 dækker
-  C2-forespørgsel.
+  C2-forespørgsel. Prøve 25 dækker år-0-kalenderen (syv lukkede uger og åbne
+  datoer).
 
 Sådan bygger du en korrekt flade uden at spørge. Redesign, nye farver og React
 er uden for scope.
@@ -115,8 +116,11 @@ registreret i `d1_migrations`. De køres ikke igen.
 `0003_people.sql` (BYG-555 A1) og `0004_mit.sql` (BYG-556 A2) ligger på
 main (PR #20). `0005_korpus.sql` (BYG-567 E1) og `0006_fonde_e2.sql`
 (BYG-568 E2) ligger på main (PR #21). `0007_ophold.sql` (BYG-561 C1) ligger
-på main (PR #22). `0008_foresporgsel.sql` (BYG-562 C2) er **ikke** applied
-remote fra denne PR.
+på main (PR #22) og **er applied remote** — målt 17/9: `/sporene` serveres
+fra D1 (typerne, ikke ophold). `0008_foresporgsel.sql` (BYG-562 C2) ligger
+på main (PR #27). `0009_kalender_2027.sql` er **seed** (syv lukkede uger +
+et minimalt sæt åbne 2027-ophold) og **skal applies remote**, ellers bliver
+`/sporene` ved med at sige «ingen datoer». Denne PR deployer ikke.
 
 Denne agent har ingen Cloudflare-token (`/tmp/.cf_token_vh` findes ikke her).
 Steven kører, når D1 Write er på det token der deployer:
@@ -135,7 +139,8 @@ skal ikke deployes, før 0005 og 0006 er applied: korpus-tabellerne og
 `korpus_dokumenter`. Workeren med C1 skal ikke deployes, før 0007 er
 applied: `/sporene` og `/internt/ophold` læser `opholdstyper` / `ophold` /
 `pladser`. Workeren med C2 skal ikke deployes, før 0008 er applied:
-`pladser.besked` og `pladser.mail_fejl`.
+`pladser.besked` og `pladser.mail_fejl`. Workeren med kalender-seedet
+skal ikke forventes at fylde `/sporene`, før 0009 er applied.
 
 ## Community-login /mit (BYG-556 A2)
 
@@ -277,6 +282,11 @@ Intern flade: `/internt/ophold`, bag den samme Access som resten af
 `/internt`. Offentlig kalender: `/sporene`, uden Access, uden `/mit`.
 Er kalenderen tom, står der det — ikke «datoer kommer». Priser vises når
 de er sat (850 kr. på mandegrupper); ellers står der hvorfor.
+
+`0009_kalender_2027.sql` seeder syv lukkede ISO-uger og et minimalt sæt
+åbne 2027-ophold (tre mandeweekender, festival uge 27, ét retreat). Det
+er ikke 52 gætte-rækker: `Kalender 2027` ligger ikke i repoet. Seedet
+skal applies remote.
 
 ## Forespørgsel (BYG-562 C2)
 

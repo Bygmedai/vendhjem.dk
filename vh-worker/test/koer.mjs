@@ -21,7 +21,9 @@ const korpusSql = readFileSync(new URL("../migrations/0005_korpus.sql", import.m
 const fondeE2 = readFileSync(new URL("../migrations/0006_fonde_e2.sql", import.meta.url), "utf8");
 const opholdSql = readFileSync(new URL("../migrations/0007_ophold.sql", import.meta.url), "utf8");
 const foresporgSql = readFileSync(new URL("../migrations/0008_foresporgsel.sql", import.meta.url), "utf8");
-const MIGRATIONER = [init, seed, peopleSql, mitSql, korpusSql, fondeE2, opholdSql, foresporgSql];
+const kalenderSql = readFileSync(new URL("../migrations/0009_kalender_2027.sql", import.meta.url), "utf8");
+const SKELET = [init, seed, peopleSql, mitSql, korpusSql, fondeE2, opholdSql, foresporgSql];
+const MIGRATIONER = [...SKELET, kalenderSql];
 
 let ok = 0, fejl = 0;
 const t = (navn, betingelse, ekstra = "") => {
@@ -822,7 +824,7 @@ console.log("\n23 · Ophold-fladen og offentlig kalender");
   const sag2 = await tekst(await hent(`/internt/ophold/${oprettet.id}`));
   t("Haruki står på opholdet", sag2.includes("Haruki Kino"));
 
-  const tomEnv = { ...env, FONDE_DB: lavD1(MIGRATIONER), FONDE_FILER: env.FONDE_FILER, ASSETS: env.ASSETS, LOKAL_TEST: "1" };
+  const tomEnv = { ...env, FONDE_DB: lavD1(SKELET), FONDE_FILER: env.FONDE_FILER, ASSETS: env.ASSETS, LOKAL_TEST: "1" };
   const tomKal = await tekst(await worker.fetch(new Request(BASE + "/sporene"), tomEnv, {}));
   t("tom kalender siger det højt", /ingen datoer/i.test(tomKal), tomKal.slice(0, 200));
   t("tom kalender siger ikke «datoer kommer»", !/datoer kommer/i.test(tomKal));
@@ -1077,6 +1079,77 @@ console.log("\n24 · Forespørgsel (BYG-562 C2)");
   t("C2-fladen bruger kun klasser fra vh.css", ukendtC2.length === 0, ukendtC2.join(", "));
   const farverC2 = farverUdenforPalet(c2Html, css);
   t("C2-fladen indfører ingen farve uden for paletten", farverC2.ok, JSON.stringify(farverC2));
+}
+
+console.log("\n25 · År-0-kalender 2027 (syv lukkede uger + åbne datoer)");
+{
+  const db = env.FONDE_DB;
+  const lukkede = (await db.prepare(`
+    SELECT o.id, o.start_dato, o.slut_dato, o.status, t.spor, t.hele_stedet
+      FROM ophold o JOIN opholdstyper t ON t.id = o.type_id
+     WHERE t.spor = 'lukket' AND o.status = 'lukket'
+     ORDER BY o.start_dato
+  `).all()).results;
+  t("syv lukkede uger ligger i kalenderen", lukkede.length === 7, JSON.stringify(lukkede.map((o) => o.id)));
+  t("lukkede uger bruger ot-lukket og hele_stedet",
+     lukkede.every((o) => o.spor === "lukket" && o.hele_stedet === 1 && o.status === "lukket"));
+
+  const uger = lukkede.map((o) => o.start_dato);
+  t("ugerne er spredt, ikke klemt i januar",
+     uger[0] === "2027-02-08" && uger[6] === "2027-12-20" &&
+     new Set(uger.map((d) => d.slice(5, 7))).size >= 6,
+     uger.join(", "));
+
+  const overlapLukket = await hent("/internt/ophold/opret", {
+    method: "POST",
+    body: new URLSearchParams({
+      type_id: "ot-mandegrupper",
+      start_dato: "2027-02-10",
+      slut_dato: "2027-02-12",
+      kapacitet: "15",
+      status: "åben",
+    }),
+  });
+  const overlapLukketLoc = decodeURIComponent(overlapLukket.headers.get("Location") || "");
+  t("hele_stedet lukket uge nægter et andet beboende ophold",
+     overlapLukketLoc.includes("hele stedet er optaget"),
+     overlapLukketLoc);
+  const smuglet = await db.prepare(
+    `SELECT COUNT(*) n FROM ophold WHERE start_dato = '2027-02-10' AND type_id = 'ot-mandegrupper'`
+  ).first();
+  t("det overlappinge ophold blev ikke gemt", smuglet?.n === 0, JSON.stringify(smuglet));
+
+  const aabne = (await db.prepare(`
+    SELECT o.id, o.start_dato, t.spor, o.status, COALESCE(o.pris, t.pris_fra) AS vis_pris
+      FROM ophold o JOIN opholdstyper t ON t.id = o.type_id
+     WHERE o.status IN ('åben','fuld') AND t.spor != 'lukket'
+     ORDER BY o.start_dato
+  `).all()).results;
+  const mande = aabne.filter((o) => o.spor === "mandegrupper" && o.start_dato.startsWith("2027-"));
+  t("mindst tre åbne mandeweekender er seedet", mande.length >= 3, JSON.stringify(mande.map((o) => o.id)));
+  t("en mandeweekend bærer 850 kr.", mande.some((o) => o.vis_pris === 850));
+  t("festival- og retreat-pladsholdere er åbne",
+     aabne.some((o) => o.spor === "festival") && aabne.some((o) => o.spor === "retreats"),
+     JSON.stringify(aabne.map((o) => o.spor)));
+
+  const htmlSporene = await tekst(await hent("/sporene"));
+  t("/sporene viser ikke længere den tomme kalender",
+     !/ingen datoer i kalenderen endnu/i.test(htmlSporene), htmlSporene.slice(0, 400));
+  t("/sporene HTML viser lukkede uger",
+     /februar/i.test(htmlSporene) && /december/i.test(htmlSporene) &&
+     !/når ugerne er sat/i.test(htmlSporene),
+     htmlSporene.match(/Syv uger[\s\S]{0,400}/)?.[0]);
+  t("/sporene HTML viser mindst én åben dato",
+     /14\.|14-|maj|oktober|december/i.test(htmlSporene) && htmlSporene.includes("850"),
+     htmlSporene.match(/Mandegrupper[\s\S]{0,500}/)?.[0]);
+
+  const jsonSporene = await worker.fetch(new Request(BASE + "/sporene", {
+    headers: { accept: "application/json" },
+  }), env, {});
+  const jsonKrop = await tekst(jsonSporene);
+  t("/sporene JSON-kald viser stadig lukket og åben dato i HTML",
+     jsonSporene.status === 200 && /februar/i.test(jsonKrop) && /850/.test(jsonKrop),
+     jsonSporene.status);
 }
 
 console.log(`\n${ok} bestået, ${fejl} fejlet\n`);
