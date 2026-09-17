@@ -20,7 +20,8 @@ ingen den.
 - Navigationen kommer fra `nav-internt.json`. Ret aldrig `src/nav-internt.js`.
 - Prøve 11 og 13 i `test/koer.mjs` fanger drift: to navigationer, ukendt klasse,
   farve uden for paletten. Prøve 14 dækker `/mit`. Prøve 15–21 dækker korpus
-  og fondimport. Prøve 22 og 23 dækker ophold og `/sporene`.
+  og fondimport. Prøve 22 og 23 dækker ophold og `/sporene`. Prøve 24 dækker
+  C2-forespørgsel.
 
 Sådan bygger du en korrekt flade uden at spørge. Redesign, nye farver og React
 er uden for scope.
@@ -113,8 +114,9 @@ registreret i `d1_migrations`. De køres ikke igen.
 
 `0003_people.sql` (BYG-555 A1) og `0004_mit.sql` (BYG-556 A2) ligger på
 main (PR #20). `0005_korpus.sql` (BYG-567 E1) og `0006_fonde_e2.sql`
-(BYG-568 E2) ligger på main (PR #21). `0007_ophold.sql` (BYG-561 C1) er
-**ikke** applied remote fra denne PR.
+(BYG-568 E2) ligger på main (PR #21). `0007_ophold.sql` (BYG-561 C1) ligger
+på main (PR #22). `0008_foresporgsel.sql` (BYG-562 C2) er **ikke** applied
+remote fra denne PR.
 
 Denne agent har ingen Cloudflare-token (`/tmp/.cf_token_vh` findes ikke her).
 Steven kører, når D1 Write er på det token der deployer:
@@ -132,7 +134,8 @@ skal ikke deployes, før 0005 og 0006 er applied: korpus-tabellerne og
 `requirements.slags` findes ellers ikke, og sundhedstjekket tæller
 `korpus_dokumenter`. Workeren med C1 skal ikke deployes, før 0007 er
 applied: `/sporene` og `/internt/ophold` læser `opholdstyper` / `ophold` /
-`pladser`.
+`pladser`. Workeren med C2 skal ikke deployes, før 0008 er applied:
+`pladser.besked` og `pladser.mail_fejl`.
 
 ## Community-login /mit (BYG-556 A2)
 
@@ -275,8 +278,23 @@ Intern flade: `/internt/ophold`, bag den samme Access som resten af
 Er kalenderen tom, står der det — ikke «datoer kommer». Priser vises når
 de er sat (850 kr. på mandegrupper); ellers står der hvorfor.
 
-Betaling er D1. Selvbetjent forespørgsel er C2. Airbnb og rengøring er
-uden for scope.
+## Forespørgsel (BYG-562 C2)
+
+Knap på hvert åbent ophold på `/sporene`. Formular: navn, mail, fritekst.
+Opretter eller genkender personen (mail), opretter `pladser` med status
+`forespurgt`. Dobbelt kald på samme person+ophold bliver én plads.
+Fuldt ophold: knappen er væk, endpointet svarer 409.
+
+Kvittering på skærmen og på mail (samme Resend-vej som `/mit`). Bekræft
+eller afvis med ét tryk på `/internt/ophold`. Bekræft sender praktisk
+mail (færge, hvad man skal have med, hvad der er inkluderet). Fejler
+mailen, er pladsen stadig gemt, og fejlen står på intern-fladen.
+
+Session-cookien fra `/mit` har `Path=/`, så navn og mail er kendt på
+`/sporene` uden ny auth.
+
+Betaling, venteliste, auto-bekræftelse, kalenderfiler, tærskel og
+beslutningsdato er D1 (BYG-563). Airbnb og rengøring er uden for scope.
 
 ## Det, der bevidst ikke er bygget endnu
 
