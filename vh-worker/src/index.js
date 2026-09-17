@@ -103,7 +103,7 @@ export default {
     const sti = url.pathname.replace(/\/+$/, "") || "/";
 
     // Offentlig kalender. Ingen Access — det er det, sitet sælger.
-    if (erSporene(sti, url.pathname)) return besvarSporene(env);
+    if (erSporene(sti, url.pathname)) return besvarSporene(request, env);
 
     const internOphold = erOphold(sti);
     if (!internOphold && !workerSti(url.pathname)) return env.ASSETS.fetch(request);

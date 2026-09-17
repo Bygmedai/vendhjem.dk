@@ -27,7 +27,9 @@ CREATE TABLE opholdstyper (
   oprettet    TEXT NOT NULL
 );
 
--- Et konkret dato-interval af en type. Datoer er inklusive, ISO YYYY-MM-DD.
+-- Dates are inclusive. Adjacent days (ends the 8th, starts the 9th) are
+-- free. Sharing a calendar day is overlap. Checkout/checkin same day is
+-- not supported: the house cannot hold two exclusive groups on one date.
 CREATE TABLE ophold (
   id         TEXT PRIMARY KEY,
   type_id    TEXT NOT NULL REFERENCES opholdstyper(id),

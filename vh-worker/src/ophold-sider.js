@@ -62,7 +62,7 @@ ${advarsel ? `<section class="stage" style="padding-top:18px"><div class="ramme"
 <section class="stage blok">
 <p class="sec">Ophold</p>
 <h1>Kalenderen over det, der sker på stedet</h1>
-<p class="lead maxw mt2">Et ophold er et dato-interval af et spor. Hele stedet udlejet blokerer alt andet i perioden — databasen nægter, fladen advarer ikke bare.</p>
+<p class="lead maxw mt2">Et ophold er et dato-interval af et spor. Datoerne er inklusive: to eksklusive ophold må ikke dele en dag; dagen efter er fri. Hele stedet udlejet blokerer alt andet i perioden — databasen nægter, fladen advarer ikke bare.</p>
 </section>
 
 <section class="stage">

@@ -32,6 +32,11 @@ function heltal(v) {
   return Number.isInteger(n) ? n : null;
 }
 
+function isoDato(v) {
+  const s = String(v || "").trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
+}
+
 export function erSporene(sti, pathname) {
   return sti === "/sporene" || pathname === "/sporene.html";
 }
@@ -40,12 +45,18 @@ export function erOphold(sti) {
   return sti === ROD || sti.startsWith(ROD + "/");
 }
 
-export async function besvarSporene(env) {
-  const db = env.FONDE_DB;
-  const [typer, aabne, lukkede] = await Promise.all([
-    opholdstyper(db), offentligeOphold(db), lukkedeUger(db),
-  ]);
-  return html(sporeneSide({ typer, aabne, lukkede }));
+export async function besvarSporene(request, env) {
+  try {
+    const db = env.FONDE_DB;
+    const [typer, aabne, lukkede] = await Promise.all([
+      opholdstyper(db), offentligeOphold(db), lukkedeUger(db),
+    ]);
+    return html(sporeneSide({ typer, aabne, lukkede }));
+  } catch {
+    // 0007 ikke applied, eller D1 nede: vis den statiske ærlige tomme side
+    // i stedet for at 500'e det, sitet sælger.
+    return env.ASSETS.fetch(request);
+  }
 }
 
 export async function besvarOphold(request, env, bruger, url) {
@@ -69,9 +80,10 @@ export async function besvarOphold(request, env, bruger, url) {
       const kap = heltal(fd.get("kapacitet"));
       if (kap == null || kap < 0) return redirect(ROD, "Kapacitet skal være et heltal.");
       const status = STATUS.has(String(fd.get("status"))) ? String(fd.get("status")) : "planlagt";
-      const start_dato = String(fd.get("start_dato") || "");
-      const slut_dato = String(fd.get("slut_dato") || "");
+      const start_dato = isoDato(fd.get("start_dato"));
+      const slut_dato = isoDato(fd.get("slut_dato"));
       if (!start_dato || !slut_dato) return redirect(ROD, "Datoer mangler.");
+      if (start_dato > slut_dato) return redirect(ROD, "Til-datoen skal være samme dag eller senere end fra-datoen.");
       try {
         const o = await opretOphold(db, {
           type_id, start_dato, slut_dato, kapacitet: kap, status,
@@ -126,10 +138,13 @@ export async function besvarOphold(request, env, bruger, url) {
       const kap = heltal(fd.get("kapacitet"));
       if (kap == null || kap < 0) return redirect(tilbage, "Kapacitet skal være et heltal.");
       const status = STATUS.has(String(fd.get("status"))) ? String(fd.get("status")) : "planlagt";
+      const start_dato = isoDato(fd.get("start_dato"));
+      const slut_dato = isoDato(fd.get("slut_dato"));
+      if (!start_dato || !slut_dato) return redirect(tilbage, "Datoer mangler.");
+      if (start_dato > slut_dato) return redirect(tilbage, "Til-datoen skal være samme dag eller senere end fra-datoen.");
       try {
         await gemOphold(db, oid, {
-          start_dato: String(fd.get("start_dato") || ""),
-          slut_dato: String(fd.get("slut_dato") || ""),
+          start_dato, slut_dato,
           kapacitet: kap, status,
           pris: heltal(fd.get("pris")),
           note: fd.get("note") || null,

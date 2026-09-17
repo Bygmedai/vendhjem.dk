@@ -296,6 +296,7 @@ console.log("\n13 · Fladekontrakt (BYG-565 G1)");
   t("palettens papir-farve er tilladt",
      farverUdenforPalet("color:#e9e7e0", css).ok);
 
+  const { opholdOversigt, opholdSide } = await import("../src/ophold-sider.js");
   const fladeHtml = [
     await tekst(await hent("/internt/fonde/")),
     await tekst(await hent(`/internt/fonde/sag/${A}`)),
@@ -303,6 +304,16 @@ console.log("\n13 · Fladekontrakt (BYG-565 G1)");
     await tekst(await hent("/internt/korpus/")),
     await tekst(await hent("/internt/korpus/dok/korpus-stemmeprofil")),
     await tekst(await hent("/internt/ophold/")),
+    opholdOversigt({ bruger: { navn: "x" }, liste: [], typer: [{ id: "ot-x", navn: "x" }] }),
+    opholdSide({
+      bruger: { navn: "x" },
+      o: {
+        id: "op-x", type_navn: "x", start_dato: "2027-01-01", slut_dato: "2027-01-03",
+        status: "åben", kapacitet: 2, optaget: 0, hele_stedet: 1, pris: 850, pris_fra: 850, note: "",
+        pladser: [],
+      },
+      personer: [],
+    }),
     await tekst(await hent("/sporene")),
     oversigt({ bruger: { navn: "x" }, sager: [], org: {} }),
     side({ titel: "Fejl", aktiv: "fonde", bruger: { navn: "x" }, indhold: fejlTilstand() }),
@@ -761,6 +772,17 @@ console.log("\n22 · Ophold: overlap og kapacitet (BYG-561 C1)");
   raw.prepare(`UPDATE pladser SET status = 'afbudt' WHERE id = 'pl-2'`).run();
   t("afbud frigiver plads og åbner opholdet igen",
      raw.prepare("SELECT status FROM ophold WHERE id = 'op-lille'").get().status === "åben");
+
+  const nabo = fejlBesked(() => {
+    raw.prepare(`INSERT INTO ophold (id, type_id, start_dato, slut_dato, kapacitet, status, oprettet)
+                 VALUES ('op-ret-nabo', 'ot-retreats', '2027-03-09', '2027-03-14', 25, 'åben', datetime('now'))`).run();
+  });
+  t("dagen efter et eksklusivt ophold er fri",
+     nabo == null && raw.prepare("SELECT COUNT(*) n FROM ophold WHERE id = 'op-ret-nabo'").get().n === 1,
+     nabo);
+
+  raw.prepare(`INSERT INTO ophold (id, type_id, start_dato, slut_dato, kapacitet, status, oprettet)
+               VALUES ('op-ret-lukket', 'ot-retreats', '2027-08-01', '2027-08-06', 25, 'lukket', datetime('now'))`).run();
 }
 
 console.log("\n23 · Ophold-fladen og offentlig kalender");
@@ -813,6 +835,19 @@ console.log("\n23 · Ophold-fladen og offentlig kalender");
   const uden = { ...env, LOKAL_TEST: undefined };
   const internUden = await worker.fetch(new Request(BASE + "/internt/ophold/"), uden, {});
   t("/internt/ophold er 401 uden Access", internUden.status === 401, internUden.status);
+
+  const gemTom = await hent(`/internt/ophold/${oprettet.id}/gem`, {
+    method: "POST", body: new URLSearchParams({ start_dato: "", slut_dato: "", kapacitet: "15", status: "åben" }),
+  });
+  t("gem uden datoer afvises", decodeURIComponent(gemTom.headers.get("Location") || "").includes("Datoer mangler"),
+     gemTom.headers.get("Location"));
+
+  const offentligLukket = await tekst(await hent("/sporene"));
+  t("lukket retreat vises ikke som åben dato eller lukket uge", !/august/i.test(offentligLukket));
+
+  const nede = { ...env, FONDE_DB: { prepare() { throw new Error("D1 nede"); } }, LOKAL_TEST: "1" };
+  const fald = await worker.fetch(new Request(BASE + "/sporene"), nede, {});
+  t("kalender falder tilbage til assets ved D1-fejl", (await tekst(fald)) === "asset", fald.status);
 }
 
 console.log(`\n${ok} bestået, ${fejl} fejlet\n`);

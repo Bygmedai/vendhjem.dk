@@ -213,7 +213,7 @@ export async function lukkedeUger(db) {
     SELECT o.*, t.navn AS type_navn
       FROM ophold o
       JOIN opholdstyper t ON t.id = o.type_id
-     WHERE o.status = 'lukket' OR t.spor = 'lukket'
+     WHERE t.spor = 'lukket' AND o.status = 'lukket'
      ORDER BY o.start_dato`).all();
   return results;
 }
