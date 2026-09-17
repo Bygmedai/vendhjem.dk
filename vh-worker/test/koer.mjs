@@ -19,6 +19,7 @@ const peopleSql = readFileSync(new URL("../migrations/0003_people.sql", import.m
 const mitSql = readFileSync(new URL("../migrations/0004_mit.sql", import.meta.url), "utf8");
 const korpusSql = readFileSync(new URL("../migrations/0005_korpus.sql", import.meta.url), "utf8");
 const fondeE2 = readFileSync(new URL("../migrations/0006_fonde_e2.sql", import.meta.url), "utf8");
+const opholdSql = readFileSync(new URL("../migrations/0007_ophold.sql", import.meta.url), "utf8");
 
 let ok = 0, fejl = 0;
 const t = (navn, betingelse, ekstra = "") => {
@@ -31,7 +32,7 @@ const worker = (await import("../src/index.js")).default;
 
 const mails = [];
 const env = {
-  FONDE_DB: lavD1([init, seed, peopleSql, mitSql, korpusSql, fondeE2]),
+  FONDE_DB: lavD1([init, seed, peopleSql, mitSql, korpusSql, fondeE2, opholdSql]),
   FONDE_FILER: lavR2(),
   ASSETS: lavAssets(),
   LOKAL_TEST: "1",
@@ -227,8 +228,11 @@ console.log("\n11 · Navigationen er den samme begge steder");
   const stierWorker = [...navWorker.matchAll(/href="\/([^"]*)"/g)].map((m) => m[1]);
 
   const forventet = PUNKTER.map((p) => p.sti);
-  t("kilden har baade fonde, korpus og registrering",
-     forventet.includes("internt/fonde/") && forventet.includes("internt/korpus/") && forventet.includes("internt/registrering"));
+  t("kilden har baade fonde, korpus, ophold og registrering",
+     forventet.includes("internt/fonde/") &&
+     forventet.includes("internt/korpus/") &&
+     forventet.includes("internt/ophold/") &&
+     forventet.includes("internt/registrering"));
   t("statiske sider har alle punkter",
      JSON.stringify(stierStatisk) === JSON.stringify(forventet),
      JSON.stringify(stierStatisk));
@@ -292,12 +296,25 @@ console.log("\n13 · Fladekontrakt (BYG-565 G1)");
   t("palettens papir-farve er tilladt",
      farverUdenforPalet("color:#e9e7e0", css).ok);
 
+  const { opholdOversigt, opholdSide } = await import("../src/ophold-sider.js");
   const fladeHtml = [
     await tekst(await hent("/internt/fonde/")),
     await tekst(await hent(`/internt/fonde/sag/${A}`)),
     await tekst(await hent("/internt/fonde/ny")),
     await tekst(await hent("/internt/korpus/")),
     await tekst(await hent("/internt/korpus/dok/korpus-stemmeprofil")),
+    await tekst(await hent("/internt/ophold/")),
+    opholdOversigt({ bruger: { navn: "x" }, liste: [], typer: [{ id: "ot-x", navn: "x" }] }),
+    opholdSide({
+      bruger: { navn: "x" },
+      o: {
+        id: "op-x", type_navn: "x", start_dato: "2027-01-01", slut_dato: "2027-01-03",
+        status: "åben", kapacitet: 2, optaget: 0, hele_stedet: 1, pris: 850, pris_fra: 850, note: "",
+        pladser: [],
+      },
+      personer: [],
+    }),
+    await tekst(await hent("/sporene")),
     oversigt({ bruger: { navn: "x" }, sager: [], org: {} }),
     side({ titel: "Fejl", aktiv: "fonde", bruger: { navn: "x" }, indhold: fejlTilstand() }),
     tomTilstand(),
@@ -310,7 +327,7 @@ console.log("\n13 · Fladekontrakt (BYG-565 G1)");
   t("fondsfladen indfører ingen farve uden for paletten",
      farver.ok, JSON.stringify(farver));
 
-  const kilder = ["flade.js", "sider.js", "views.js", "index.js", "tekst.js", "mit.js", "session.js", "mail.js", "webauthn.js", "krypto.js", "korpus.js", "runde.js"]
+  const kilder = ["flade.js", "sider.js", "views.js", "index.js", "tekst.js", "mit.js", "session.js", "mail.js", "webauthn.js", "krypto.js", "korpus.js", "runde.js", "ophold.js", "ophold-sider.js"]
     .map((f) => readFileSync(new URL(`../src/${f}`, import.meta.url), "utf8")).join("\n");
   const kildeFarver = farverUdenforPalet(kilder, css);
   t("flade-kilden indfører ingen farve uden for paletten",
@@ -694,6 +711,158 @@ console.log("\n21 · Fonde.dk-feltet er uafklaret og uden scraping");
   const ny = await tekst(await hent("/internt/fonde/ny"));
   t("import-fladen har felt til menneskets svar", ny.includes("Svar fra kommunen"));
   t("oversigten nævner Fonde.dk", (await tekst(await hent("/internt/fonde/"))).includes("Fonde.dk"));
+}
+
+console.log("\n22 · Ophold: overlap og kapacitet (BYG-561 C1)");
+{
+  const db = env.FONDE_DB;
+  const raw = db._raw;
+  const fejlBesked = (fn) => {
+    try { fn(); return null; }
+    catch (e) { return String(e.message || e); }
+  };
+
+  const typer = raw.prepare("SELECT id, spor, hele_stedet, pris_fra FROM opholdstyper ORDER BY sortering").all();
+  t("seks spor plus lukkede uger er seedet", typer.length === 7, typer.length);
+  t("mandegrupper har 850 kr.",
+     typer.find((x) => x.spor === "mandegrupper")?.pris_fra === 850);
+  t("retreats og campingvogne har ikke en opdigtet pris",
+     typer.find((x) => x.spor === "retreats")?.pris_fra == null &&
+     typer.find((x) => x.spor === "campingvogne")?.pris_fra == null);
+
+  raw.prepare(`INSERT INTO ophold (id, type_id, start_dato, slut_dato, kapacitet, status, oprettet)
+               VALUES ('op-mand-1', 'ot-mandegrupper', '2027-03-05', '2027-03-08', 15, 'åben', datetime('now'))`).run();
+  t("et eksklusivt ophold kan oprettes",
+     raw.prepare("SELECT status FROM ophold WHERE id = 'op-mand-1'").get().status === "åben");
+
+  const overlap = fejlBesked(() => {
+    raw.prepare(`INSERT INTO ophold (id, type_id, start_dato, slut_dato, kapacitet, status, oprettet)
+                 VALUES ('op-ret-1', 'ot-retreats', '2027-03-07', '2027-03-12', 25, 'åben', datetime('now'))`).run();
+  });
+  t("overlap på hele stedet afvises af databasen",
+     overlap != null && /hele stedet/i.test(overlap), overlap);
+  t("det overlappinge retreat blev ikke gemt",
+     raw.prepare("SELECT COUNT(*) n FROM ophold WHERE id = 'op-ret-1'").get().n === 0);
+
+  raw.prepare(`INSERT INTO ophold (id, type_id, start_dato, slut_dato, kapacitet, status, oprettet)
+               VALUES ('op-camp-1', 'ot-campingvogne', '2027-06-01', '2027-06-30', 4, 'åben', datetime('now'))`).run();
+  raw.prepare(`INSERT INTO ophold (id, type_id, start_dato, slut_dato, kapacitet, status, oprettet)
+               VALUES ('op-stille-1', 'ot-stille', '2027-06-10', '2027-06-17', 2, 'åben', datetime('now'))`).run();
+  t("to ikke-eksklusive spor må overlappe",
+     raw.prepare("SELECT COUNT(*) n FROM ophold WHERE id IN ('op-camp-1','op-stille-1')").get().n === 2);
+
+  raw.prepare(`INSERT INTO ophold (id, type_id, start_dato, slut_dato, kapacitet, status, oprettet)
+               VALUES ('op-lille', 'ot-stille', '2027-11-01', '2027-11-07', 2, 'åben', datetime('now'))`).run();
+  raw.prepare(`INSERT INTO pladser (id, ophold_id, person_id, status, pris, oprettet)
+               VALUES ('pl-1', 'op-lille', 'p-steven', 'bekræftet', 0, datetime('now'))`).run();
+  t("én plads fylder ikke et ophold med kapacitet 2",
+     raw.prepare("SELECT status FROM ophold WHERE id = 'op-lille'").get().status === "åben");
+
+  raw.prepare(`INSERT INTO pladser (id, ophold_id, person_id, status, pris, oprettet)
+               VALUES ('pl-2', 'op-lille', 'p-lai', 'bekræftet', 0, datetime('now'))`).run();
+  t("fyldt kapacitet skifter selv til fuld",
+     raw.prepare("SELECT status FROM ophold WHERE id = 'op-lille'").get().status === "fuld");
+
+  const over = fejlBesked(() => {
+    raw.prepare(`INSERT INTO pladser (id, ophold_id, person_id, status, pris, oprettet)
+                 VALUES ('pl-3', 'op-lille', 'p-haruki', 'bekræftet', 0, datetime('now'))`).run();
+  });
+  t("plads ud over kapacitet afvises", over != null, over);
+
+  raw.prepare(`UPDATE pladser SET status = 'afbudt' WHERE id = 'pl-2'`).run();
+  t("afbud frigiver plads og åbner opholdet igen",
+     raw.prepare("SELECT status FROM ophold WHERE id = 'op-lille'").get().status === "åben");
+
+  const nabo = fejlBesked(() => {
+    raw.prepare(`INSERT INTO ophold (id, type_id, start_dato, slut_dato, kapacitet, status, oprettet)
+                 VALUES ('op-ret-nabo', 'ot-retreats', '2027-03-09', '2027-03-14', 25, 'åben', datetime('now'))`).run();
+  });
+  t("dagen efter et eksklusivt ophold er fri",
+     nabo == null && raw.prepare("SELECT COUNT(*) n FROM ophold WHERE id = 'op-ret-nabo'").get().n === 1,
+     nabo);
+
+  raw.prepare(`INSERT INTO ophold (id, type_id, start_dato, slut_dato, kapacitet, status, oprettet)
+               VALUES ('op-ret-lukket', 'ot-retreats', '2027-08-01', '2027-08-06', 25, 'lukket', datetime('now'))`).run();
+}
+
+console.log("\n23 · Ophold-fladen og offentlig kalender");
+{
+  const liste = await hent("/internt/ophold/");
+  const lh = await tekst(liste);
+  t("intern ophold svarer 200", liste.status === 200, liste.status);
+  t("intern ophold bruger flade-sproget", lh.includes("Ophold") && lh.includes("opret"));
+
+  const r = await hent("/internt/ophold/opret", {
+    method: "POST",
+    body: new URLSearchParams({
+      type_id: "ot-mandegrupper",
+      start_dato: "2027-04-16",
+      slut_dato: "2027-04-18",
+      kapacitet: "15",
+      status: "åben",
+      pris: "850",
+    }),
+  });
+  t("opret ophold omdirigerer", r.status === 303, r.status);
+  const oprettet = await env.FONDE_DB.prepare(
+    `SELECT id FROM ophold WHERE start_dato = '2027-04-16' AND type_id = 'ot-mandegrupper'`
+  ).first();
+  t("opholdet ligger i databasen", Boolean(oprettet?.id), oprettet?.id);
+
+  const sag = await tekst(await hent(`/internt/ophold/${oprettet.id}`));
+  t("siden viser type og datoer", sag.includes("Mandegrupper") && sag.includes("2027"));
+
+  const plads = await hent(`/internt/ophold/${oprettet.id}/plads`, {
+    method: "POST",
+    body: new URLSearchParams({ person_id: "p-haruki", status: "bekræftet", pris: "850" }),
+  });
+  t("plads omdirigerer", plads.status === 303, plads.status);
+  const sag2 = await tekst(await hent(`/internt/ophold/${oprettet.id}`));
+  t("Haruki står på opholdet", sag2.includes("Haruki Kino"));
+
+  const tomEnv = { ...env, FONDE_DB: lavD1([init, seed, peopleSql, mitSql, korpusSql, fondeE2, opholdSql]), FONDE_FILER: env.FONDE_FILER, ASSETS: env.ASSETS, LOKAL_TEST: "1" };
+  const tomKal = await tekst(await worker.fetch(new Request(BASE + "/sporene"), tomEnv, {}));
+  t("tom kalender siger det højt", /ingen datoer/i.test(tomKal), tomKal.slice(0, 200));
+  t("tom kalender siger ikke «datoer kommer»", !/datoer kommer/i.test(tomKal));
+  t("mandegrupper viser 850 kr. på sporene", tomKal.includes("850"));
+  t("spor uden pris forklarer hvorfor", tomKal.includes("Prisen") || tomKal.includes("prisen"));
+
+  const offentlig = await tekst(await hent("/sporene"));
+  t("åbent ophold vises på /sporene", offentlig.includes("2027") && /16\.|16-|april|04/.test(offentlig));
+  t("åben kalender siger ikke «datoer kommer»", !/datoer kommer/i.test(offentlig));
+  t("/sporene kræver ikke Access", (await worker.fetch(new Request(BASE + "/sporene"), { ...env, LOKAL_TEST: undefined }, {})).status === 200);
+
+  const uden = { ...env, LOKAL_TEST: undefined };
+  const internUden = await worker.fetch(new Request(BASE + "/internt/ophold/"), uden, {});
+  t("/internt/ophold er 401 uden Access", internUden.status === 401, internUden.status);
+
+  const gemTom = await hent(`/internt/ophold/${oprettet.id}/gem`, {
+    method: "POST", body: new URLSearchParams({ start_dato: "", slut_dato: "", kapacitet: "15", status: "åben" }),
+  });
+  t("gem uden datoer afvises", decodeURIComponent(gemTom.headers.get("Location") || "").includes("Datoer mangler"),
+     gemTom.headers.get("Location"));
+
+  const offentligLukket = await tekst(await hent("/sporene"));
+  t("lukket retreat vises ikke som åben dato eller lukket uge", !/august/i.test(offentligLukket));
+
+  const overlapHttp = await hent("/internt/ophold/opret", {
+    method: "POST",
+    body: new URLSearchParams({
+      type_id: "ot-retreats",
+      start_dato: "2027-04-17",
+      slut_dato: "2027-04-22",
+      kapacitet: "25",
+      status: "åben",
+    }),
+  });
+  const overlapLoc = decodeURIComponent(overlapHttp.headers.get("Location") || "");
+  t("fladen viser overlap på dansk, uden D1_ERROR",
+     overlapLoc.includes("hele stedet er optaget") && !/D1_ERROR|SQLITE/i.test(overlapLoc),
+     overlapLoc);
+
+  const nede = { ...env, FONDE_DB: { prepare() { throw new Error("D1 nede"); } }, LOKAL_TEST: "1" };
+  const fald = await worker.fetch(new Request(BASE + "/sporene"), nede, {});
+  t("kalender falder tilbage til assets ved D1-fejl", (await tekst(fald)) === "asset", fald.status);
 }
 
 console.log(`\n${ok} bestået, ${fejl} fejlet\n`);

@@ -1,8 +1,9 @@
 # Vendhjem Fonds-CRM
 
-Bor på `vendhjem.dk/internt/fonde` og `/internt/korpus`, bag den Cloudflare
-Access der allerede står foran `/internt`. `/mit` (fællesskabets login) ligger
-uden for Access. Data i D1, filer i R2. Alt andet på domænet serveres som
+Bor på `vendhjem.dk/internt/fonde`, `/internt/korpus` og `/internt/ophold`,
+bag den Cloudflare Access der allerede står foran `/internt`. `/mit`
+(fællesskabets login) ligger uden for Access. Den offentlige kalender er
+`/sporene`. Data i D1, filer i R2. Alt andet på domænet serveres som
 statiske filer af `[assets]` og rører aldrig denne kode.
 
 ## Læs det her, før du bygger en flade
@@ -11,13 +12,15 @@ Kontrakten står øverst i `assets/vh.css`. Én skærm. Hvis den er længere, f�
 ingen den.
 
 - Brug `src/flade.js` (side, mitSide, nav, tabel, felt, knap, statusPil, tomTilstand,
-  fejlTilstand) og `src/tekst.js`. Opfind ikke en ottende variant.
+  fejlTilstand) og `src/tekst.js`. Opfind ikke en ottende variant. Ophold
+  (`src/ophold-sider.js`) bruger det samme.
 - `/mit` er fællesskabets login og ligger uden for Access. `/internt` røres ikke.
 - Kun klasser der findes i `vh.css`. Ingen runde hjørner, ingen skygger, ingen
   kort i rækker. `--accent` højst to gange pr. sektion. Ny farve er forbudt.
 - Navigationen kommer fra `nav-internt.json`. Ret aldrig `src/nav-internt.js`.
 - Prøve 11 og 13 i `test/koer.mjs` fanger drift: to navigationer, ukendt klasse,
-  farve uden for paletten. Prøve 14 dækker `/mit`.
+  farve uden for paletten. Prøve 14 dækker `/mit`. Prøve 15–21 dækker korpus
+  og fondimport. Prøve 22 og 23 dækker ophold og `/sporene`.
 
 Sådan bygger du en korrekt flade uden at spørge. Redesign, nye farver og React
 er uden for scope.
@@ -110,7 +113,8 @@ registreret i `d1_migrations`. De køres ikke igen.
 
 `0003_people.sql` (BYG-555 A1) og `0004_mit.sql` (BYG-556 A2) ligger på
 main (PR #20). `0005_korpus.sql` (BYG-567 E1) og `0006_fonde_e2.sql`
-(BYG-568 E2) er **ikke** applied remote fra denne PR.
+(BYG-568 E2) ligger på main (PR #21). `0007_ophold.sql` (BYG-561 C1) er
+**ikke** applied remote fra denne PR.
 
 Denne agent har ingen Cloudflare-token (`/tmp/.cf_token_vh` findes ikke her).
 Steven kører, når D1 Write er på det token der deployer:
@@ -126,12 +130,14 @@ er person_id, og fladen slår navnet op i `people`. A2 (`/mit`) skal ikke
 deployes, før 0004 er applied: magic_links/passkeys-tabellerne. E1/E2-koden
 skal ikke deployes, før 0005 og 0006 er applied: korpus-tabellerne og
 `requirements.slags` findes ellers ikke, og sundhedstjekket tæller
-`korpus_dokumenter`.
+`korpus_dokumenter`. Workeren med C1 skal ikke deployes, før 0007 er
+applied: `/sporene` og `/internt/ophold` læser `opholdstyper` / `ophold` /
+`pladser`.
 
 ## Community-login /mit (BYG-556 A2)
 
 `/mit` ligger **uden for** Access. Cloudflare Access bliver på `/internt`
-(fonde, økonomi, kerne, korpus). Fællesskabet kan ikke sidde på Access — det
+(fonde, økonomi, kerne, korpus, ophold). Fællesskabet kan ikke sidde på Access — det
 gratis loft er 50 brugere.
 
 Flow: skriv mail → få et link → klik → inde. Linket er engangs, 15 minutter,
@@ -252,6 +258,25 @@ Egholmvej 23 ligger i Slagelse Kommune. **Det er ikke verificeret for
 Vendhjem.** Foreningen har ikke CVR endnu (`cvr_status = under_stiftelse`).
 Feltet `organizations.fondedk_note` er til menneskets svar, når kommunen
 har svaret. Status i seed: `afventer_cvr`. Vi scraper ikke Fonde.dk.
+
+## Ophold og kalender (BYG-561 C1)
+
+`opholdstyper` er de seks spor plus lukkede uger. `ophold` er et konkret
+dato-interval. `pladser` er person ↔ ophold.
+
+Dobbeltbooking på hele stedet er umulig i databasen: et ophold med
+`hele_stedet = 1` overlapper ikke et andet beboende ophold
+(planlagt/åben/fuld/lukket). Stille uger og campingvogne er ikke
+eksklusive og må gerne ligge samtidig. Fyldt kapacitet skifter selv til
+`fuld`; afbud tæller ikke og åbner opholdet igen.
+
+Intern flade: `/internt/ophold`, bag den samme Access som resten af
+`/internt`. Offentlig kalender: `/sporene`, uden Access, uden `/mit`.
+Er kalenderen tom, står der det — ikke «datoer kommer». Priser vises når
+de er sat (850 kr. på mandegrupper); ellers står der hvorfor.
+
+Betaling er D1. Selvbetjent forespørgsel er C2. Airbnb og rengøring er
+uden for scope.
 
 ## Det, der bevidst ikke er bygget endnu
 

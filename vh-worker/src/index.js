@@ -1,9 +1,8 @@
-// Vendhjem Fonds-CRM
-// Bor på vendhjem.dk/internt/fonde og /internt/korpus, bag den Cloudflare
-// Access der allerede står foran /internt. Data i D1, filer i R2.
+// Vendhjem-workeren: Fonds-CRM på /internt/fonde og /internt/korpus,
+// ophold på /internt/ophold (alle bag Access), fællesskabets login på /mit
+// (uden Access) og den offentlige kalender på /sporene. Data i D1, filer i R2.
 //
-// /mit (fællesskabets login) ligger UDEN for Access og besvares her.
-// Alt uden for de stier serveres som statiske filer af [assets].
+// Alt andet serveres som statiske filer af [assets].
 
 import { identitet } from "./access.js";
 import { sager, sag, organisation, personer, pakkeHash, log, id, nu } from "./db.js";
@@ -15,6 +14,7 @@ import { haandterKorpus, ROD_KORPUS } from "./korpus.js";
 import {
   haandterRunde, listerRunder, saetAdgang, saetKlar, arkiverSag, historiskIndsendelse, FONDE,
 } from "./runde.js";
+import { erSporene, erOphold, besvarSporene, besvarOphold } from "./ophold.js";
 
 const ROD = FONDE;
 
@@ -74,9 +74,11 @@ export default {
                   (SELECT COUNT(*) FROM documents) d,
                   (SELECT COUNT(*) FROM approvals) g,
                   (SELECT COUNT(*) FROM submissions) i,
-                  (SELECT COUNT(*) FROM korpus_dokumenter) ko`).first();
+                  (SELECT COUNT(*) FROM korpus_dokumenter) ko,
+                  (SELECT COUNT(*) FROM ophold) o,
+                  (SELECT COUNT(*) FROM pladser) p`).first();
         svar.d1 = "ok";
-        svar.antal = { sager: r.a, krav: r.k, bilag: r.d, godkendelser: r.g, indsendelser: r.i, korpus: r.ko };
+        svar.antal = { sager: r.a, krav: r.k, bilag: r.d, godkendelser: r.g, indsendelser: r.i, korpus: r.ko, ophold: r.o, pladser: r.p };
         const m = await env.FONDE_DB.prepare(
           `SELECT name FROM d1_migrations ORDER BY id DESC LIMIT 1`).first();
         svar.sidste_migration = m?.name ?? null;
@@ -98,7 +100,13 @@ export default {
       return mitFetch(request, env);
     }
 
-    if (!workerSti(url.pathname)) return env.ASSETS.fetch(request);
+    const sti = url.pathname.replace(/\/+$/, "") || "/";
+
+    // Offentlig kalender. Ingen Access — det er det, sitet sælger.
+    if (erSporene(sti, url.pathname)) return besvarSporene(request, env);
+
+    const internOphold = erOphold(sti);
+    if (!internOphold && !workerSti(url.pathname)) return env.ASSETS.fetch(request);
 
     let bruger = await identitet(request);
 
@@ -118,9 +126,10 @@ export default {
       });
     }
 
+    if (internOphold) return besvarOphold(request, env, bruger, url);
+
     const db = env.FONDE_DB;
     const r2 = env.FONDE_FILER;
-    const sti = url.pathname.replace(/\/+$/, "") || ROD;
 
     try {
       const korpusSvar = await haandterKorpus(request, { db, r2, bruger, url, sti });

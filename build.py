@@ -246,6 +246,7 @@ pages["sporene.html"] = head("Sporene · Vend Hjem", "Det, der sker på stedet: 
 <p class="sec">Sporene</p>
 <h1>Det, der sker på stedet.</h1>
 <p class="lead maxw mt2">To mennesker med hver sit felt og et sted, der kan bære begge. Stevens ti år i mandearbejde og rites of passage. Lais integrale praksis og skuespilmetode.</p>
+<p class="lead maxw mt2">Ingen datoer i kalenderen endnu. Når et ophold åbnes, står det her.</p>
 </section>
 
 <section class="stage">
@@ -253,33 +254,39 @@ pages["sporene.html"] = head("Sporene · Vend Hjem", "Det, der sker på stedet: 
 <div class="loeft">
 <p class="sec">Mandegrupper og rites of passage</p>
 <p class="small">Stevens spor. Weekender for femten mænd: seng, mad, tre-fire timers arbejde på stedet og noget alvorligt om aftenen. Arbejdet er ikke betaling - det er grunden til, at prisen er en tredjedel af markedets.</p>
-<p class="meta mt2">Weekender · 2027 · datoer kommer</p>
+<p class="meta mt2">850 kr. · seng og al mad indgår · sauna · færgen betaler du selv</p>
+<p class="meta mt1">Ingen datoer åbne på det her spor endnu.</p>
 <p class="mt2"><a class="lnk" href="maend">Sådan ligger en weekend →</a></p>
 </div>
 <div>
 <p class="sec">Retreats - vi er værter</p>
 <p class="small">Andres forløb, midt i ugen. Hele stedet fra onsdag til mandag, med eller uden mad fra vores køkken. De første facilitatorer tager en chance på et sted uden anmeldelser - og det ved vi godt.</p>
-<p class="meta mt2">Onsdag til mandag · op til 25 senge</p>
+<p class="meta mt2">Prisen aftales med facilitatorerne, når den første dato ligger fast.</p>
+<p class="meta mt1">Ingen datoer åbne på det her spor endnu.</p>
 </div>
 <div>
 <p class="sec">Festival</p>
 <p class="small">Én vi selv laver, og én vi lægger plads til. Steven var partner i og medskaber af Tribal Vibe, så det er ikke et forsøg - det er dét, han kommer fra.</p>
-<p class="meta mt2">Fire dage · juli</p>
+<p class="meta mt2">Prisen sættes, når den første festivaldato ligger fast.</p>
+<p class="meta mt1">Ingen datoer åbne på det her spor endnu.</p>
 </div>
 <div>
 <p class="sec">Byg-med-uger</p>
 <p class="small">En uge, hvor man arbejder på stedet, spiser med og bor her. Længere end en weekend og roligere. Ligger ikke samtidig med andet.</p>
-<p class="meta mt2">Forår og efterår</p>
+<p class="meta mt2">Prisen sættes, når den første uge ligger fast.</p>
+<p class="meta mt1">Ingen datoer åbne på det her spor endnu.</p>
 </div>
 <div>
 <p class="sec">Stille uger og vinter</p>
 <p class="small">Eget værelse, intet program, ingen mad. For dem der skal skrive, tænke eller bare væk. Om vinteren kan et værelse lejes på måneden.</p>
-<p class="meta mt2">November til april</p>
+<p class="meta mt2">Prisen sættes, når de første uger ligger fast.</p>
+<p class="meta mt1">Ingen datoer åbne på det her spor endnu.</p>
 </div>
 <div>
 <p class="sec">Campingvogne</p>
 <p class="small">Plads til dem, der vil bo her i perioder. To priser: én for dem der kommer for at være, og en lavere for dem der kommer for at arbejde med.</p>
-<p class="meta mt2">Månedsvis</p>
+<p class="meta mt2">To priser: én for at være, en lavere for at arbejde med. Beløbene sættes, når pladserne åbner.</p>
+<p class="meta mt1">Ingen datoer åbne på det her spor endnu.</p>
 </div>
 </div>
 </section>
@@ -287,7 +294,7 @@ pages["sporene.html"] = head("Sporene · Vend Hjem", "Det, der sker på stedet: 
 <section class="stage blok">
 <div class="maxw">
 <p class="sec">Syv uger om året er lukkede</p>
-<p class="small soft">De står i kalenderen som ro: ingen gæster, intet salg. Et sted, der kan fylde 52 uger, brænder sine ejere af i år ét. Det har vi set før.</p>
+<p class="small soft">De står i kalenderen som ro, når ugerne er sat: ingen gæster, intet salg. Et sted, der kan fylde 52 uger, brænder sine ejere af i år ét. Det har vi set før.</p>
 </div>
 </section>
 ''' + foot()

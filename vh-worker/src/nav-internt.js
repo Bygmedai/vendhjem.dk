@@ -16,6 +16,11 @@ export const PUNKTER = [
   "label": "Stedet"
  },
  {
+  "id": "ophold",
+  "sti": "internt/ophold/",
+  "label": "Ophold"
+ },
+ {
   "id": "oekonomi",
   "sti": "internt/oekonomi",
   "label": "Økonomi"
