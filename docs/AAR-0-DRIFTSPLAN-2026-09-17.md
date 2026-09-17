@@ -4,6 +4,10 @@
 **Status:** Arbejdsgrundlag. Hvert punkt er enten **målt** (med kald eller kilde) eller **vurdering** (overrulbar uden begrundelse). Ingen regler.
 **Grundlag:** `AGERSOE-VISION-AAR-0-3.md` (S586), `AGERSOE-PLAN-S586.md` v7.5, `AGERSOE-DRIFT-2027-v2.xlsx`, fuldt sweep af `vendhjem.dk`, `governance`, `bygmedai-portal`, `bygmedai-adskillelse` og Linear-projekterne «Agersø — stedet» og «Vendhjem — platformen».
 
+**Revideret 17/9 efter Toppers review på [#24](https://github.com/Bygmedai/vendhjem.dk/pull/24).** Fem skærpelser, alle indarbejdet: (1) C2 og tærskel-forsalg er to leverancer — C2 kræver hverken Stripe eller CVR og er næste kode (§3.1, §6). (2) «Før C2» betyder INSERTs, ikke ventetid: lukkede uger og 2027-datoer i databasen først (§6). (3) V01 er afklaret — Resend og magic link er målt live af Haruki (§1.1, §7). (4) Måleren er et driftsinstrument, ikke et produktspor, og skal ikke fortrænge C2 (§3.2, §6). (5) README'ens forældede påstand om `0007_ophold` rettes i egen lille PR, ikke her (§8).
+
+Analysen i §0–§5 står uændret. Det, der flyttede sig, er rækkefølgen — og det var rækkefølgen, der var forkert.
+
 ---
 
 ## 0. Det korte
@@ -31,7 +35,9 @@
 | `GET vendhjem.dk/internt` | 302 → Access | Hegnet fra S593 holder |
 | `GET vendhjem.dk/sundhed/fonde` (uden header) | 404 | Korrekt — røber ikke at den findes |
 
-**Det jeg ikke kunne måle:** om `RESEND_API_KEY` er sat. Uden den logges magic-link-URL'en til Workerens logs i stedet for at blive sendt. Det er den bevidste dev-sti, og den er stille. **Send dig selv et login, før nogen anden gør det.** Det er ét tryk, og det er forskellen på en levende dør og en dør der ser levende ud.
+**Det jeg ikke kunne måle herfra:** om `RESEND_API_KEY` er sat. Uden den logges magic-link-URL'en til Workerens logs i stedet for at blive sendt — den bevidste dev-sti, og den er stille.
+
+**Afklaret 17/9, efter dette blev skrevet:** Haruki har målt Resend og magic link live (Toppers review på #24). Døren virker. Det står her og ikke kun i antagelsesregistret, fordi afsnittet ellers ville lade en løst blokering stå som åben.
 
 ### 1.2 Repoet
 
@@ -101,6 +107,9 @@ Hvad det løser, i rækkefølge efter hvad det er værd:
 Databasen kan det næsten allerede: `pladser` har status `forespurgt/bekræftet/betalt/afbudt`, kapacitetstriggeren tæller de optagende. Der mangler et gulv, en dato og en refusionsvej.
 
 **Afhænger af:** C2 (BYG-562), D1 (BYG-563), CVR.
+
+**C2 og tærskel er to leverancer, ikke én** (Toppers skærpelse 1, 17/9). C2 er tre tryk til en *forespørgsel* uden konto og uden betaling — den kan bygges i dag, uden Stripe og uden CVR, og den er derfor næste kode. Tærsklen kræver penge, og penge kræver CVR. Blandes de to i én PR, holder C2 op med at kunne leveres og begynder at vente på en stiftelsesdato. Hold dem adskilt: **C2 først, tærskel når CVR'et findes.**
+
 **Målt i dag, så I ikke skal:** Stripe tager for MobilePay i Danmark **1,5 % + 2,80 kr. pr. transaktion plus 35 kr./md** ([Stripe DK, lokale betalingsmetoder](https://stripe.com/dk/pricing/local-payment-methods), målt 17/9-2026). På en mandeweekend med 15 × 850 kr. er det 218 kr., altså 1,7 %. Det er acceptkriterium 7 på BYG-563, besvaret med kilde og dato.
 
 ### 3.2 Måleren — de tre gæt, der kan retires med to felter
@@ -110,6 +119,8 @@ El, vand og varme aflæst med dato. Telefonen, to tal, offline, samme mønster s
 Efter én fyringssæson: divider. Så er «22 kr. pr. gæstedøgn, VURDERING» blevet til et tal med et kald bag sig, og hver eneste pris på stedet kan forsvares. **Det er den billigste ting på hele listen, og den retirer arkets største usikkerhed.** Samme mekanik tager forsikringspolicen og ejendomsskattebilletten (arkets næststørste gæt, 5.000 kr./md).
 
 **Krav:** aflæsningen skal kunne skrives ned på under ti sekunder med kolde fingre i november. Alt andet bliver ikke gjort.
+
+**Den er et driftsinstrument, ikke et produktspor** (Toppers skærpelse 4, 17/9). Den hører ikke hjemme i platform-køen og skal ikke fortrænge C2. Den skal bare stå, før fyringssæsonen gør, for ellers er vinteren tabt som måling — og den vinter kommer kun én gang.
 
 ### 3.3 Likviditetslinjen — ét tal på `/internt`
 
@@ -220,36 +231,39 @@ Ikke en fusion. **En stiftelsesdato for foreningen med CVR.** Den blokerer Strip
 
 ## 6. Rækkefølge
 
-**Nu — før noget bygges (uge 38–39)**
+Rettet efter Toppers review 17/9. **Platform-køen er `C2 → (CVR) → D1 + tærskel`, med A3 sideløbende.** Det afgørende skifte fra første udkast: data kommer før kode, og «før C2» betyder INSERTs, ikke ventetid.
 
-1. Send dig selv et magic link. Virker mailen i produktion, eller logges URL'en? (§1.1)
-2. Afklar hvilken regnearksversion der er sand — v2 eller v4 — og ret `/internt/oekonomi`. (§1.2)
-3. Ret forsiden: hvem ejer stedet, skrevet så det tåler at modparten læser det. (§1.2)
-4. Sæt en dato på foreningens stiftelse og CVR. Opret sagen i Linear. (§5)
-5. Læg de syv lukkede uger ind i kalenderen og regn budgettet igen med dem. (§3.5)
+**Nu — data og påstande, ikke kode (uge 38–39)**
 
-**Uge 39–41 — fyld det, der allerede kører**
+1. **De syv lukkede uger ind i kalenderen**, og budgettet regnet om med dem. (§3.5) Syv INSERTs. Gør det før året sælges — bagefter er der altid en grund.
+2. **52 ophold i D1 fra `Kalender 2027`.** `/sporene` siger i dag «ingen datoer» seks steder på den side, der skal sælge året. En tom kalender sælger ingenting, uanset hvor god C2 bliver.
+3. Afklar hvilken regnearksversion der er sand — v2 eller v4 — og ret `/internt/oekonomi`. (§1.2)
+4. Ret forsiden: hvem ejer stedet, skrevet så det tåler at modparten læser det. (§1.2)
+5. **Sæt en dato på foreningens stiftelse og CVR. Opret sagen i Linear.** (§5) Den blokerer punkt 9 og 10 — og den blokerer kun dem, hvis den er sat.
 
-6. 52 ophold i D1 fra `Kalender 2027`. Kalenderen på `/sporene` er i dag tom seks steder på en side, der skal sælge året.
+**Uge 39–42 — næste kode, uden at vente på noget**
+
+6. **C2 · forespørg på et ophold i tre tryk** (BYG-562). Kræver hverken Stripe eller CVR. Det er næste kode, punktum.
 7. B1 — brevet ind i systemet (BYG-558).
-8. Måleren (§3.2). Den skal stå, før fyringssæsonen starter, ellers er vinteren tabt som måling.
+8. A3 — seat-vagt og adgangslog (BYG-557), **sideløbende**. Uafhængig af alt andet; kræver kun at tokenet udvides én gang.
 
-**Uge 41–46 — tærskel-forsalg**
+**Når CVR'et findes**
 
-9. C2 (BYG-562) + D1/betaling (BYG-563) + tærskel, minimum, beslutningsdato, refusion (§3.1).
-10. Færgefeltet og bekræftelsesmailen (§3.4).
-11. Prisen fra databasen (§3.6).
+9. D1 · betaling med MobilePay gennem Stripe (BYG-563).
+10. Tærskel, minimum, beslutningsdato og refusion (§3.1) — oven på D1, i egen leverance.
+11. Færgefeltet og bekræftelsesmailen (§3.4). Prisen fra databasen (§3.6).
 
-**Vinteren 2026/27 — instrumenterne**
+**Driftsinstrumenter — parallelt spor, ikke platform-køen**
 
-12. Likviditetslinjen (§3.3), når måleren har leveret to måneders tal.
-13. H1 vagter og bidrag (BYG-569) — klar før den første byg-med-uge.
+12. **Måleren (§3.2).** Skal stå før fyringssæsonen. Den venter ikke på CVR og skal ikke fortrænge C2.
+13. Likviditetslinjen (§3.3), når måleren har leveret to måneders tal.
 14. Ting med en dato (§3.10).
 
-**Foråret 2027**
+**Vinteren 2026/27 og foråret 2027**
 
-15. Festival-forsalget åbnes i februar med offentlig tærskel og beslutningsdato 1. maj.
-16. H2 tilbagevendende (BYG-570) — efter den første mandeweekend, ikke før.
+15. H1 vagter og bidrag (BYG-569) — klar før den første byg-med-uge.
+16. Festival-forsalget åbnes i februar med offentlig tærskel og beslutningsdato 1. maj.
+17. H2 tilbagevendende (BYG-570) — efter den første mandeweekend, ikke før.
 
 ---
 
@@ -257,7 +271,7 @@ Ikke en fusion. **En stiftelsesdato for foreningen med CVR.** Den blokerer Strip
 
 | # | Antagelse | Hvem afklarer |
 |---|---|---|
-| V01 | At `RESEND_API_KEY` er sat, så magic links faktisk leveres | Steven — send dig selv et login |
+| ~~V01~~ ✅ | **Afklaret 17/9:** Resend og magic link er målt live af Haruki (Toppers review på #24). `RESEND_API_KEY` er sat; døren virker. Bevaret som række, fordi den stod som blokerende i første udkast | — |
 | V02 | Hvilken regnearksversion der er gældende (v2 eller v4) | Steven |
 | V03 | At bygning 2 (hotel/kro med overnatning) må bruges til overnatning uden yderligere tilladelse — og hvad der gælder for salen | Slagelse Kommune, Plan & Byg |
 | V04 | Om momsfriheden over 1 måned gælder, når BBR siger «hotel og lign.» | revisor, før vinterpriserne trykkes |
@@ -270,6 +284,6 @@ Ikke en fusion. **En stiftelsesdato for foreningen med CVR.** Den blokerer Strip
 
 ## 8. Hvad jeg ikke har gjort
 
-Ikke skrevet kode. Ikke oprettet eller ændret Linear-sager — forslagene i §3 er forslag, og køen er Stevens. Ikke rørt `bygmedai-adskillelse`; det produkt har sine egne hegn og sin egen frist, og Agersø må ikke låne af det. Ikke læst Eriks materiale — det hører til Lais advokat. Ikke moderet §0: du bad om, at jeg ikke gætter, og det, der er værd at vide i dag, er at maskinen kører, kalenderen er tom, og året hænger på en uge i juli.
+Ikke rettet `vh-worker/README.md`, som stadig påstår at `0007_ophold` ikke er applied remote — den påstand kostede mig en time og rettes i egen lille PR, som Topper bad om. Ikke skrevet kode. Ikke oprettet eller ændret Linear-sager — forslagene i §3 er forslag, og køen er Stevens. Ikke rørt `bygmedai-adskillelse`; det produkt har sine egne hegn og sin egen frist, og Agersø må ikke låne af det. Ikke læst Eriks materiale — det hører til Lais advokat. Ikke moderet §0: du bad om, at jeg ikke gætter, og det, der er værd at vide i dag, er at maskinen kører, kalenderen er tom, og året hænger på en uge i juli.
 
 *— Vilde Serra, 17. september 2026. Målinger med kald eller kilde; vurderinger mærket; ingen regler.*
