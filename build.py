@@ -675,7 +675,7 @@ def _kilde(navn):
     with open(os.path.join(ROOT, "internt-kilder", navn), encoding="utf-8") as f:
         return f.read()
 
-pages["internt/registrering.html"] = head("Registrering · Internt", "Feltregistrering af rum, udearealer og tekniske anlaeg. Virker uden net.", "internt/registrering.html", intern=True, current="registrering") + _kilde("registrering-body.html") + foot(intern=True, path="internt/registrering.html")
+pages["internt/registrering.html"] = head("Registrering · Internt", "Feltregistrering af rum, udearealer og tekniske anlaeg. Virker uden net.", "internt/registrering.html", intern=True, current="registrering") + _kilde("registrering-body.html.in") + foot(intern=True, path="internt/registrering.html")
 pages["internt/registrering-sw.js"] = _kilde("registrering-sw.js")
 
 # ───────────── HVORFOR-ABSOLUTTE-STIER ─────────────

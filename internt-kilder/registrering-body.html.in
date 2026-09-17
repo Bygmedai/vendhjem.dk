@@ -1,5 +1,5 @@
 <!-- Feltregistrering · genskabt S595 (17.09.2026) efter at S591-udgaven gik tabt ved et deploy.
-     Kilden bor her i repoet (internt-kilder/) og skrives ind i internt/ af build.py.
+     Kilden bor her i repoet (internt-kilder/, endelsen .in saa CI's *.html-glob ikke laeser fragmentet som en side) og skrives ind i internt/ af build.py.
      Telefon-først, virker uden net (service worker + localStorage), eksport CSV/JSON, fletning af to telefoner. -->
 <style>
 .reg-top{position:sticky;top:0;z-index:5;background:var(--papir);border-bottom:1px solid var(--streg-mork);padding:10px 0}
@@ -48,12 +48,12 @@ details.sted[open]>summary{border-bottom:1px dashed var(--streg)}
 <span class="reg-status" id="reg-status">gemt lokalt</span>
 </div>
 <div class="reg-faner" role="tablist">
-<button role="tab" data-fane="rum" aria-selected="true">Rum <span id="tal-rum"></span></button>
-<button role="tab" data-fane="ude" aria-selected="false">Ude <span id="tal-ude"></span></button>
-<button role="tab" data-fane="tek" aria-selected="false">Teknik <span id="tal-tek"></span></button>
-<button role="tab" data-fane="fund" aria-selected="false">Fund <span id="tal-fund"></span></button>
-<button role="tab" data-fane="oversigt" aria-selected="false">Oversigt</button>
-<button role="tab" data-fane="data" aria-selected="false">Data</button>
+<button type="button" role="tab" data-fane="rum" aria-selected="true">Rum <span id="tal-rum"></span></button>
+<button type="button" role="tab" data-fane="ude" aria-selected="false">Ude <span id="tal-ude"></span></button>
+<button type="button" role="tab" data-fane="tek" aria-selected="false">Teknik <span id="tal-tek"></span></button>
+<button type="button" role="tab" data-fane="fund" aria-selected="false">Fund <span id="tal-fund"></span></button>
+<button type="button" role="tab" data-fane="oversigt" aria-selected="false">Oversigt</button>
+<button type="button" role="tab" data-fane="data" aria-selected="false">Data</button>
 </div>
 </section>
 
@@ -72,11 +72,11 @@ details.sted[open]>summary{border-bottom:1px dashed var(--streg)}
 <p class="sec">Nyt fund</p>
 <p class="small soft">Noget, der skal undersøges, repareres eller afklares. Et fund er en observation, ikke en diagnose.</p>
 <div class="felter" style="padding-top:12px">
-<label><span class="felt-label">Sted-ID</span><input id="fund-sted" list="sted-liste" placeholder="B02-ST-R03, U08, T05 …"></label>
+<label><span class="felt-label">Sted-ID</span><input type="text" id="fund-sted" list="sted-liste" placeholder="B02-ST-R03, U08, T05 …"></label>
 <datalist id="sted-liste"></datalist>
 <label><span class="felt-label">Tilstand</span><select id="fund-k"><option value="">—</option><option>K0</option><option>K1</option><option>K2</option><option>K3</option><option>UN</option></select></label>
 <label><span class="felt-label">Haster</span><select id="fund-haster"><option value="">—</option><option value="nu">nu</option><option value="1-2 år">1–2 år</option><option value="senere">senere</option></select></label>
-<label><span class="felt-label">Fotonumre</span><input id="fund-foto" placeholder="IMG_4021, 4022"></label>
+<label><span class="felt-label">Fotonumre</span><input type="text" id="fund-foto" placeholder="IMG_4021, 4022"></label>
 <label class="bred"><span class="felt-label">Hvad blev observeret</span><textarea id="fund-hvad" placeholder="Det sete — uden at gætte årsagen"></textarea></label>
 <div class="bred"><button class="knap" type="button" id="fund-gem">Gem fund</button></div>
 </div>
