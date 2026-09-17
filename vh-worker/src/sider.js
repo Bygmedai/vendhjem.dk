@@ -1,0 +1,189 @@
+import { side, esc, trinlinje, fristTekst, dageTil } from "./views.js";
+
+const kr = (n) => (n == null ? "—" : n.toLocaleString("da-DK") + " kr.");
+const dt = (iso) => (iso ? new Date(iso).toLocaleString("da-DK",
+  { timeZone: "Europe/Copenhagen", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—");
+
+export function oversigt({ bruger, sager, org }) {
+  const rk = sager.length ? sager.map((s) => {
+    const mangler = s.krav - s.opfyldt;
+    return `<tr>
+<td><a href="/internt/fonde/sag/${esc(s.id)}">${esc(s.titel)}</a>
+    <span class="meta" style="display:block;margin-top:4px">${esc(s.fond)} · ${esc(s.runde)}</span></td>
+<td>${fristTekst(s)}</td>
+<td>${trinlinje(s.status)}</td>
+<td>${mangler > 0
+      ? `<span class="mangler mono">${mangler} af ${s.krav} mangler</span>`
+      : `<span class="meta">alle ${s.krav} bilag uploadet</span>`}</td>
+<td class="mono">${kr(s.beloeb_ansoegt)}</td>
+<td>${esc(s.ansvarlig || "—")}<span class="meta" style="display:block;margin-top:4px">${esc(s.naeste_handling || "")}</span></td>
+</tr>`;
+  }).join("") : `<tr><td colspan="6"><p class="soft">Ingen sager endnu.</p></td></tr>`;
+
+  return side({
+    titel: "Fonde", aktiv: "fonde", bruger,
+    indhold: `
+<section class="stage blok">
+<p class="sec">Fonde</p>
+<h1>Ansøgninger og frister</h1>
+<p class="lead maxw mt2">Én sag pr. ansøgning. Fristen er fondens, ikke vores — den interne afleveringsfrist står inde i sagen.</p>
+</section>
+
+<section class="stage">
+<table class="t">
+<thead><tr><th>Sag</th><th>Fondens frist</th><th>Status</th><th>Bilag</th><th>Ansøgt</th><th>Ansvarlig</th></tr></thead>
+<tbody>${rk}</tbody>
+</table>
+</section>
+
+<section class="stage blok sektion">
+<div class="g g-2 nb nbb">
+<div>
+<p class="sec">Ansøger</p>
+<p class="v">${esc(org?.navn || "Ikke oprettet")}</p>
+<p class="small mt1">${org?.cvr
+      ? `CVR ${esc(org.cvr)}`
+      : `<span class="mangler">Intet CVR — status: ${esc(org?.cvr_status || "ukendt")}</span>`}</p>
+<p class="small soft mt1">${esc(org?.tegningsregel || "Tegningsregel ikke registreret.")}</p>
+</div>
+<div class="loeft">
+<p class="meta-500 meta-s">Det, værktøjet ikke gør</p>
+<p class="small mt1">Det indsender ikke for jer. Et menneske logger ind med MitID på fondens portal og lægger kvitteringen her bagefter. En eksport er ikke en indsendelse.</p>
+</div>
+</div>
+</section>`,
+  });
+}
+
+export function sagside({ bruger, s, hash, advarsel }) {
+  const senesteGodk = s.godkendelser[0];
+  const godkGaelder = senesteGodk && senesteGodk.pakke_hash === hash && senesteGodk.beslutning === "godkendt";
+  const manglerListe = s.krav.filter((k) => k.paakraevet && k.dokumenter.length === 0);
+  const d = dageTil(s.frist_utc);
+
+  const kravRk = s.krav.map((k) => `<tr>
+<td>${esc(k.label)}${k.paakraevet ? "" : ` <span class="meta">frivilligt</span>`}
+    ${k.kilde ? `<span class="meta" style="display:block;margin-top:4px">Kilde: ${esc(k.kilde)}</span>` : ""}
+    ${k.note ? `<p class="small soft mt1">${esc(k.note)}</p>` : ""}</td>
+<td>${k.dokumenter.length
+    ? k.dokumenter.map((d2) => `<a href="/internt/fonde/fil/${esc(d2.id)}">${esc(d2.filnavn)}</a>
+        <span class="meta" style="display:block">${(d2.bytes / 1024).toFixed(0)} kB · ${dt(d2.uploadet)} · ${esc(d2.uploadet_af)}</span>`).join("<br>")
+    : `<span class="mangler mono">mangler</span>`}</td>
+<td>${k.kontrolleret
+    ? `<span class="meta">kontrolleret ${dt(k.kontrolleret)}<br>${esc(k.kontrolleret_af || "")}</span>`
+    : k.dokumenter.length
+      ? `<form method="post" action="/internt/fonde/sag/${esc(s.id)}/kontroller" style="margin:0">
+           <input type="hidden" name="krav" value="${esc(k.id)}">
+           <button class="knap" type="submit">Markér kontrolleret</button></form>`
+      : `<span class="meta">—</span>`}</td>
+<td><form method="post" action="/internt/fonde/sag/${esc(s.id)}/upload" enctype="multipart/form-data" style="margin:0">
+  <input type="hidden" name="krav" value="${esc(k.id)}">
+  <input type="file" name="fil" required style="font-size:12px;max-width:180px">
+  <button class="knap" type="submit" style="margin-top:8px">Upload</button></form></td>
+</tr>`).join("");
+
+  return side({
+    titel: s.titel, aktiv: "fonde", bruger,
+    indhold: `
+${advarsel ? `<section class="stage" style="padding-top:18px"><div class="ramme" style="border-color:var(--accent)">
+<p class="meta-s" style="color:var(--accent)">Bemærk</p><p class="small mt1">${esc(advarsel)}</p></div></section>` : ""}
+
+<section class="stage blok">
+<p class="sec"><a href="/internt/fonde/">Fonde</a> / ${esc(s.fond)}</p>
+<h1>${esc(s.titel)}</h1>
+<div class="mt3">${trinlinje(s.status)}</div>
+</section>
+
+<section class="stage">
+<div class="g g-3 nb">
+<div><p class="meta-s">Fondens frist</p><p class="v mt1">${fristTekst(s)}</p>
+  ${s.frist_ordlyd ? `<p class="small soft mt1">Ordlyd: «${esc(s.frist_ordlyd)}»</p>` : ""}
+  ${s.frist_kilde_url ? `<p class="meta mt1"><a href="${esc(s.frist_kilde_url)}">Kilde</a> · set ${dt(s.frist_verificeret)}</p>` : ""}
+  ${s.frist_note ? `<p class="small mangler mt1">${esc(s.frist_note)}</p>` : ""}</div>
+<div><p class="meta-s">Intern afleveringsfrist</p><p class="v mt1">${s.intern_frist ? dt(s.intern_frist) : "<span class='mangler'>ikke sat</span>"}</p>
+  <p class="small soft mt1">Vores egen, tidligere end fondens. Den er der, så en fejl i sidste øjeblik ikke koster ansøgningen.</p></div>
+<div class="loeft"><p class="meta-s">Bilag</p>
+  <p class="v mt1">${manglerListe.length ? `<span class="mangler">${manglerListe.length} mangler</span>` : "Alle påkrævede er uploadet"}</p>
+  ${manglerListe.length ? `<p class="small soft mt1">${manglerListe.map((k) => esc(k.label)).join(" · ")}</p>` : ""}</div>
+</div>
+</section>
+
+<section class="stage blok sektion">
+<p class="sec">Sagens felter</p>
+<form method="post" action="/internt/fonde/sag/${esc(s.id)}/gem">
+<div class="g g-2 nb" style="background:transparent;border:0;gap:28px">
+<div style="padding:0">
+  <p class="felt-label meta-s">Ansøgt beløb (hele kroner)</p>
+  <input class="felt" type="number" name="beloeb" value="${s.beloeb_ansoegt ?? ""}" placeholder="ikke fastlagt">
+  <p class="felt-label meta-s mt2">Ansvarlig</p>
+  <input class="felt" type="text" name="ansvarlig" value="${esc(s.ansvarlig || "")}">
+  <p class="felt-label meta-s mt2">Intern afleveringsfrist</p>
+  <input class="felt" type="datetime-local" name="intern_frist" value="${s.intern_frist ? esc(s.intern_frist.slice(0, 16)) : ""}">
+</div>
+<div style="padding:0">
+  <p class="felt-label meta-s">Næste handling</p>
+  <textarea class="felt" name="naeste">${esc(s.naeste_handling || "")}</textarea>
+  <p class="mt2"><button class="knap" type="submit">Gem</button></p>
+</div>
+</div>
+</form>
+</section>
+
+<section class="stage blok sektion">
+<p class="sec">Bilagscheckliste</p>
+<p class="small soft maxw">Uploadet er ikke det samme som kontrolleret. Et menneske skal se filen og sige god for den, før den tæller.</p>
+<table class="t mt3">
+<thead><tr><th>Krav</th><th>Fil</th><th>Kontrol</th><th>Tilføj</th></tr></thead>
+<tbody>${kravRk}</tbody>
+</table>
+</section>
+
+<section class="stage blok sektion">
+<p class="sec">Godkendelse</p>
+${senesteGodk ? `<div class="ramme ramme-loeft">
+<p class="meta-s">Seneste beslutning</p>
+<p class="small mt1"><strong>${esc(senesteGodk.beslutning)}</strong> af ${esc(senesteGodk.aktoer)}, ${dt(senesteGodk.besluttet)}</p>
+${senesteGodk.kommentar ? `<p class="small mt1">«${esc(senesteGodk.kommentar)}»</p>` : ""}
+<p class="meta mt2">Pakke ${esc(senesteGodk.pakke_hash.slice(0, 12))}…</p>
+${!godkGaelder && senesteGodk.beslutning === "godkendt"
+    ? `<p class="small mangler mt2">Pakken er ændret siden godkendelsen. Den gælder ikke for det, der ligger nu (${esc(hash.slice(0, 12))}…). Der skal godkendes igen.</p>` : ""}
+</div>` : `<p class="small soft">Ingen beslutning endnu.</p>`}
+
+${s.status !== "indsendt" ? `
+<form method="post" action="/internt/fonde/sag/${esc(s.id)}/godkend" class="mt3" style="max-width:640px">
+<p class="felt-label meta-s">Kommentar</p>
+<textarea class="felt" name="kommentar" placeholder="Hvad ligger der i beslutningen"></textarea>
+<p class="mt2">
+<button class="knap knap-accent" type="submit" name="beslutning" value="godkendt">Godkend pakken</button>
+<button class="knap" type="submit" name="beslutning" value="afvist" style="margin-left:10px">Afvis</button>
+</p>
+<p class="meta mt2">Beslutningen bindes til pakke ${esc(hash.slice(0, 12))}… Ændres bilag eller beløb bagefter, skal der godkendes igen.</p>
+</form>` : ""}
+</section>
+
+<section class="stage blok sektion">
+<p class="sec">Indsendelse</p>
+${s.indsendelser.length ? s.indsendelser.map((i) => `<div class="ramme">
+<p class="small"><strong>Indsendt</strong> ${dt(i.indsendt)} af ${esc(i.indsendt_af)}</p>
+${i.ekstern_ref ? `<p class="meta mt1">Reference: ${esc(i.ekstern_ref)}</p>` : `<p class="meta mangler mt1">Ingen kvitteringsreference registreret</p>`}
+</div>`).join("") : `
+${godkGaelder ? `
+<p class="small soft maxw">Pakken er godkendt. Et menneske indsender på fondens portal med MitID og registrerer kvitteringen her bagefter.</p>
+<form method="post" action="/internt/fonde/sag/${esc(s.id)}/indsendt" enctype="multipart/form-data" class="mt3" style="max-width:640px">
+<p class="felt-label meta-s">Ekstern reference fra portalen</p>
+<input class="felt" type="text" name="ref" placeholder="fx journalnummer">
+<p class="felt-label meta-s mt2">Kvittering (fil)</p>
+<input type="file" name="kvittering" style="font-size:13px">
+<p class="mt3"><button class="knap knap-accent" type="submit">Registrér som indsendt</button></p>
+<p class="meta mt2">Uden faktisk indsendelsestid og kvittering står sagen som afventende dokumentation. En PDF-download er ikke en indsendelse.</p>
+</form>` : `<p class="small soft">Kan først registreres, når en gældende godkendelse ligger på den aktuelle pakke.</p>`}`}
+</section>
+
+<section class="stage blok sektion">
+<p class="sec">Aktivitet</p>
+<div class="mt2">${s.log.map((l) => `<div class="logl">
+<span>${esc(l.aktoer)} · ${esc(l.handling)}${l.detalje ? " · " + esc(l.detalje) : ""}</span>
+<span>${dt(l.tidspunkt)}</span></div>`).join("") || `<p class="small soft">Ingen hændelser.</p>`}</div>
+</section>`,
+  });
+}
