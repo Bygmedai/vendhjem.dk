@@ -20,6 +20,10 @@ const mitSql = readFileSync(new URL("../migrations/0004_mit.sql", import.meta.ur
 const korpusSql = readFileSync(new URL("../migrations/0005_korpus.sql", import.meta.url), "utf8");
 const fondeE2 = readFileSync(new URL("../migrations/0006_fonde_e2.sql", import.meta.url), "utf8");
 const opholdSql = readFileSync(new URL("../migrations/0007_ophold.sql", import.meta.url), "utf8");
+const foresporgSql = readFileSync(new URL("../migrations/0008_foresporgsel.sql", import.meta.url), "utf8");
+const kalenderSql = readFileSync(new URL("../migrations/0009_kalender_2027.sql", import.meta.url), "utf8");
+const SKELET = [init, seed, peopleSql, mitSql, korpusSql, fondeE2, opholdSql, foresporgSql];
+const MIGRATIONER = [...SKELET, kalenderSql];
 
 let ok = 0, fejl = 0;
 const t = (navn, betingelse, ekstra = "") => {
@@ -32,7 +36,7 @@ const worker = (await import("../src/index.js")).default;
 
 const mails = [];
 const env = {
-  FONDE_DB: lavD1([init, seed, peopleSql, mitSql, korpusSql, fondeE2, opholdSql]),
+  FONDE_DB: lavD1(MIGRATIONER),
   FONDE_FILER: lavR2(),
   ASSETS: lavAssets(),
   LOKAL_TEST: "1",
@@ -820,7 +824,7 @@ console.log("\n23 · Ophold-fladen og offentlig kalender");
   const sag2 = await tekst(await hent(`/internt/ophold/${oprettet.id}`));
   t("Haruki står på opholdet", sag2.includes("Haruki Kino"));
 
-  const tomEnv = { ...env, FONDE_DB: lavD1([init, seed, peopleSql, mitSql, korpusSql, fondeE2, opholdSql]), FONDE_FILER: env.FONDE_FILER, ASSETS: env.ASSETS, LOKAL_TEST: "1" };
+  const tomEnv = { ...env, FONDE_DB: lavD1(SKELET), FONDE_FILER: env.FONDE_FILER, ASSETS: env.ASSETS, LOKAL_TEST: "1" };
   const tomKal = await tekst(await worker.fetch(new Request(BASE + "/sporene"), tomEnv, {}));
   t("tom kalender siger det højt", /ingen datoer/i.test(tomKal), tomKal.slice(0, 200));
   t("tom kalender siger ikke «datoer kommer»", !/datoer kommer/i.test(tomKal));
@@ -863,6 +867,289 @@ console.log("\n23 · Ophold-fladen og offentlig kalender");
   const nede = { ...env, FONDE_DB: { prepare() { throw new Error("D1 nede"); } }, LOKAL_TEST: "1" };
   const fald = await worker.fetch(new Request(BASE + "/sporene"), nede, {});
   t("kalender falder tilbage til assets ved D1-fejl", (await tekst(fald)) === "asset", fald.status);
+}
+
+console.log("\n24 · Forespørgsel (BYG-562 C2)");
+{
+  const db = env.FONDE_DB;
+  const april = await db.prepare(
+    `SELECT id FROM ophold WHERE start_dato = '2027-04-16' AND type_id = 'ot-mandegrupper'`
+  ).first();
+  t("C1-opholdet fra april ligger klar til forespørgsel", Boolean(april?.id), april?.id);
+
+  const sporene = await tekst(await hent("/sporene"));
+  t("åbent ophold har forespørg-knap på /sporene",
+     sporene.includes(`/sporene/forespørg/${april.id}`), sporene.slice(0, 400));
+
+  const form = await hent(`/sporene/forespørg/${april.id}`);
+  const formHtml = await tekst(form);
+  t("formularen svarer 200 uden Access", form.status === 200, form.status);
+  t("formularen har navn, mail og fritekst",
+     /name="navn"/.test(formHtml) && /name="mail"/.test(formHtml) && /name="besked"/.test(formHtml));
+  t("formularen har ikke telefon, adresse eller attribution",
+     !/name="telefon"/.test(formHtml) && !/name="adresse"/.test(formHtml) &&
+     !/hørte du/i.test(formHtml) && !/name="kilde"/.test(formHtml));
+
+  mails.length = 0;
+  const ukendt = await hent(`/sporene/forespørg/${april.id}`, {
+    method: "POST",
+    body: new URLSearchParams({
+      navn: "Anna Ny",
+      mail: "anna.ny@example.com",
+      besked: "Kommer med tog til Stigsnæs",
+    }),
+  });
+  const ukendtHtml = await tekst(ukendt);
+  t("ukendt person får kvittering på skærmen",
+     ukendt.status === 200 && /tak/i.test(ukendtHtml) && /vender tilbage/i.test(ukendtHtml),
+     ukendt.status);
+  const anna = await db.prepare(
+    `SELECT * FROM people WHERE lower(mail) = 'anna.ny@example.com'`
+  ).first();
+  t("ukendt person oprettes", Boolean(anna?.id) && anna.navn === "Anna Ny", JSON.stringify(anna));
+  const annaPlads = await db.prepare(
+    `SELECT * FROM pladser WHERE ophold_id = ?1 AND person_id = ?2`
+  ).bind(april.id, anna?.id).first();
+  t("ukendt person får én plads med status forespurgt",
+     annaPlads?.status === "forespurgt" && annaPlads.besked === "Kommer med tog til Stigsnæs",
+     JSON.stringify(annaPlads));
+  t("kvitteringsmail er sendt",
+     mails.some((m) => m.to === "anna.ny@example.com" && /vender tilbage|tre dage|skriver/i.test(m.text || "")),
+     JSON.stringify(mails.map((m) => ({ to: m.to, subject: m.subject }))));
+
+  const folkFoer = await db.prepare(
+    `SELECT COUNT(*) n FROM people WHERE lower(mail) = 'steven@bygmedai.dk'`
+  ).first();
+  mails.length = 0;
+  const kendt = await hent(`/sporene/forespørg/${april.id}`, {
+    method: "POST",
+    body: new URLSearchParams({ navn: "Steven Wensley", mail: "steven@bygmedai.dk" }),
+  });
+  const folkEfter = await db.prepare(
+    `SELECT COUNT(*) n FROM people WHERE lower(mail) = 'steven@bygmedai.dk'`
+  ).first();
+  const stevenPlads = await db.prepare(
+    `SELECT * FROM pladser WHERE ophold_id = ?1 AND person_id = 'p-steven'`
+  ).bind(april.id).first();
+  t("kendt person genkendes, ikke duplikeres",
+     kendt.status === 200 && folkFoer.n === 1 && folkEfter.n === 1 && stevenPlads?.status === "forespurgt",
+     JSON.stringify({ status: kendt.status, foer: folkFoer.n, efter: folkEfter.n, plads: stevenPlads }));
+
+  mails.length = 0;
+  const dobbelt = await hent(`/sporene/forespørg/${april.id}`, {
+    method: "POST",
+    body: new URLSearchParams({ navn: "Anna Ny", mail: "anna.ny@example.com" }),
+  });
+  const annaIgen = await db.prepare(
+    `SELECT COUNT(*) n FROM people WHERE lower(mail) = 'anna.ny@example.com'`
+  ).first();
+  const annaPladser = await db.prepare(
+    `SELECT COUNT(*) n FROM pladser WHERE ophold_id = ?1 AND person_id = ?2 AND status != 'afbudt'`
+  ).bind(april.id, anna?.id).first();
+  t("dobbelt forespørgsel bliver én person og én plads",
+     dobbelt.status === 200 && annaIgen.n === 1 && annaPladser.n === 1,
+     JSON.stringify({ status: dobbelt.status, personer: annaIgen.n, pladser: annaPladser.n }));
+
+  db._raw.prepare(`INSERT INTO ophold (id, type_id, start_dato, slut_dato, kapacitet, status, oprettet)
+                   VALUES ('op-fuld-c2', 'ot-stille', '2027-12-01', '2027-12-07', 1, 'åben', datetime('now'))`).run();
+  db._raw.prepare(`INSERT INTO pladser (id, ophold_id, person_id, status, pris, oprettet)
+                   VALUES ('pl-fuld-c2', 'op-fuld-c2', 'p-lai', 'bekræftet', 0, datetime('now'))`).run();
+  t("fuldt ophold skifter til fuld",
+     db._raw.prepare("SELECT status FROM ophold WHERE id = 'op-fuld-c2'").get().status === "fuld");
+
+  const sporeneFuld = await tekst(await hent("/sporene"));
+  t("fuldt ophold har ingen forespørg-knap",
+     !sporeneFuld.includes("/sporene/forespørg/op-fuld-c2"));
+  const fuldPost = await hent("/sporene/forespørg/op-fuld-c2", {
+    method: "POST",
+    body: new URLSearchParams({ navn: "Ude Lukket", mail: "ude.lukket@example.com" }),
+  });
+  const ude = await db.prepare(
+    `SELECT COUNT(*) n FROM people WHERE lower(mail) = 'ude.lukket@example.com'`
+  ).first();
+  const fuldPlads = await db.prepare(
+    `SELECT COUNT(*) n FROM pladser WHERE ophold_id = 'op-fuld-c2'`
+  ).first();
+  t("endpoint afviser forespørgsel på fuldt ophold",
+     fuldPost.status >= 400 && ude.n === 0 && fuldPlads.n === 1,
+     JSON.stringify({ status: fuldPost.status, personer: ude.n, pladser: fuldPlads.n }));
+
+  const intern = await tekst(await hent("/internt/ophold/"));
+  t("intern oversigt har ét-tryks bekræft og afvis",
+     intern.includes("Bekræft") && intern.includes("Afvis") && intern.includes("Anna Ny"));
+  const sagApril = await tekst(await hent(`/internt/ophold/${april.id}`));
+  t("siden har bekræft og afvis pr. person",
+     sagApril.includes("Bekræft") && sagApril.includes("Afvis"));
+
+  mails.length = 0;
+  const bekraeft = annaPlads ? await hent(`/internt/ophold/${april.id}/plads/${annaPlads.id}/status`, {
+    method: "POST",
+    body: new URLSearchParams({ status: "bekræftet" }),
+  }) : { status: 0 };
+  t("bekræft omdirigerer", bekraeft.status === 303, bekraeft.status);
+  const bekraeftMail = mails.find((m) => m.to === "anna.ny@example.com");
+  t("bekræftelsesmail har det man skal bruge for at møde op",
+     Boolean(bekraeftMail) &&
+     /færge|Stigsnæs/i.test(bekraeftMail.text) &&
+     /sovepose|sengetøj|have med/i.test(bekraeftMail.text) &&
+     /seng|mad|sauna|inkluderet/i.test(bekraeftMail.text),
+     bekraeftMail?.text?.slice(0, 400));
+
+  const gammelSink = env.mailSink;
+  env.mailSink = async () => { throw new Error("Resend svarede 500: test-fejl"); };
+  const mailFejl = await hent(`/sporene/forespørg/${april.id}`, {
+    method: "POST",
+    body: new URLSearchParams({ navn: "Bo Fejl", mail: "bo.fejl@example.com" }),
+  });
+  env.mailSink = gammelSink;
+  const bo = await db.prepare(
+    `SELECT * FROM people WHERE lower(mail) = 'bo.fejl@example.com'`
+  ).first();
+  const boPlads = bo ? await db.prepare(
+    `SELECT * FROM pladser WHERE ophold_id = ?1 AND person_id = ?2`
+  ).bind(april.id, bo.id).first() : null;
+  const internFejl = await tekst(await hent("/internt/ophold/"));
+  const internSagFejl = await tekst(await hent(`/internt/ophold/${april.id}`));
+  t("mailfejl gemmer stadig pladsen",
+     mailFejl.status === 200 && boPlads?.status === "forespurgt",
+     JSON.stringify({ status: mailFejl.status, plads: boPlads }));
+  t("mailfejl er synlig på /internt/ophold",
+     /Resend svarede 500|mailfejl|mail fejlede|ikke sendt/i.test(internFejl) ||
+     /Resend svarede 500|mailfejl|mail fejlede|ikke sendt/i.test(internSagFejl),
+     internSagFejl.includes("Bo Fejl") ? "Bo vises, men fejlen mangler" : internFejl.slice(0, 200));
+
+  const udenAccess = { ...env, LOKAL_TEST: undefined };
+  t("forespørgsel er offentlig",
+     (await worker.fetch(new Request(BASE + `/sporene/forespørg/${april.id}`), udenAccess, {})).status === 200);
+
+  mails.length = 0;
+  const jarMit = new Jar();
+  await jarMit.hent("/mit");
+  await jarMit.hent("/mit/login", {
+    method: "POST",
+    body: new URLSearchParams({ mail: "steven@bygmedai.dk" }),
+  });
+  const magic = mails[0];
+  const magicUrl = linkIMail(magic);
+  await jarMit.hent(magicUrl ? stiFraUrl(magicUrl) : "/mit/link/mangler");
+  const indeForm = await tekst(await jarMit.hent(`/sporene/forespørg/${april.id}`));
+  t("logget ind via /mit: navn og mail er kendt",
+     indeForm.includes("Steven Wensley") && indeForm.includes("steven@bygmedai.dk") &&
+     !/<input[^>]*name="navn"[^>]*required/i.test(indeForm),
+     indeForm.slice(0, 500));
+  t("session-cookie gælder på hele sitet, så /sporene kan se den",
+     /path=\//i.test(jarMit.c.vh_session?.linje || "") &&
+     !/path=\/mit/i.test(jarMit.c.vh_session?.linje || ""),
+     jarMit.c.vh_session?.linje);
+
+  const sider = await import("../src/ophold-sider.js");
+  const { ukendteKlasser, farverUdenforPalet } = await import("../src/kontrakt.js");
+  const css = readFileSync(new URL("../../assets/vh.css", import.meta.url), "utf8");
+  t("C2-fladen eksporterer formular og kvittering",
+     typeof sider.sporeneForesporgSide === "function" && typeof sider.sporeneTakSide === "function");
+  const c2Html = (typeof sider.sporeneForesporgSide === "function" && typeof sider.sporeneTakSide === "function") ? [
+    sider.opholdOversigt({
+      bruger: { navn: "x" },
+      liste: [],
+      typer: [{ id: "ot-x", navn: "x" }],
+      forespurgte: [{
+        id: "pl-x", ophold_id: "op-x", person_navn: "A", person_mail: "a@b.dk",
+        type_navn: "x", start_dato: "2027-01-01", slut_dato: "2027-01-03", mail_fejl: "x",
+      }],
+    }),
+    sider.opholdSide({
+      bruger: { navn: "x" },
+      o: {
+        id: "op-x", type_navn: "x", start_dato: "2027-01-01", slut_dato: "2027-01-03",
+        status: "åben", kapacitet: 2, optaget: 0, hele_stedet: 1, pris: 850, pris_fra: 850, note: "",
+        pladser: [{ id: "pl-x", person_navn: "A", person_mail: "a@b.dk", status: "forespurgt", pris: null, mail_fejl: "x" }],
+      },
+      personer: [],
+    }),
+    sider.sporeneForesporgSide({
+      o: { id: "op-x", type_navn: "x", start_dato: "2027-01-01", slut_dato: "2027-01-03", status: "åben" },
+      person: null,
+    }),
+    sider.sporeneTakSide({
+      o: { type_navn: "x", start_dato: "2027-01-01", slut_dato: "2027-01-03" },
+      person: { navn: "A" },
+    }),
+  ].join("\n") : "";
+  const ukendtC2 = ukendteKlasser(c2Html, css);
+  t("C2-fladen bruger kun klasser fra vh.css", ukendtC2.length === 0, ukendtC2.join(", "));
+  const farverC2 = farverUdenforPalet(c2Html, css);
+  t("C2-fladen indfører ingen farve uden for paletten", farverC2.ok, JSON.stringify(farverC2));
+}
+
+console.log("\n25 · År-0-kalender 2027 (syv lukkede uger + åbne datoer)");
+{
+  const db = env.FONDE_DB;
+  const lukkede = (await db.prepare(`
+    SELECT o.id, o.start_dato, o.slut_dato, o.status, t.spor, t.hele_stedet
+      FROM ophold o JOIN opholdstyper t ON t.id = o.type_id
+     WHERE t.spor = 'lukket' AND o.status = 'lukket'
+     ORDER BY o.start_dato
+  `).all()).results;
+  t("syv lukkede uger ligger i kalenderen", lukkede.length === 7, JSON.stringify(lukkede.map((o) => o.id)));
+  t("lukkede uger bruger ot-lukket og hele_stedet",
+     lukkede.every((o) => o.spor === "lukket" && o.hele_stedet === 1 && o.status === "lukket"));
+
+  const uger = lukkede.map((o) => o.start_dato);
+  t("ugerne er spredt, ikke klemt i januar",
+     uger[0] === "2027-02-08" && uger[6] === "2027-12-20" &&
+     new Set(uger.map((d) => d.slice(5, 7))).size >= 6,
+     uger.join(", "));
+
+  const overlapLukket = await hent("/internt/ophold/opret", {
+    method: "POST",
+    body: new URLSearchParams({
+      type_id: "ot-mandegrupper",
+      start_dato: "2027-02-10",
+      slut_dato: "2027-02-12",
+      kapacitet: "15",
+      status: "åben",
+    }),
+  });
+  const overlapLukketLoc = decodeURIComponent(overlapLukket.headers.get("Location") || "");
+  t("hele_stedet lukket uge nægter et andet beboende ophold",
+     overlapLukketLoc.includes("hele stedet er optaget"),
+     overlapLukketLoc);
+  const smuglet = await db.prepare(
+    `SELECT COUNT(*) n FROM ophold WHERE start_dato = '2027-02-10' AND type_id = 'ot-mandegrupper'`
+  ).first();
+  t("det overlappinge ophold blev ikke gemt", smuglet?.n === 0, JSON.stringify(smuglet));
+
+  const aabne = (await db.prepare(`
+    SELECT o.id, o.start_dato, t.spor, o.status, COALESCE(o.pris, t.pris_fra) AS vis_pris
+      FROM ophold o JOIN opholdstyper t ON t.id = o.type_id
+     WHERE o.status IN ('åben','fuld') AND t.spor != 'lukket'
+     ORDER BY o.start_dato
+  `).all()).results;
+  const mande = aabne.filter((o) => o.spor === "mandegrupper" && o.start_dato.startsWith("2027-"));
+  t("mindst tre åbne mandeweekender er seedet", mande.length >= 3, JSON.stringify(mande.map((o) => o.id)));
+  t("en mandeweekend bærer 850 kr.", mande.some((o) => o.vis_pris === 850));
+  t("festival- og retreat-pladsholdere er åbne",
+     aabne.some((o) => o.spor === "festival") && aabne.some((o) => o.spor === "retreats"),
+     JSON.stringify(aabne.map((o) => o.spor)));
+
+  const htmlSporene = await tekst(await hent("/sporene"));
+  t("/sporene viser ikke længere den tomme kalender",
+     !/ingen datoer i kalenderen endnu/i.test(htmlSporene), htmlSporene.slice(0, 400));
+  t("/sporene HTML viser lukkede uger",
+     /februar/i.test(htmlSporene) && /december/i.test(htmlSporene) &&
+     !/når ugerne er sat/i.test(htmlSporene),
+     htmlSporene.match(/Syv uger[\s\S]{0,400}/)?.[0]);
+  t("/sporene HTML viser mindst én åben dato",
+     /14\.|14-|maj|oktober|december/i.test(htmlSporene) && htmlSporene.includes("850"),
+     htmlSporene.match(/Mandegrupper[\s\S]{0,500}/)?.[0]);
+
+  const jsonSporene = await worker.fetch(new Request(BASE + "/sporene", {
+    headers: { accept: "application/json" },
+  }), env, {});
+  const jsonKrop = await tekst(jsonSporene);
+  t("/sporene JSON-kald viser stadig lukket og åben dato i HTML",
+     jsonSporene.status === 200 && /februar/i.test(jsonKrop) && /850/.test(jsonKrop),
+     jsonSporene.status);
 }
 
 console.log(`\n${ok} bestået, ${fejl} fejlet\n`);

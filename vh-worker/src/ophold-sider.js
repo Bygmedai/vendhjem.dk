@@ -41,7 +41,7 @@ const SPOR_LINKS = {
   mandegrupper: { href: "/maend", label: "Sådan ligger en weekend →" },
 };
 
-export function opholdOversigt({ bruger, liste, typer, advarsel }) {
+export function opholdOversigt({ bruger, liste, typer, advarsel, forespurgte = [] }) {
   const rk = liste.map((o) => `<tr>
 <td><a href="/internt/ophold/${esc(o.id)}">${esc(o.type_navn)}</a>
   <span class="meta" style="display:block;margin-top:4px">${esc(o.hele_stedet ? "hele stedet" : "kan deles")}</span></td>
@@ -52,6 +52,21 @@ export function opholdOversigt({ bruger, liste, typer, advarsel }) {
 </tr>`);
 
   const typeValg = typer.map((t) => ({ value: t.id, label: t.navn }));
+
+  const forespurgtRk = forespurgte.map((p) => `<tr>
+<td>${esc(p.person_navn)}<span class="meta" style="display:block;margin-top:4px">${esc(p.person_mail || "")}</span>
+${p.besked ? `<p class="small soft mt1">${esc(p.besked)}</p>` : ""}
+${p.mail_fejl ? `<p class="small mt1" style="color:var(--accent)">${esc(TEKST.mailFejl)}: ${esc(p.mail_fejl)}</p>` : ""}</td>
+<td><a href="/internt/ophold/${esc(p.ophold_id)}">${esc(p.type_navn)}</a>
+  <span class="meta" style="display:block;margin-top:4px">${esc(periodeTekst(p.start_dato, p.slut_dato))}</span></td>
+<td>${p.status === "forespurgt" ? `
+<form method="post" action="/internt/ophold/${esc(p.ophold_id)}/plads/${esc(p.id)}/status" style="margin:0">
+  ${knap({ label: TEKST.bekraeft, name: "status", value: "bekræftet", accent: true })}
+</form>
+<form method="post" action="/internt/ophold/${esc(p.ophold_id)}/plads/${esc(p.id)}/status" style="margin:0" class="mt1">
+  ${knap({ label: TEKST.afvis, name: "status", value: "afbudt" })}
+</form>` : `<span class="meta">${TEKST.streg}</span>`}</td>
+</tr>`);
 
   return side({
     titel: "Ophold", aktiv: "ophold", bruger,
@@ -64,6 +79,11 @@ ${advarsel ? `<section class="stage" style="padding-top:18px"><div class="ramme"
 <h1>Kalenderen over det, der sker på stedet</h1>
 <p class="lead maxw mt2">Et ophold er et dato-interval af et spor. Datoerne er inklusive: to eksklusive ophold må ikke dele en dag; dagen efter er fri. Hele stedet udlejet blokerer alt andet i perioden — databasen nægter, fladen advarer ikke bare.</p>
 </section>
+
+${forespurgte.length ? `<section class="stage blok sektion">
+<p class="sec">${esc(TEKST.forespørgsler)}</p>
+${tabel({ hoved: ["Person", "Ophold", ""], raekker: forespurgtRk, tom: TEKST.tomPladser, klasse: "mt2" })}
+</section>` : ""}
 
 <section class="stage">
 ${tabel({
@@ -100,12 +120,20 @@ export function opholdSide({ bruger, o, personer, advarsel }) {
     ...personer.map((p) => ({ value: p.id, label: p.navn })),
   ];
   const pladsRk = o.pladser.map((p) => `<tr>
-<td>${esc(p.person_navn)}<span class="meta" style="display:block;margin-top:4px">${esc(p.person_mail || "")}</span></td>
+<td>${esc(p.person_navn)}<span class="meta" style="display:block;margin-top:4px">${esc(p.person_mail || "")}</span>
+${p.besked ? `<p class="small soft mt1">${esc(p.besked)}</p>` : ""}
+${p.mail_fejl ? `<p class="small mt1" style="color:var(--accent)">${esc(TEKST.mailFejl)}: ${esc(p.mail_fejl)}</p>` : ""}</td>
 <td>${esc(PLADS_STATUS.find((s) => s.value === p.status)?.label || p.status)}</td>
 <td class="mono">${esc(kr(p.pris) || TEKST.streg)}</td>
-<td><form method="post" action="/internt/ophold/${esc(o.id)}/plads/${esc(p.id)}/status" style="margin:0">
-  ${p.status === "afbudt" ? `<span class="meta">${TEKST.streg}</span>` : knap({ label: "Afbud", name: "status", value: "afbudt" })}
-</form></td>
+<td>${p.status === "forespurgt" ? `
+<form method="post" action="/internt/ophold/${esc(o.id)}/plads/${esc(p.id)}/status" style="margin:0">
+  ${knap({ label: TEKST.bekraeft, name: "status", value: "bekræftet", accent: true })}
+</form>
+<form method="post" action="/internt/ophold/${esc(o.id)}/plads/${esc(p.id)}/status" style="margin:0" class="mt1">
+  ${knap({ label: TEKST.afvis, name: "status", value: "afbudt" })}
+</form>` : p.status === "afbudt" ? `<span class="meta">${TEKST.streg}</span>` : `<form method="post" action="/internt/ophold/${esc(o.id)}/plads/${esc(p.id)}/status" style="margin:0">
+  ${knap({ label: "Afbud", name: "status", value: "afbudt" })}
+</form>`}</td>
 </tr>`);
 
   return side({
@@ -170,7 +198,8 @@ export function sporeneSide({ typer, aabne, lukkede }) {
       ? dates.map((o) => {
         const p = kr(o.vis_pris);
         const fuld = o.status === "fuld" ? " · fuld" : "";
-        return `<p class="meta mt1">${esc(periodeTekst(o.start_dato, o.slut_dato))}${p ? ` · ${p}` : ""}${fuld}</p>`;
+        return `<p class="meta mt1">${esc(periodeTekst(o.start_dato, o.slut_dato))}${p ? ` · ${p}` : ""}${fuld}</p>
+${o.status === "åben" ? `<p class="mt1"><a class="lnk" href="/sporene/forespørg/${esc(o.id)}">${esc(TEKST.forespørg)} →</a></p>` : ""}`;
       }).join("")
       : `<p class="meta mt2">${esc(TEKST.ingenDatoerSpor)}</p>`;
     const link = SPOR_LINKS[t.spor];
@@ -192,33 +221,11 @@ ${link ? `<p class="mt2"><a class="lnk" href="${esc(link.href)}">${esc(link.labe
     ? lukkede.map((o) => `<p class="meta mt1">${esc(periodeTekst(o.start_dato, o.slut_dato))}</p>`).join("")
     : `<p class="small soft">De står i kalenderen som ro, når ugerne er sat: ingen gæster, intet salg. Et sted, der kan fylde 52 uger, brænder sine ejere af i år ét. Det har vi set før.</p>`;
 
-  return `<!DOCTYPE html>
-<html lang="da">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Sporene · Vend Hjem</title>
-<meta name="description" content="Det, der sker på stedet: mandegrupper og rites of passage, retreats, festival, byg-med-uger, stille uger, campingvogne.">
-<link rel="canonical" href="https://vendhjem.dk/sporene">
-<meta name="theme-color" content="#e9e7e0">
-<link rel="preload" href="/assets/fonts/lora-var.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="/assets/fonts/jetbrains-mono-400.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/assets/vh.css">
-</head>
-<body>
-<header class="site-head">
-<div class="stage row">
-<a class="brand" href="/">Vend <em>Hjem</em></a>
-<nav class="nav" aria-label="Hovedmenu">
-<a href="/fundamentet">Fundamentet</a>
-<a href="/sporene" aria-current="page">Sporene</a>
-<a href="/bliv-en-del">Bliv en del</a>
-<a href="https://vendhjem.dk/internt/">Log ind →</a>
-</nav>
-</div>
-</header>
-<main>
-
+  return sporeneSkal({
+    titel: "Sporene",
+    canonical: "/sporene",
+    description: "Det, der sker på stedet: mandegrupper og rites of passage, retreats, festival, byg-med-uger, stille uger, campingvogne.",
+    indhold: `
 <section class="stage blok">
 <p class="sec">Sporene</p>
 <h1>Det, der sker på stedet.</h1>
@@ -237,7 +244,38 @@ ${kort}
 <p class="sec">Syv uger om året er lukkede</p>
 ${lukketHtml}
 </div>
-</section>
+</section>`,
+  });
+}
+
+function sporeneSkal({ titel, canonical, description, indhold }) {
+  return `<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>${esc(titel)} · Vend Hjem</title>
+<meta name="description" content="${esc(description)}">
+<link rel="canonical" href="https://vendhjem.dk${esc(canonical)}">
+<meta name="theme-color" content="#e9e7e0">
+<link rel="preload" href="/assets/fonts/lora-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/jetbrains-mono-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/vh.css">
+</head>
+<body>
+<header class="site-head">
+<div class="stage row">
+<a class="brand" href="/">Vend <em>Hjem</em></a>
+<nav class="nav" aria-label="Hovedmenu">
+<a href="/fundamentet">Fundamentet</a>
+<a href="/sporene" aria-current="page">Sporene</a>
+<a href="/bliv-en-del">Bliv en del</a>
+<a href="https://vendhjem.dk/internt/">Log ind →</a>
+</nav>
+</div>
+</header>
+<main>
+${indhold}
 </main>
 <footer class="site-foot">
 <div class="stage row">
@@ -247,4 +285,62 @@ ${lukketHtml}
 </footer>
 </body>
 </html>`;
+}
+
+export function sporeneForesporgSide({ o, person, advarsel }) {
+  const kendt = Boolean(person?.navn && person?.mail);
+  const felter = kendt
+    ? `<p class="small mt2">${esc(TEKST.kendtSom(person.navn, person.mail))}</p>
+${felt({ label: TEKST.forespørgBesked, name: "besked", type: "textarea", klasse: "mt3" })}`
+    : `${felt({ label: TEKST.forespørgNavn, name: "navn", required: true, klasse: "mt2" })}
+${felt({ label: TEKST.forespørgMail, name: "mail", type: "email", required: true, klasse: "mt2" })}
+${felt({ label: TEKST.forespørgBesked, name: "besked", type: "textarea", klasse: "mt2" })}`;
+
+  return sporeneSkal({
+    titel: TEKST.forespørg,
+    canonical: `/sporene/forespørg/${o.id}`,
+    description: `Forespørg på ${o.type_navn}.`,
+    indhold: `
+<section class="stage blok">
+<p class="sec"><a class="lnk" href="/sporene">Sporene</a> / ${esc(o.type_navn)}</p>
+<h1>${esc(periodeTekst(o.start_dato, o.slut_dato))}</h1>
+<p class="lead maxw mt2">${esc(o.type_navn)}. Navn, mail, og det du vil sige. Ikke mere.</p>
+${advarsel ? `<p class="small mt2" style="color:var(--accent)">${esc(advarsel)}</p>` : ""}
+<form method="post" action="/sporene/forespørg/${esc(o.id)}" class="maxw mt4" style="max-width:420px">
+${felter}
+<p class="mt3">${knap({ label: TEKST.sendForespørg, accent: true })}</p>
+</form>
+</section>`,
+  });
+}
+
+export function sporeneTakSide({ o, person }) {
+  return sporeneSkal({
+    titel: TEKST.takH1,
+    canonical: "/sporene",
+    description: TEKST.takLead,
+    indhold: `
+<section class="stage blok">
+<p class="sec">${esc(o.type_navn)}</p>
+<h1 class="stor maxw">${esc(TEKST.takH1)}</h1>
+<p class="lead maxw mt3">${esc(TEKST.takLead)}</p>
+<p class="small soft maxw mt3">${esc(person?.navn || "")} · ${esc(periodeTekst(o.start_dato, o.slut_dato))}</p>
+<p class="mt3"><a class="lnk" href="/sporene">Tilbage til sporene →</a></p>
+</section>`,
+  });
+}
+
+export function sporeneFuldtSide({ o }) {
+  return sporeneSkal({
+    titel: TEKST.opholdFuldt,
+    canonical: "/sporene",
+    description: TEKST.opholdFuldt,
+    indhold: `
+<section class="stage blok">
+<p class="sec">${esc(o?.type_navn || "Sporene")}</p>
+<h1 class="stor maxw">${esc(TEKST.opholdFuldt)}</h1>
+<p class="lead maxw mt3">${esc(TEKST.opholdIkkeAabent)}</p>
+<p class="mt3"><a class="lnk" href="/sporene">Tilbage til sporene →</a></p>
+</section>`,
+  });
 }

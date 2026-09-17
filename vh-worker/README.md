@@ -20,7 +20,9 @@ ingen den.
 - Navigationen kommer fra `nav-internt.json`. Ret aldrig `src/nav-internt.js`.
 - Prøve 11 og 13 i `test/koer.mjs` fanger drift: to navigationer, ukendt klasse,
   farve uden for paletten. Prøve 14 dækker `/mit`. Prøve 15–21 dækker korpus
-  og fondimport. Prøve 22 og 23 dækker ophold og `/sporene`.
+  og fondimport. Prøve 22 og 23 dækker ophold og `/sporene`. Prøve 24 dækker
+  C2-forespørgsel. Prøve 25 dækker år-0-kalenderen (syv lukkede uger og åbne
+  datoer).
 
 Sådan bygger du en korrekt flade uden at spørge. Redesign, nye farver og React
 er uden for scope.
@@ -111,24 +113,32 @@ Lukket i to lag, med vilje:
 Cloudflare-connectoren, før tokenet havde skriveadgang, og er bagefter
 registreret i `d1_migrations`. De køres ikke igen.
 
-`0003`–`0007` ligger alle på main. **Status i produktion, målt 17.09.2026
-med kald mod den levende flade — ikke læst i en fil:**
+`0003`–`0009` ligger alle på main. **Status i produktion, målt 17.09.2026
+kl. ~19:30 med kald mod den levende flade — ikke læst i en fil:**
 
 | Migration | Målt | Hvordan |
 |---|---|---|
-| `0003_people` · `0004_mit` | **applied** | `GET /mit` → 200 med magic-link-formularen. Uden `people`, `magic_links` og `passkeys` kan den side ikke rendere; uden `SESSION_NOEGLE` svarer den 500 |
-| `0005_korpus` · `0006_fonde_e2` | **ikke målt herfra** | `/internt/korpus` ligger bag Access (302), og `/sundhed/fonde` kræver headeren. Mål det med sundhedstjekket — det tæller `korpus_dokumenter` |
-| `0007_ophold` | **applied** | `GET /sporene` serveres fra D1, ikke fra assets: den leverede side skriver «Retreats — vi er værter» med tankestreg, og den tankestreg findes kun i seed-rækken i `0007`. Den statiske `sporene.html` har bindestreg |
+| `0003_people` · `0004_mit` | **applied** | `GET /mit` → 200 med magic-link-formularen. Uden `people`, `magic_links` og `passkeys` kan siden ikke rendere; uden `SESSION_NOEGLE` svarer den 500 |
+| `0005_korpus` · `0006_fonde_e2` | **ikke målt herfra** | `/internt/korpus` ligger bag Access (302), `/sundhed/fonde` kræver headeren. Måles med sundhedstjekket, som tæller `korpus_dokumenter` |
+| `0007_ophold` | **applied** | `GET /sporene` serveres fra D1, ikke fra assets: den leverede side skriver «Retreats — vi er værter» med tankestreg, og den findes kun i seed-rækken i `0007`. Den statiske `sporene.html` har bindestreg |
+| `0008_foresporgsel` (PR #27) | **ikke målt herfra** | Tilføjer kolonner til `pladser`. Udefra kan den ikke skelnes fra en tom kalender |
+| `0009_kalender_2027` (PR #28) | **IKKE applied** | `/sporene` siger stadig «Ingen datoer åbne» seks steder og viser ingen 2027-dato. `0009` er ren seed, og C1 er deployet — var den applied, ville datoerne stå der |
 
-Denne tabel stod indtil 17/9 som «`0007_ophold.sql` er **ikke** applied
+**`0009` er den, der betyder noget lige nu.** Den er syv lukkede uger plus et
+minimalt sæt åbne 2027-ophold. Uden den bliver `/sporene` ved med at sige
+«ingen datoer» på den side, der skal sælge året. Det er ét `apply` fra at
+være løst.
+
+Afsnittet her stod indtil 17/9 som «`0007_ophold.sql` er **ikke** applied
 remote fra denne PR». Det var sandt da PR'en blev skrevet og forkert
-bagefter, og en agent, der troede på den, brugte en time på at planlægge
-en bygning af noget, der allerede kørte. **Det er derfor rækken siger
-hvordan den er målt og ikke bare hvad der gælder** — jf. repoets egen
-regel: enhver påstand om tilstand skal komme fra et kald.
+bagefter, og en agent, der troede på den, brugte en time på at planlægge en
+bygning af noget, der allerede kørte. **Det er derfor hver række siger
+hvordan den er målt, og ikke bare hvad der gælder** — jf. repoets egen
+regel: enhver påstand om tilstand skal komme fra et kald. «Ikke målt herfra»
+er ikke sjusk; det er forskellen på en status og en formodning.
 
-Kører du en migration, så mål bagefter og ret tabellen her. En status
-skrevet ud fra hvad man lige har gjort, er en hukommelse, ikke en måling.
+Kører du en migration, så mål bagefter og ret tabellen. En status skrevet ud
+fra hvad man lige har gjort, er en hukommelse, ikke en måling.
 
 En agent uden Cloudflare-token (`/tmp/.cf_token_vh` findes ikke i alle
 kørsler) kan ikke køre apply. Steven kører, når D1 Write er på det token
@@ -147,7 +157,9 @@ skal ikke deployes, før 0005 og 0006 er applied: korpus-tabellerne og
 `requirements.slags` findes ellers ikke, og sundhedstjekket tæller
 `korpus_dokumenter`. Workeren med C1 skal ikke deployes, før 0007 er
 applied: `/sporene` og `/internt/ophold` læser `opholdstyper` / `ophold` /
-`pladser`.
+`pladser`. Workeren med C2 skal ikke deployes, før 0008 er applied:
+`pladser.besked` og `pladser.mail_fejl`. Workeren med kalender-seedet
+skal ikke forventes at fylde `/sporene`, før 0009 er applied.
 
 ## Community-login /mit (BYG-556 A2)
 
@@ -290,8 +302,28 @@ Intern flade: `/internt/ophold`, bag den samme Access som resten af
 Er kalenderen tom, står der det — ikke «datoer kommer». Priser vises når
 de er sat (850 kr. på mandegrupper); ellers står der hvorfor.
 
-Betaling er D1. Selvbetjent forespørgsel er C2. Airbnb og rengøring er
-uden for scope.
+`0009_kalender_2027.sql` seeder syv lukkede ISO-uger og et minimalt sæt
+åbne 2027-ophold (tre mandeweekender, festival uge 27, ét retreat). Det
+er ikke 52 gætte-rækker: `Kalender 2027` ligger ikke i repoet. Seedet
+skal applies remote.
+
+## Forespørgsel (BYG-562 C2)
+
+Knap på hvert åbent ophold på `/sporene`. Formular: navn, mail, fritekst.
+Opretter eller genkender personen (mail), opretter `pladser` med status
+`forespurgt`. Dobbelt kald på samme person+ophold bliver én plads.
+Fuldt ophold: knappen er væk, endpointet svarer 409.
+
+Kvittering på skærmen og på mail (samme Resend-vej som `/mit`). Bekræft
+eller afvis med ét tryk på `/internt/ophold`. Bekræft sender praktisk
+mail (færge, hvad man skal have med, hvad der er inkluderet). Fejler
+mailen, er pladsen stadig gemt, og fejlen står på intern-fladen.
+
+Session-cookien fra `/mit` har `Path=/`, så navn og mail er kendt på
+`/sporene` uden ny auth.
+
+Betaling, venteliste, auto-bekræftelse, kalenderfiler, tærskel og
+beslutningsdato er D1 (BYG-563). Airbnb og rengøring er uden for scope.
 
 ## Det, der bevidst ikke er bygget endnu
 

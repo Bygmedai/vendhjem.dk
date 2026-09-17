@@ -47,14 +47,16 @@ jobs:
       - name: Check internal links
         run: |
           linkinator http://localhost:8080 --recurse --skip "^(?!http://localhost)" --format json --timeout 10000 > link-report.json || true
-          BROKEN=$(cat link-report.json | python3 -c "
+          python3 - link-report.json <<'PY'
           import json, sys
-          data = json.load(sys.stdin)
-          broken = [l for l in data.get('links', []) if l.get('status', 0) >= 400]
+          data = json.load(open(sys.argv[1]))
+          links = data.get("links", [])
+          broken = [l for l in links if l.get("status", 0) >= 400]
           for l in broken:
-              print(f'  {l[chr(39)+'status'+chr(39)]} {l[chr(39)+'url'+chr(39)]}')
+              print("::error::%s %s  <- linked from %s" % (l.get("status"), l.get("url"), l.get("parent")))
+          print("%d links checked, %d broken" % (len(links), len(broken)))
           sys.exit(1 if broken else 0)
-          ") && echo "No broken links found" || { echo "::error::Broken links found"; echo "$BROKEN"; exit 1; }
+          PY
 
   lighthouse:
     name: Lighthouse Audit

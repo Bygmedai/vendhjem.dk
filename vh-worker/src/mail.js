@@ -1,13 +1,9 @@
-// Mail til magic links. Resend når RESEND_API_KEY er sat.
-// Uden nøgle: log URL'en (dev/prøver). Opfinder ikke at produktionssending virker.
+// Mail. Resend når RESEND_API_KEY er sat.
+// Uden nøgle: log (dev/prøver). Opfinder ikke at produktionssending virker.
+// /mit og opholds-forespørgsel bruger den samme vej — ingen ny auth.
 
-export async function sendMagicMail(env, { to, url }) {
-  const subject = "Dit link ind til Vendhjem";
-  const text =
-    `Her er dit link. Det virker i et kvarter, og kun i den browser du bad om det fra.\n\n` +
-    `${url}\n\n` +
-    `Hvis du ikke har bedt om det, kan du lade være med at klikke.`;
-  const msg = { to, subject, text, url };
+export async function sendMail(env, { to, subject, text, ...rest }) {
+  const msg = { to, subject, text, ...rest };
 
   if (typeof env.mailSink === "function") {
     await env.mailSink(msg);
@@ -31,6 +27,15 @@ export async function sendMagicMail(env, { to, url }) {
     return { ok: true, via: "resend" };
   }
 
-  console.log(`[mit] ingen RESEND_API_KEY — mail ikke sendt.\n${subject}\n${text}`);
+  console.log(`[mail] ingen RESEND_API_KEY — mail ikke sendt.\n${subject}\n${text}`);
   return { ok: true, via: "log" };
+}
+
+export async function sendMagicMail(env, { to, url }) {
+  const subject = "Dit link ind til Vendhjem";
+  const text =
+    `Her er dit link. Det virker i et kvarter, og kun i den browser du bad om det fra.\n\n` +
+    `${url}\n\n` +
+    `Hvis du ikke har bedt om det, kan du lade være med at klikke.`;
+  return sendMail(env, { to, subject, text, url });
 }

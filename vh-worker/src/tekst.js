@@ -56,4 +56,54 @@ export const TEKST = {
   ingenDatoerSpor: "Ingen datoer åbne på det her spor endnu.",
   opretOphold: "Opret ophold",
   tomPladser: "Ingen på listen endnu.",
+
+  forespørg: "Forespørg",
+  sendForespørg: "Send forespørgsel",
+  forespørgNavn: "Dit navn",
+  forespørgMail: "Din mail",
+  forespørgBesked: "Hvis der er noget, vi skal vide",
+  takH1: "Tak. Vi vender tilbage.",
+  takLead: "Vi har din forespørgsel. Inden tre dage skriver vi, om pladsen er din. Ja eller nej — ikke et måske.",
+  opholdFuldt: "Opholdet er fuldt. Vi tager ikke flere forespørgsler på den her dato.",
+  opholdIkkeAabent: "Det ophold kan ikke forespørges på.",
+  bekraeft: "Bekræft",
+  afvis: "Afvis",
+  forespørgsler: "Forespørgsler",
+  mailFejl: "Mailen nåede ikke frem",
+  kendtSom: (navn, mail) => `Vi kender dig som ${navn} (${mail}).`,
 };
+
+export function kvitteringBrev({ navn, type_navn, periode }) {
+  return {
+    subject: `Vi har din forespørgsel på ${type_navn}`,
+    text:
+      `Hej ${navn}\n\n` +
+      `Vi har din forespørgsel på ${type_navn}, ${periode}.\n\n` +
+      `Inden tre dage skriver vi tilbage. Ja eller nej — ikke et måske.\n\n` +
+      `Vendhjem\nAgersø`,
+  };
+}
+
+export function bekraeftelsesBrev({ navn, type_navn, periode, inkluderet, pris_note, spor, vis_pris }) {
+  const med = inkluderet
+    ? `Det der er inkluderet: ${inkluderet}.`
+    : (pris_note || "Hvad der er med, skriver vi her, når det er sat.");
+  const pris = vis_pris != null
+    ? `${Number(vis_pris).toLocaleString("da-DK")} kr.${pris_note ? ` — ${pris_note}` : ""}`
+    : (pris_note || "");
+  const haveMed = spor === "stille"
+    ? "Der er ingen mad i opholdet. Tag det med, du skal spise, og det sengetøj du sover i."
+    : "Tag sovepose eller eget sengetøj med. Der er ingen, der brokker sig over det.";
+
+  return {
+    subject: `Du er med — ${type_navn}`,
+    text:
+      `Hej ${navn}\n\n` +
+      `Du er med. ${type_navn}, ${periode}.\n\n` +
+      `Færgen går fra Stigsnæs. Et kvarter over vandet. Den betaler du selv — den er ikke med i opholdet.\n\n` +
+      `${haveMed}\n\n` +
+      `${med}${pris ? `\n${pris}` : ""}\n\n` +
+      `Vi ses på Agersø.\n\n` +
+      `Vendhjem`,
+  };
+}

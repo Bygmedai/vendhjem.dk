@@ -7,7 +7,7 @@ import { mitSide, felt, knap, esc } from "./flade.js";
 import { TEKST } from "./tekst.js";
 import { sendMagicMail } from "./mail.js";
 import {
-  signerSession, laesSession, sessionFraRequest, enhedFraRequest,
+  signerSession, enhedFraRequest, sessionPerson,
   sessionCookie, rydSessionCookie, enhedCookie, SESSION_TTL,
 } from "./session.js";
 import { sha256Hex, hex, tilfældigeBytes, vent, b64url, b64urlDecode } from "./krypto.js";
@@ -98,15 +98,10 @@ async function enhedAf(request, cookiesUd) {
 }
 
 async function personFraSession(env, request) {
-  const tok = sessionFraRequest(request);
-  if (!tok || !env.SESSION_NOEGLE) return null;
-  const s = await laesSession(env.SESSION_NOEGLE, tok);
-  if (!s) return null;
-  const p = await env.FONDE_DB.prepare(`SELECT * FROM people WHERE id = ?1`).bind(s.person_id).first();
-  if (!p || p.status !== "aktiv") return null;
+  const p = await sessionPerson(env, request);
+  if (!p) return null;
   const gyldig = await personMedGyldigRolle(env.FONDE_DB, p.mail);
-  if (!gyldig) return null;
-  return p;
+  return gyldig ? p : null;
 }
 
 async function sessionCookies(env, person, extra = []) {
