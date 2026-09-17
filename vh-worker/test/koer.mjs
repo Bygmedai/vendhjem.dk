@@ -225,7 +225,11 @@ console.log("\n11 · Navigationen er den samme begge steder");
   const { PUNKTER } = await import("../src/nav-internt.js");
   const statisk = readFileSync(new URL("../../internt/oekonomi.html", import.meta.url), "utf8");
   const navStatisk = statisk.match(/<nav class="nav" aria-label="Internt">([\s\S]*?)<\/nav>/)?.[1] ?? "";
-  const stierStatisk = [...navStatisk.matchAll(/href="\.\.\/([^"]*)"/g)].map((m) => m[1]);
+  // Begge sider laeses med samme moenster. Siden build.py skriver absolutte
+  // stier (se HVORFOR-ABSOLUTTE-STIER), er formen den samme paa de statiske
+  // sider og i Workeren — og proeven kan ikke laengere bestaas af to
+  // navigationer, der bare ligner hinanden i hver sin notation.
+  const stierStatisk = [...navStatisk.matchAll(/href="\/([^"]*)"/g)].map((m) => m[1]);
 
   const h = await tekst(await hent("/internt/fonde/"));
   const navWorker = h.match(/<nav class="nav" aria-label="Internt">([\s\S]*?)<\/nav>/)?.[1] ?? "";

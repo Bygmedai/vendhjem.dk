@@ -29,7 +29,8 @@ def nav_internt(depth, current):
 INTERN_BASE = "https://vendhjem.dk"
 
 def head(title, desc, path, intern=False, current=None):
-    depth = "../" if path.startswith("internt/") else ""
+    # Alle stier er absolutte. Se HVORFOR-ABSOLUTTE-STIER nederst i filen.
+    depth = "/"
     robots = '<meta name="robots" content="noindex, nofollow">\n' if intern else ""
     canon = "" if intern else f'<link rel="canonical" href="https://vendhjem.dk/{path.replace("index.html","").replace(".html","")}">\n'
     if intern:
@@ -68,7 +69,7 @@ def head(title, desc, path, intern=False, current=None):
 '''
 
 def foot(intern=False, path=""):
-    depth = "../" if path.startswith("internt/") else ""
+    depth = "/"
     if intern:
         return f'''</main>
 <footer class="site-foot">
@@ -98,7 +99,7 @@ pages = {}
 # ───────────────────────────── FORSIDE (1a) ─────────────────────────────
 pages["index.html"] = head("Vend Hjem · Agersø", "En gammel campingplads på Agersø, som bliver et sted, man bor. Lai Yde ejer stedet; Steven Wensley bygger med.", "index.html", current=None) + '''
 <section class="horizon h-hero" style="--h:38%">
-<video id="hero" muted loop playsinline preload="none" poster="images/hero-strand-poster.jpg" aria-hidden="true" data-src="images/hero-strand.mp4"></video>
+<video id="hero" muted loop playsinline preload="none" poster="/images/hero-strand-poster.jpg" aria-hidden="true" data-src="/images/hero-strand.mp4"></video>
 <script>
 (function(){
   var v=document.getElementById('hero'); if(!v) return;
@@ -119,7 +120,7 @@ pages["index.html"] = head("Vend Hjem · Agersø", "En gammel campingplads på A
 <div>
 <p class="lead" style="color:var(--blaek)">Syv bygninger fra 1920. 25 senge, en sal til 50, 60.000 kvadratmeter - og det meste af det trænger. Vi lægger det frem, som det er, før der står noget pænt.</p>
 <p class="lead">Det er ikke et "sommerhus". Det er et sted, man bor - med alt det, der følger med, når man ikke kan tage hjem fra det.</p>
-<p class="mt3"><a class="lnk" href="bliv-en-del">Skriv → én vej ind</a></p>
+<p class="mt3"><a class="lnk" href="/bliv-en-del">Skriv → én vej ind</a></p>
 </div>
 <div class="fakta">
 <div><p class="meta-s">Færge fra Stigsnæs</p><p class="v">Et kvarter · omkring 170 fastboende</p></div>
@@ -131,9 +132,9 @@ pages["index.html"] = head("Vend Hjem · Agersø", "En gammel campingplads på A
 
 <section class="stage">
 <div class="g g-3 nb">
-<div><p class="sec">Sporene</p><p class="small soft">Mandegrupper, rites of passage, byg-med-uger, stille uger. <a class="lnk" href="sporene">Se →</a></p></div>
-<div><p class="sec">Fundamentet</p><p class="small soft">Fire perspektiver på alt, der er stort nok. To måder at beslutte på. Manifestet, dateret, når det er klar. <a class="lnk" href="fundamentet">Læs →</a></p></div>
-<div><p class="sec">Døren ud</p><p class="small soft">Der er en dør ind, og en dør ud - og den sidste skal du kende først. <a class="lnk" href="bliv-en-del">Forløbet →</a></p></div>
+<div><p class="sec">Sporene</p><p class="small soft">Mandegrupper, rites of passage, byg-med-uger, stille uger. <a class="lnk" href="/sporene">Se →</a></p></div>
+<div><p class="sec">Fundamentet</p><p class="small soft">Fire perspektiver på alt, der er stort nok. To måder at beslutte på. Manifestet, dateret, når det er klar. <a class="lnk" href="/fundamentet">Læs →</a></p></div>
+<div><p class="sec">Døren ud</p><p class="small soft">Der er en dør ind, og en dør ud - og den sidste skal du kende først. <a class="lnk" href="/bliv-en-del">Forløbet →</a></p></div>
 </div>
 </section>
 ''' + foot()
@@ -192,7 +193,7 @@ pages["fundamentet.html"] = head("Fundamentet · Vend Hjem", "Det, stedet hviler
 </div>
 <div>
 <p class="sec">Hjulet - Stevens model</p>
-<div class="ramme-stiplet"><p class="meta-s" style="color:var(--accent);font-weight:500">IKKE SKREVET ENDNU</p><p class="small mt1">Den skrives ud af samtalerne på stedet, ikke før dem. Når den er skrevet, står den her med dato. Indtil da står der det her. <a class="lnk" href="hjulet">Hvad den skal svare på →</a></p></div>
+<div class="ramme-stiplet"><p class="meta-s" style="color:var(--accent);font-weight:500">IKKE SKREVET ENDNU</p><p class="small mt1">Den skrives ud af samtalerne på stedet, ikke før dem. Når den er skrevet, står den her med dato. Indtil da står der det her. <a class="lnk" href="/hjulet">Hvad den skal svare på →</a></p></div>
 </div>
 </div>
 </section>
@@ -256,7 +257,7 @@ pages["sporene.html"] = head("Sporene · Vend Hjem", "Det, der sker på stedet: 
 <p class="small">Stevens spor. Weekender for femten mænd: seng, mad, tre-fire timers arbejde på stedet og noget alvorligt om aftenen. Arbejdet er ikke betaling - det er grunden til, at prisen er en tredjedel af markedets.</p>
 <p class="meta mt2">850 kr. · seng og al mad indgår · sauna · færgen betaler du selv</p>
 <p class="meta mt1">Ingen datoer åbne på det her spor endnu.</p>
-<p class="mt2"><a class="lnk" href="maend">Sådan ligger en weekend →</a></p>
+<p class="mt2"><a class="lnk" href="/maend">Sådan ligger en weekend →</a></p>
 </div>
 <div>
 <p class="sec">Retreats - vi er værter</p>
@@ -331,7 +332,7 @@ pages["maend.html"] = head("Mandegrupper · Vend Hjem", "Femten mænd, en weeken
 <div class="g g-3 nb">
 <div><p class="meta-s">Praktisk</p><p class="small mt1">15 pladser · 850 kr. · seng og al mad indgår · sauna · færgen betaler du selv</p></div>
 <div><p class="meta-s">Næste</p><p class="small mt1">Datoer for 2027 kommer, når stedet er registreret og kalenderen ligger fast.</p></div>
-<div><p class="meta-s">Hvis du vil med</p><p class="mt1"><a class="lnk" href="bliv-en-del">Skriv → vi ringer</a></p></div>
+<div><p class="meta-s">Hvis du vil med</p><p class="mt1"><a class="lnk" href="/bliv-en-del">Skriv → vi ringer</a></p></div>
 </div>
 </section>
 
@@ -425,10 +426,10 @@ pages["internt/index.html"] = head("Internt · Vend Hjem", "Agersø-projektet ba
 </section>
 <section class="stage">
 <div class="g g-3">
-<div><p class="sec">Stedet</p><p class="small soft">Bygningerne som BBR kender dem, plan- og naturforhold, og registreringen 19.–21. september.</p><p class="mt2"><a class="lnk" href="stedet">Åbn →</a></p></div>
-<div><p class="sec">Økonomi</p><p class="small soft">Faste udgifter, hvad en gæst koster, og tre scenarier for 2027.</p><p class="mt2"><a class="lnk" href="oekonomi">Åbn →</a></p></div>
-<div><p class="sec">Anlæg</p><p class="small soft">Bygning for bygning, rum for rum. Registrering, fund og hvad det koster at rette.</p><p class="mt2"><a class="lnk" href="anlaeg">Åbn →</a></p></div>
-<div class="loeft"><p class="sec">Timer og indskud</p><p class="small soft">Hvem har lagt hvad, hvornår, og hvad blev der aftalt. Den vigtigste tabel på hele stedet.</p><p class="mt2"><a class="lnk" href="timer">Åbn →</a></p></div>
+<div><p class="sec">Stedet</p><p class="small soft">Bygningerne som BBR kender dem, plan- og naturforhold, og registreringen 19.–21. september.</p><p class="mt2"><a class="lnk" href="/stedet">Åbn →</a></p></div>
+<div><p class="sec">Økonomi</p><p class="small soft">Faste udgifter, hvad en gæst koster, og tre scenarier for 2027.</p><p class="mt2"><a class="lnk" href="/internt/oekonomi">Åbn →</a></p></div>
+<div><p class="sec">Anlæg</p><p class="small soft">Bygning for bygning, rum for rum. Registrering, fund og hvad det koster at rette.</p><p class="mt2"><a class="lnk" href="/internt/anlaeg">Åbn →</a></p></div>
+<div class="loeft"><p class="sec">Timer og indskud</p><p class="small soft">Hvem har lagt hvad, hvornår, og hvad blev der aftalt. Den vigtigste tabel på hele stedet.</p><p class="mt2"><a class="lnk" href="/timer">Åbn →</a></p></div>
 <div><p class="sec">Beslutninger</p><p class="small soft">Hvem har mandat til hvad, med hvilken ramme, og hvornår det tages op igen.</p><p class="meta mt2">Kommer</p></div>
 <div><p class="sec">Kalender</p><p class="small soft">Hvad der sker i dag, hvad du har meldt dig til, og hvilke uger der er lukkede.</p><p class="meta mt2">Kommer</p></div>
 </div>
@@ -591,7 +592,7 @@ pages["internt/oekonomi.html"] = head("Økonomi · Internt", "Faste udgifter, hv
 </ul>
 <p class="note mt2">El efter Bolius' forbrugstal og gennemsnitsprisen for 2025. Vand efter DANVA's Vand i Tal 2025: 97 liter pr. person i døgnet, 82,23 kr. pr. m³ inkl. afgifter. Varmen er beregnet, ikke målt, og erstattes efter første fyringssæson.</p>
 <p class="sec mt4">Timer og indskud</p>
-<p class="small soft">Når stedet er i drift, står det her: hvem der har lagt hvilke timer, og hvem der har skudt hvilke penge ind - med dato, og med hvad der blev aftalt dengang. <a class="lnk" href="timer">Tabellen →</a></p>
+<p class="small soft">Når stedet er i drift, står det her: hvem der har lagt hvilke timer, og hvem der har skudt hvilke penge ind - med dato, og med hvad der blev aftalt dengang. <a class="lnk" href="/timer">Tabellen →</a></p>
 </div>
 </div>
 </section>
@@ -664,6 +665,48 @@ pages["internt/anlaeg.html"] = head("Anlæg · Internt", "Registrering, fund og 
 </div>
 </section>
 ''' + foot(intern=True, path="internt/anlaeg.html")
+
+# ───────────── HVORFOR-ABSOLUTTE-STIER ─────────────
+#
+# Hver href og src paa en offentlig side skal starte med /, http, mailto,
+# data eller #. Aldrig "sporene" eller "assets/vh.css".
+#
+# Baggrund: relative stier er rigtige, saa laenge man staar praecis dér,
+# hvor de blev skrevet. Faar man siden serveret paa en adresse med en
+# skraastreg til forskel, opløses "assets/vh.css" et andet sted, og siden
+# kommer uden styling. Cloudflare sender i dag /fundamentet/ tilbage til
+# /fundamentet, saa det sker ikke i produktion — men det er en indstilling
+# ét sted, ikke en egenskab ved siderne, og CI's crawler laeser dem som
+# mapper og meldte 20 brudte links i to doegn.
+#
+# ophold-sider.js har altid skrevet absolutte stier. Nu goer build.py det
+# samme, saa de to flader ikke er uenige om noget saa enkelt.
+#
+# Proeven nedenfor er hegnet. Fjern den, og driften kommer igen i stilhed.
+
+RELATIV = re.compile(r'(?:href|src|data-src|poster)="(?!/|https?:|mailto:|data:|#)([^"]*)"')
+
+def _find_relative(html):
+    return [m.group(1) for m in RELATIV.finditer(html) if m.group(1) != ""]
+
+_fejl = []
+for path, html in pages.items():
+    if path.startswith("internt/"):
+        continue          # interne sider serveres kun bag Access, men foelger samme regel
+    for sti in _find_relative(html):
+        _fejl.append(f"{path}: {sti}")
+
+for path, html in pages.items():
+    if not path.startswith("internt/"):
+        continue
+    for sti in _find_relative(html):
+        _fejl.append(f"{path}: {sti}")
+
+if _fejl:
+    print("\nRELATIV STI PAA EN SIDE — se HVORFOR-ABSOLUTTE-STIER i build.py:")
+    for f in _fejl:
+        print("  ", f)
+    raise SystemExit(1)
 
 for path, html in pages.items():
     full = os.path.join(ROOT, path)
