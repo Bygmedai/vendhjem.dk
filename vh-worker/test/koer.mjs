@@ -9,6 +9,7 @@ import { hentPerson, roller, harRolle, opretPerson, tildelRolle, udloebRolle, sk
 const init = readFileSync(new URL("../migrations/0001_init.sql", import.meta.url), "utf8");
 const seed = readFileSync(new URL("../migrations/0002_seed_ldp.sql", import.meta.url), "utf8");
 const peopleSql = readFileSync(new URL("../migrations/0003_people.sql", import.meta.url), "utf8");
+const mitSql = readFileSync(new URL("../migrations/0004_mit.sql", import.meta.url), "utf8");
 
 let ok = 0, fejl = 0;
 const t = (navn, betingelse, ekstra = "") => {
@@ -19,12 +20,62 @@ const t = (navn, betingelse, ekstra = "") => {
 // Access stubbes ved at overskrive modulets identitet gennem LOKAL_TEST-grenen.
 const worker = (await import("../src/index.js")).default;
 
-const env = { FONDE_DB: lavD1([init, seed, peopleSql]), FONDE_FILER: lavR2(), ASSETS: lavAssets(), LOKAL_TEST: "1" };
+const mails = [];
+const env = {
+  FONDE_DB: lavD1([init, seed, peopleSql, mitSql]),
+  FONDE_FILER: lavR2(),
+  ASSETS: lavAssets(),
+  LOKAL_TEST: "1",
+  SESSION_NOEGLE: "test-session-noegle-32bytes-min!",
+  MIT_SVARTID_MS: "40",
+  mailSink: async (m) => { mails.push(m); },
+};
 const BASE = "http://localhost:8788";
 const A = "app-ldp-2026";
 
 const hent = (sti, init2) => worker.fetch(new Request(BASE + sti, init2), env, {});
 const tekst = async (r) => await r.text();
+
+class Jar {
+  constructor() { this.c = {}; }
+  eat(r) {
+    const linjer = typeof r.headers.getSetCookie === "function"
+      ? r.headers.getSetCookie()
+      : (r.headers.get("set-cookie") ? [r.headers.get("set-cookie")] : []);
+    for (const linje of linjer) {
+      if (!linje) continue;
+      const [nv, ...rest] = linje.split(";");
+      const eq = nv.indexOf("=");
+      const navn = nv.slice(0, eq).trim();
+      const value = nv.slice(eq + 1).trim();
+      const attrs = rest.map((s) => s.trim().toLowerCase());
+      if (attrs.some((a) => a === "max-age=0" || a.startsWith("expires=thu, 01 jan 1970")))
+        delete this.c[navn];
+      else this.c[navn] = { value, linje, attrs };
+    }
+  }
+  header() {
+    return Object.entries(this.c).map(([k, v]) => `${k}=${v.value}`).join("; ");
+  }
+  async hent(sti, init2 = {}) {
+    const headers = new Headers(init2.headers || {});
+    const h = this.header();
+    if (h) headers.set("Cookie", h);
+    const r = await hent(sti, { ...init2, headers });
+    this.eat(r);
+    return r;
+  }
+}
+
+const linkIMail = (m) => {
+  const t = m?.text || m?.html || "";
+  const m2 = t.match(/https?:\/\/[^\s]+/);
+  return m2 ? m2[0] : null;
+};
+const stiFraUrl = (u) => {
+  const x = new URL(u);
+  return x.pathname + x.search;
+};
 
 console.log("\n1 · Oversigten");
 {
@@ -247,12 +298,155 @@ console.log("\n13 · Fladekontrakt (BYG-565 G1)");
   t("fondsfladen indfører ingen farve uden for paletten",
      farver.ok, JSON.stringify(farver));
 
-  const kilder = ["flade.js", "sider.js", "views.js", "index.js", "tekst.js"]
+  const kilder = ["flade.js", "sider.js", "views.js", "index.js", "tekst.js", "mit.js", "session.js", "mail.js", "webauthn.js", "krypto.js"]
     .map((f) => readFileSync(new URL(`../src/${f}`, import.meta.url), "utf8")).join("\n");
   const kildeFarver = farverUdenforPalet(kilder, css);
   t("flade-kilden indfører ingen farve uden for paletten",
      kildeFarver.ok, JSON.stringify(kildeFarver));
   t("tom liste bruger TEKST.tomListe", fladeHtml.includes("Ingen sager endnu."));
+}
+
+console.log("\n14 · Community-login /mit (BYG-556 A2)");
+{
+  const SVAR = "Hvis adressen hører til nogen her, ligger der en mail nu.";
+
+  // /mit er uden for Access — Workeren svarer selv, uden JWT.
+  const udenAccess = { ...env, LOKAL_TEST: undefined };
+  const aaben = await worker.fetch(new Request(BASE + "/mit"), udenAccess, {});
+  const aabenHtml = await tekst(aaben);
+  t("/mit svarer 200 uden Access-JWT", aaben.status === 200, aaben.status);
+  t("/mit er ikke en asset-genvej", aabenHtml !== "asset");
+  t("/mit viser loginformular på dansk",
+     aabenHtml.includes("Din mail") && aabenHtml.includes("Send mig et link"));
+  t("/mit bruger ikke intern nav (Økonomi/Fonde)",
+     !aabenHtml.includes("/internt/fonde") && !aabenHtml.includes(">Økonomi<"));
+
+  const internUden = await worker.fetch(new Request(BASE + "/internt/fonde/"), udenAccess, {});
+  t("/internt er uændret bag Access (401 uden JWT)", internUden.status === 401, internUden.status);
+
+  // Ukendt og kendt: samme svar, samme timing, kun kendt får mail.
+  mails.length = 0;
+  const jarUkendt = new Jar();
+  await jarUkendt.hent("/mit");
+  const tUkendt0 = Date.now();
+  const rUkendt = await jarUkendt.hent("/mit/login", {
+    method: "POST", body: new URLSearchParams({ mail: "findes-ikke@vendhjem.test" }),
+  });
+  const tUkendt = Date.now() - tUkendt0;
+  const hUkendt = await tekst(rUkendt);
+  t("ukendt mail: samme svartekst", hUkendt.includes(SVAR), hUkendt.slice(0, 180));
+  t("ukendt mail: ingen mail sendt", mails.length === 0, mails.length);
+
+  const jarKendt = new Jar();
+  await jarKendt.hent("/mit");
+  const tKendt0 = Date.now();
+  const rKendt = await jarKendt.hent("/mit/login", {
+    method: "POST", body: new URLSearchParams({ mail: "steven@bygmedai.dk" }),
+  });
+  const tKendt = Date.now() - tKendt0;
+  const hKendt = await tekst(rKendt);
+  t("kendt mail: samme svartekst", hKendt.includes(SVAR));
+  t("kendt mail: én mail med link", mails.length === 1 && Boolean(linkIMail(mails[0])), mails.length);
+  t("ukendt og kendt svarer inden for 80 ms af hinanden",
+     Math.abs(tUkendt - tKendt) <= 80, `ukendt ${tUkendt}ms, kendt ${tKendt}ms`);
+
+  const magicUrl = linkIMail(mails[0]);
+  const magicSti = magicUrl ? stiFraUrl(magicUrl) : "/mit/link/mangler";
+
+  // Klik i samme browser → inde, session-cookie.
+  const rLink = await jarKendt.hent(magicSti);
+  t("gyldigt link omdirigerer ind", rLink.status === 303, rLink.status);
+  const loc = rLink.headers.get("Location") || "";
+  t("omdirigerer til /mit", loc === "/mit" || loc.endsWith("/mit"), loc);
+  t("session-cookie er HttpOnly Secure SameSite=Lax",
+     Boolean(jarKendt.c.vh_session) &&
+     jarKendt.c.vh_session.linje.toLowerCase().includes("httponly") &&
+     jarKendt.c.vh_session.linje.toLowerCase().includes("secure") &&
+     /samesite=lax/i.test(jarKendt.c.vh_session.linje),
+     jarKendt.c.vh_session?.linje);
+  t("session-cookie lever 90 dage",
+     /max-age=7776000/i.test(jarKendt.c.vh_session?.linje || ""),
+     jarKendt.c.vh_session?.linje);
+
+  const rInde = await jarKendt.hent("/mit");
+  const hInde = await tekst(rInde);
+  t("efter klik: inde, ikke loginformular",
+     rInde.status === 200 && hInde.includes("Steven") && !hInde.includes("Send mig et link"),
+     hInde.slice(0, 200));
+  t("passkey tilbydes efter første login",
+     hInde.includes("huske dig") || hInde.includes("Husk den"),
+     hInde.includes("passkey") ? "passkey" : hInde.slice(0, 240));
+  t("session fornyes stille ved brug (Set-Cookie igen)",
+     Boolean(jarKendt.c.vh_session) && /max-age=7776000/i.test(jarKendt.c.vh_session.linje));
+
+  // Genbrugt link.
+  const rGenbrug = await jarKendt.hent(magicSti);
+  const hGenbrug = await tekst(rGenbrug);
+  t("brugt link virker ikke igen",
+     rGenbrug.status !== 303 && (hGenbrug.includes("allerede brugt") || hGenbrug.includes("Bed om et nyt")),
+     `status ${rGenbrug.status}`);
+
+  // Forkert browser: samme token, anden enhed-cookie.
+  mails.length = 0;
+  const jarA = new Jar();
+  await jarA.hent("/mit");
+  await jarA.hent("/mit/login", {
+    method: "POST", body: new URLSearchParams({ mail: "laiydeh@gmail.com" }),
+  });
+  const urlA = linkIMail(mails[0]);
+  const jarB = new Jar();
+  await jarB.hent("/mit");
+  const rForkert = await jarB.hent(urlA ? stiFraUrl(urlA) : "/mit/link/x");
+  const hForkert = await tekst(rForkert);
+  t("link i anden browser virker ikke",
+     rForkert.status !== 303 && (hForkert.includes("anden browser") || hForkert.includes("dér, hvor du bad")),
+     `status ${rForkert.status}`);
+
+  // Udløbet link (15 min): sæt udloeb i fortiden.
+  mails.length = 0;
+  const jarUdl = new Jar();
+  await jarUdl.hent("/mit");
+  await jarUdl.hent("/mit/login", {
+    method: "POST", body: new URLSearchParams({ mail: "haruki@bygmedai.dk" }),
+  });
+  const urlUdl = linkIMail(mails[0]);
+  await env.FONDE_DB.prepare(`UPDATE magic_links SET udloeb = '2000-01-01T00:00:00.000Z' WHERE brugt IS NULL`).run();
+  const rUdl = await jarUdl.hent(urlUdl ? stiFraUrl(urlUdl) : "/mit/link/x");
+  const hUdl = await tekst(rUdl);
+  t("link ældre end 15 minutter virker ikke",
+     rUdl.status !== 303 && (hUdl.includes("for gammelt") || hUdl.includes("Bed om et nyt")),
+     `status ${rUdl.status}`);
+
+  // Udløbet rolle: person findes, men rollen er udløbet → ingen mail, samme svar.
+  const udloebet = await opretPerson(env.FONDE_DB, { navn: "Udløbet", mail: "udloebet@vendhjem.test" });
+  const rolleUdl = await tildelRolle(env.FONDE_DB, { person_id: udloebet.id, rolle: "medlem" });
+  await udloebRolle(env.FONDE_DB, rolleUdl.id);
+  mails.length = 0;
+  const jarRolle = new Jar();
+  await jarRolle.hent("/mit");
+  const rRolle = await jarRolle.hent("/mit/login", {
+    method: "POST", body: new URLSearchParams({ mail: "udloebet@vendhjem.test" }),
+  });
+  t("udløbet rolle: samme svar, ingen mail",
+     (await tekst(rRolle)).includes(SVAR) && mails.length === 0, mails.length);
+
+  // Afvis passkey — huskes for evigt.
+  const rNej = await jarKendt.hent("/mit/enhed/nej", { method: "POST" });
+  t("afvis passkey omdirigerer", rNej.status === 303, rNej.status);
+  const hEfterNej = await tekst(await jarKendt.hent("/mit"));
+  t("afvisning huskes: tilbud vises ikke igen",
+     !hEfterNej.includes("huske dig") && !hEfterNej.includes("Husk den"));
+  const steven = await env.FONDE_DB.prepare(`SELECT passkey_tilbud FROM people WHERE id = 'p-steven'`).first();
+  t("passkey_tilbud er nej i databasen", steven?.passkey_tilbud === "nej", steven?.passkey_tilbud);
+
+  // Fladekontrakt på /mit.
+  const { ukendteKlasser: uk2, farverUdenforPalet: fu2 } = await import("../src/kontrakt.js");
+  const css = readFileSync(new URL("../../assets/vh.css", import.meta.url), "utf8");
+  const mitHtml = aabenHtml + hInde + hKendt;
+  const ukendtMit = uk2(mitHtml, css);
+  t("/mit bruger kun klasser fra vh.css", ukendtMit.length === 0, ukendtMit.join(", "));
+  const farverMit = fu2(mitHtml, css);
+  t("/mit indfører ingen farve uden for paletten", farverMit.ok, JSON.stringify(farverMit));
 }
 
 console.log(`\n${ok} bestået, ${fejl} fejlet\n`);

@@ -32,7 +32,7 @@ html_handling = "auto-trailing-slash"
 # koden, men wrangler koerte den aldrig.
 #
 # Med true gaar alt gennem Workeren, som selv kalder env.ASSETS.fetch() for
-# alt uden for /internt/fonde. _headers og _redirects gaelder stadig.
+# alt uden for /internt/fonde og /mit. _headers og _redirects gaelder stadig.
 run_worker_first = true
 
 [[d1_databases]]

@@ -1,6 +1,12 @@
 /internt/*
   X-Robots-Tag: noindex, nofollow
   Cache-Control: no-store
+/mit
+  X-Robots-Tag: noindex, nofollow
+  Cache-Control: no-store
+/mit/*
+  X-Robots-Tag: noindex, nofollow
+  Cache-Control: no-store
 /assets/fonts/*
   Cache-Control: public, max-age=31536000, immutable
 /images/*

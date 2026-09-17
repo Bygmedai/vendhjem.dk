@@ -9,13 +9,14 @@ statiske filer af `[assets]` og rører aldrig denne kode.
 Kontrakten står øverst i `assets/vh.css`. Én skærm. Hvis den er længere, følger
 ingen den.
 
-- Brug `src/flade.js` (side, nav, tabel, felt, knap, statusPil, tomTilstand,
+- Brug `src/flade.js` (side, mitSide, nav, tabel, felt, knap, statusPil, tomTilstand,
   fejlTilstand) og `src/tekst.js`. Opfind ikke en ottende variant.
+- `/mit` er fællesskabets login og ligger uden for Access. `/internt` røres ikke.
 - Kun klasser der findes i `vh.css`. Ingen runde hjørner, ingen skygger, ingen
   kort i rækker. `--accent` højst to gange pr. sektion. Ny farve er forbudt.
 - Navigationen kommer fra `nav-internt.json`. Ret aldrig `src/nav-internt.js`.
 - Prøve 11 og 13 i `test/koer.mjs` fanger drift: to navigationer, ukendt klasse,
-  farve uden for paletten.
+  farve uden for paletten. Prøve 14 dækker `/mit`.
 
 Sådan bygger du en korrekt flade uden at spørge. Redesign, nye farver og React
 er uden for scope.
@@ -106,9 +107,10 @@ Lukket i to lag, med vilje:
 Cloudflare-connectoren, før tokenet havde skriveadgang, og er bagefter
 registreret i `d1_migrations`. De køres ikke igen.
 
-`0003_people.sql` (BYG-555 A1) er **ikke** applied remote fra denne PR.
-Denne agent har ingen Cloudflare-token (`/tmp/.cf_token_vh` findes ikke her).
-Steven kører, når D1 Write er på det token der deployer:
+`0003_people.sql` (BYG-555 A1) og `0004_mit.sql` (BYG-556 A2) er **ikke**
+applied remote fra denne PR. Denne agent har ingen Cloudflare-token
+(`/tmp/.cf_token_vh` findes ikke her). Steven kører, når D1 Write er på
+det token der deployer:
 
     npx wrangler@4 d1 migrations apply vendhjem-fonde --remote
 
@@ -117,7 +119,46 @@ kørsel. Uden D1 Write nægter wrangler apply. Uden R2 Write kan bilag ikke
 lægges op, selv om GET-sundhedstjekket kan svare.
 
 Workeren med A1-koden skal ikke deployes, før 0003 er applied: `ansvarlig`
-er person_id, og fladen slår navnet op i `people`.
+er person_id, og fladen slår navnet op i `people`. A2 (`/mit`) skal ikke
+deployes, før 0004 er applied: magic_links/passkeys-tabellerne.
+
+## Community-login /mit (BYG-556 A2)
+
+`/mit` ligger **uden for** Access. Cloudflare Access bliver på `/internt`
+(fonde, økonomi, kerne). Fællesskabet kan ikke sidde på Access — det
+gratis loft er 50 brugere.
+
+Flow: skriv mail → få et link → klik → inde. Linket er engangs, 15 minutter,
+og bundet til den browser der bad om det (cookie `vh_enhed`, HttpOnly).
+Ukendt mail og udløbet rolle får **samme svar og samme svartid** som kendt:
+«Hvis adressen hører til nogen her, ligger der en mail nu.»
+
+Session: cookie `vh_session`, HttpOnly, Secure, SameSite=Lax, HMAC-SHA256
+med `SESSION_NOEGLE` via `crypto.subtle`. 90 dage, fornyes stille ved brug.
+
+Passkey er et **tilbud** efter første login, aldrig et krav. Afvisning
+huskes (`people.passkey_tilbud = 'nej'`). Ingen Clerk/Auth0/WorkOS.
+
+### Hemmeligheder og mail
+
+Sæt i Workeren (aldrig i `wrangler.toml`):
+
+    npx wrangler@4 secret put SESSION_NOEGLE
+    npx wrangler@4 secret put RESEND_API_KEY
+
+- `SESSION_NOEGLE` — mindst 32 tilfældige bytes. Uden den svarer `/mit` 500.
+- `RESEND_API_KEY` — sender magic-link-mailen. **Uden den logges URL'en
+  til Worker's logs** (`[mit] ingen RESEND_API_KEY`). Det er den bevidste
+  dev-sti. Produktionssending virker ikke, før nøglen er sat **og**
+  afsenderdomænet er verificeret hos Resend.
+- `MAIL_FRA` — valgfri. Default `Vendhjem <besked@vendhjem.dk>`. Skal
+  matche et verificeret Resend-domæne.
+
+Opfind ikke at mail virker i produktion uden de nøgler. Prøverne bruger
+en `mailSink` og rører ikke Resend.
+
+`./test/flader.sh` måler at `/mit` **ikke** sender til `cloudflareaccess.com`,
+og at `/internt` stadig aldrig svarer 200.
 
 Produktionsdatabasen: `vendhjem-fonde`, `f1cacc8c-2720-400e-906a-64f2627789e8`,
 WEUR. Bilag i R2-bucket'en `vendhjem-fonde-bilag`.
@@ -157,11 +198,8 @@ den mail der står nu. Skiftes mailen, finder den gamle ikke personen, og
 sager der peger på `person_id` bliver stående.
 
 Interne helpers i `src/db.js`: `hentPerson`, `roller`, `harRolle`,
-`opretPerson`, `tildelRolle`, `udloebRolle`, `skiftMail`. Ingen login-UI
-og ingen invitationer her — det er A2/B.
-
-`applications.ansvarlig` er `person_id`. Fladen viser navnet (Steven på
-LDP-sagen). Login, invitationsflow og en selvstændig person-UI er A2/B.
+`opretPerson`, `tildelRolle`, `udloebRolle`, `skiftMail`,
+`personMedGyldigRolle`. Login-UI er `/mit` (A2). Invitationer er B.
 
 ## Det, der bevidst ikke er bygget endnu
 

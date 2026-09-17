@@ -2,14 +2,15 @@
 // Bor på vendhjem.dk/internt/fonde, bag den Cloudflare Access der allerede
 // står foran /internt. Data i D1, bilag i R2.
 //
-// Alt uden for /internt/fonde serveres som statiske filer af [assets] og rører
-// aldrig denne kode.
+// /mit (fællesskabets login) ligger UDEN for Access og besvares her.
+// Alt andet uden for /internt/fonde serveres som statiske filer af [assets].
 
 import { identitet } from "./access.js";
 import { sager, sag, organisation, personer, pakkeHash, log, id, nu } from "./db.js";
 import { oversigt, sagside } from "./sider.js";
 import { side, fejlTilstand } from "./flade.js";
 import { TEKST } from "./tekst.js";
+import { mitFetch } from "./mit.js";
 
 const ROD = "/internt/fonde";
 
@@ -79,6 +80,12 @@ export default {
         status: sundt ? 200 : 503,
         headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
       });
+    }
+
+    // /mit er fællesskabets login. UDEN for Access — Access' 50-bruger-loft
+    // kan ikke bære fællesskabet. /internt røres ikke.
+    if (url.pathname === "/mit" || url.pathname.startsWith("/mit/")) {
+      return mitFetch(request, env);
     }
 
     if (!url.pathname.startsWith(ROD)) return env.ASSETS.fetch(request);

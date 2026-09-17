@@ -146,6 +146,28 @@ export async function udloebRolle(db, role_id, gyldig_til = nu()) {
   return db.prepare(`SELECT * FROM roles WHERE id = ?1`).bind(role_id).first();
 }
 
+/** Person med mindst én gyldig (ikke-udløbet) rolle. Ellers null. */
+export async function personMedGyldigRolle(db, mail) {
+  const p = await hentPerson(db, mail);
+  if (!p || p.status !== "aktiv") return null;
+  const r = await db.prepare(
+    `SELECT 1 AS ok FROM roles
+      WHERE person_id = ?1
+        AND gyldig_fra <= ?2
+        AND (gyldig_til IS NULL OR gyldig_til > ?2)
+      LIMIT 1`
+  ).bind(p.id, nu()).first();
+  return r ? p : null;
+}
+
+export async function sætSidstSet(db, person_id) {
+  await db.prepare(`UPDATE people SET sidst_set = ?2 WHERE id = ?1`).bind(person_id, nu()).run();
+}
+
+export async function sætPasskeyTilbud(db, person_id, v) {
+  await db.prepare(`UPDATE people SET passkey_tilbud = ?2 WHERE id = ?1`).bind(person_id, v).run();
+}
+
 /** Skift kontaktmail. Samme person_id. Gammel mail slår ikke længere op. */
 export async function skiftMail(db, person_id, mail) {
   await db.prepare(`UPDATE people SET mail = ?2 WHERE id = ?1`)
