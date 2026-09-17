@@ -1,55 +1,54 @@
 # Smoke test — med øjnene
 
 **Til et menneske med en browser, en telefon og tyve minutter.**
-Dækker det, der blev merget 17. september 2026: PR #24, #25, #26, #27 og #28.
+Dækker det, der blev merget 17. september 2026: PR #24, #25, #26, #27, #28, #30 og #31 — og #32, når den er inde.
 
 `vh-worker/test/flader.sh` måler. **Det her kigger.** De to overlapper med vilje ikke: en maskine kan se at en side svarer 200, men den kan ikke se at mailen lød som et menneske, eller at knappen sad et sted man fandt den. Kør `flader.sh` efter hvert deploy. Kør det her, når du vil vide om det, I byggede, virker.
 
-Du skal bruge: en browser, en mailadresse systemet ikke kender, og en telefon. Sæt tyve minutter af. Har du travlt, så tag trin 1–3 og spring resten.
+Du skal bruge: en browser, en mailadresse systemet ikke kender, og en telefon. Sæt tyve minutter af. Har du travlt, så tag **trin 0, 1 og 2** og spring resten — de tre er dem, der afgør, om nogen kan booke noget.
 
 ---
 
-## Før du går i gang — ellers fejler tre af fem
+## Før du går i gang — to minutter, og de er ikke spildte
 
-**Målt 17/9 kl. ~19:50 på det levende site:** `/sporene` siger «Ingen datoer åbne» seks steder. Ingen FORESPØRG-knap. Ingen 2027-dato.
+**Målt 17/9 kl. ~22:40 på det levende site.** Halvdelen er på plads, halvdelen er ikke:
 
-Fire PR'er blev merget i dag. **Ingen af dem er i databasen.** Koden ligger på main; tabellerne og datoerne gør ikke. Kører du testen nu, fejler trin 1, 2 og 3 — ikke fordi noget er i stykker, men fordi der ikke er noget at se på endnu.
+| | Målt | |
+|---|---|---|
+| Kalenderen (`0009`) | **kørt** | `/sporene` viser tre mandeweekender — den første 14.–16. maj 2027 · 850 kr. — plus retreat, festival og syv lukkede uger |
+| C2-fladen (deploy) | **mangler** | der er ingen forespørg-linje under datoerne. Koden på main skriver én på hvert åbent ophold; den levende side har den ikke |
 
-To kommandoer, i den rækkefølge. Første linje spørger om tokenet uden at vise
-det og uden at lægge det i din bash-historik:
+Så **trin 1 består allerede**, og **trin 2 kan ikke køres endnu**. Ikke fordi noget er i stykker, men fordi Workeren med forespørgslen ikke er sendt ud.
 
-```bash
-read -rsp 'Cloudflare-token: ' CLOUDFLARE_API_TOKEN && export CLOUDFLARE_API_TOKEN && echo
+**Sådan sender du den ud — ingen terminal:**
 
-cd vh-worker
-npx wrangler@4 d1 migrations apply vendhjem-fonde --remote
-npx wrangler@4 deploy
+> [Actions → «Udrul til Cloudflare» → Run workflow](https://github.com/Bygmedai/vendhjem.dk/actions/workflows/udrul.yml)
 
-unset CLOUDFLARE_API_TOKEN
-```
+Den bygger siderne, kører migrationer, deployer og måler bagefter. Går noget galt, stopper den og siger hvad — mangler nøglen, rører den ikke databasen overhovedet.
 
-Tokenet skal have **Workers Scripts: Edit** og **D1: Edit** på konto
-`e91b41e73aafbedf6e0512076e0544c2` (den står i `wrangler.toml`).
+Kommer den grønt tilbage, skal der stå en **forespørg**-linje under hver dato på `/sporene`. Gør der ikke det, så stop og sig til; så er der noget galt, som ikke er dokumentets skyld.
 
-`wrangler.toml` og README nævner `/tmp/.cf_token_vh`. **Det er en
-sandkasse-konvention for en Linux-agent, ikke en opskrift til et menneske.**
-Den fil findes ikke på en Windows-maskine — i Git Bash er `/tmp` bare
-`C:\Users\<dig>\AppData\Local\Temp` — og et langlivet token med deploy- og
-skriverettigheder, der ligger i en temp-mappe, er en fil, du glemmer. Lad
-være med at lave den. Luk terminalen bagefter; så findes tokenet kun i
-Cloudflare.
-
-Den første lægger `0008` (forespørgselsfelterne) og `0009` (kalenderen) i databasen. Den anden sender koden ud. **Rækkefølgen er ikke til forhandling** — deployer du først, kigger den nye flade efter kolonner, der ikke findes endnu.
-
-**Verificér dem hver for sig.** Efter den første kommando — og før du deployer — skal `/sporene` allerede vise datoer, fordi den kode, der henter dem, har været ude siden C1. Gør den ikke det, gik `apply` ikke igennem, og et deploy ovenpå skjuler bare hvad der er galt.
-
-Gå videre, når begge er kørt uden fejl.
+*Tidligere stod her en opskrift med `wrangler` og en token-fil i `/tmp`. Den fil er en sandkasse-konvention for en Linux-agent og findes ikke på en Windows-maskine — et menneske, der fulgte linjen, fik wrangler til at falde tilbage på en udløbet session. Den slags hører ikke hjemme i en vejledning til et menneske.*
 
 ---
+
+## Trin 0 · Svarer alle de interne sider? — 20 sekunder
+
+**Haruki fandt et hul, ingen af de andre trin ville have set** (review på #29, 17/9): `/internt/registrering` var **404 i produktion**. Feltværktøjet lå kun på en container, aldrig i git, og forsvandt ved et deploy fra et rent checkout. Registreringsweekenden er 19.–21. september.
+
+Og `/internt/timer` var 404 oven i — **det var min fejl.** I #30 gjorde jeg stierne absolutte og gav to interne links `/timer` og `/stedet` i stedet for `/internt/timer` og `/internt/stedet`. Hegnet i `build.py` fangede det ikke: det tjekker at en sti er *absolut*, ikke at den peger et sted, der findes. Rettet i #32.
+
+**Gør dette:** log ind, og klik hver eneste linje i den interne menu.
+
+> Oversigt · Stedet · Ophold · Økonomi · Anlæg · Timer og indskud · Korpus · Fonde · Registrering
+
+**Du skal se:** en side. Hver gang. Ingen 404, ingen tom skal.
+
+**Hvorfor det er trin 0 og ikke trin 6:** readbacket i udrulningen tjekker, at `/internt` ikke ligger *åbent*. Det tjekker ikke, at siderne bag login *virker*. De sider er gitignored og bygges ved deploy, så de kan forsvinde uden at nogen automatisk prøve siger noget. **Et menneske med en session er det eneste, der kan se det.** Tyve sekunder.
 
 ## Trin 1 · Findes kalenderen? — 2 minutter
 
-**PR #28.** Sitet har siden september lovet syv lukkede uger og seks spor. Indtil i dag var alle seks tomme.
+**PR #28.** Sitet har siden september lovet syv lukkede uger og seks spor. Indtil i aften var alle seks tomme. **Nu er de der** — det her trin er blevet en bekræftelse i stedet for en forhindring, men kør det alligevel: det er det eneste sted, tallene bliver holdt op mod noget.
 
 **Gør dette:** åbn [vendhjem.dk/sporene](https://vendhjem.dk/sporene) i en browser, hvor du **ikke** er logget ind.
 
@@ -61,9 +60,9 @@ Gå videre, når begge er kørt uden fejl.
 - **Byg-med-uger, stille uger, campingvogne:** stadig «Ingen datoer åbne på det her spor endnu.» Det er rigtigt — der er ikke seedet nogen.
 - **Nederst, «Syv uger om året er lukkede»:** syv datolinjer. Ikke et løfte om at de kommer. Syv rigtige uger.
 
-**Hvis der stadig står «ingen datoer» overalt:** migrationen er ikke kørt. Tilbage til «Før du går i gang».
+**Hvis der stadig står «ingen datoer» overalt:** migrationen er rullet tilbage eller databasen er en anden. Det ville være nyt — sig til.
 
-**Og vær præcis om hvilken af de to der mangler.** C1 er allerede ude og læser `ophold` fra databasen. Er `0009` kørt, står datoerne her **uden** at du har deployet. Ser du ingen datoer, er det derfor `apply`, der mangler — ikke `deploy`. De to fejl ligner hinanden på skærmen og løses hvert sit sted.
+**Datoer uden forespørg-linje** betyder derimod, at kalenderen er inde, men Workeren ikke er deployet. De to ting ligner hinanden på skærmen og løses hvert sit sted: den ene er `apply`, den anden er `deploy`. Knappen gør begge dele.
 
 **Hvis der står datoer, men ingen lukkede uger:** kun halvdelen af seedet gik ind. Sig til — det skal undersøges, ikke gentages.
 
@@ -71,7 +70,7 @@ Gå videre, når begge er kørt uden fejl.
 
 ## Trin 2 · Kan en fremmed forespørge? — 5 minutter
 
-> **Stop, hvis trin 1 ikke gik godt.** Står der stadig «ingen datoer», så er der ingen åbne ophold — og **FORESPØRG-knappen sidder på et åbent ophold.** Så mangler knappen ikke; der er bare ikke noget at forespørge på. Gå tilbage til «Før du går i gang». Trin 2 kan ikke bestås før trin 1.
+> **Stop, hvis der ikke står en forespørg-linje under datoerne.** Den sidder på hvert **åbent** ophold, og den kommer først, når Workeren er deployet — datoerne alene er ikke nok. Målt 17/9 kl. 22:40: linjen mangler stadig. Tryk «Udrul til Cloudflare» først. Trin 2 kan ikke bestås uden.
 
 **PR #27.** Det her er den vigtigste test på hele siden, for det er den eneste vej fra «nogen så sitet» til «nogen kommer».
 
@@ -132,26 +131,23 @@ Det andet punkt ser overflødigt ud og er det ikke. I september lå `/internt` �
 
 ---
 
-## Trin 5 · Kan gaten tale? — 2 minutter
+## Trin 5 · Er gaten grøn — og betyder det noget? — 2 minutter
 
-**PR #25.** Indtil i går kunne CI'en sige at et link var brudt, men ikke hvilket. Den stod rød i to dage, og ingen kunne se hvorfor.
+**PR #25 og #30.** Indtil i går kunne CI'en sige at et link var brudt, men ikke hvilket; den stod rød i to dage, og ingen kunne se hvorfor. #25 gav den stemme. #30 fjernede grunden til at råbe.
 
-**Gør dette:** åbn den nyeste kørsel under **Actions → Quality Gate → Broken Link Check**.
+**Gør dette:** åbn den nyeste kørsel under **Actions → Quality Gate**.
 
-**Du skal se:** en linje som
+**Du skal se:** fire grønne. Broken Link Check skriver et tal, også når alt er godt:
 
 ```
-404 http://localhost:8080/fundamentet/assets/vh.css  <- linked from .../fundamentet
-28 links checked, 20 broken
+28 links checked, 0 broken
 ```
 
-Altså: et tal, en adresse, og hvilken side linket stod på.
+**Det er nyt.** Gaten var rød på hver eneste PR fra 15. august til 17. september — først tavst, så med tyve navngivne fejl, der alle sammen var falske. De var falske, fordi siderne brugte relative stier og crawleren læste dem som mapper. Nu skriver `build.py` absolutte stier, og den **nægter at bygge**, hvis nogen skriver en relativ igen.
 
-**Du skal IKKE se:** «Broken links found» efterfulgt af en tom linje. Det var den gamle fejl.
+**Hvis den er rød:** læs linjen. Den fortæller nu, hvilket link og hvilken side. Det er hele forskellen fra i går.
 
-**Bemærk:** jobbet er stadig **rødt**, og det er forventet. De 20 er falske — linkinator opløser relative stier, som om `/fundamentet` var en mappe. På det levende site sender Cloudflare `/fundamentet/` tilbage til `/fundamentet`, så adresserne findes ikke. **Ingen side er i stykker.** Der venter et valg (absolutte stier i `build.py`, eller skråstreg-kanonisering i test-harnesset), og det er ikke lavet endnu.
-
-Testen her er altså ikke «er den grøn». Den er: **kan den fortælle dig hvad der er galt.**
+**Én ærlighed om det hegn:** det tjekker, at en sti er absolut — ikke at den peger et sted, der findes. `/timer` er lige så absolut som `/internt/timer`, og kun den ene virker. Den fejl slap igennem og blev fanget af et menneske, ikke af en maskine. Det er derfor trin 0 findes.
 
 ---
 
@@ -161,7 +157,9 @@ Testen her er altså ikke «er den grøn». Den er: **kan den fortælle dig hvad
 
 **`vh-worker/README.md`, afsnittet «Migrationer»:** der står en tabel med en række pr. migration og en kolonne, der siger *hvordan* status er målt.
 
-Har du lige kørt `apply` i «Før du går i gang», så er **rækken for `0009` forkert nu** — den siger «IKKE applied». Ret den, og skriv hvordan du målte det. Det er ikke pedanteri: den tabel stod forkert i to dage og kostede en hel formiddag, fordi nogen troede på den.
+**Rækken for `0009` er forkert lige nu.** Den siger «IKKE applied». Migrationen blev kørt 17/9 kl. 22:15, og `/sporene` viser datoerne. Ret rækken, og skriv hvordan du målte det.
+
+Det er ikke pedanteri. Den tabel stod forkert i to dage og kostede en hel formiddag, fordi nogen troede på den — og rækken blev netop skrevet for at gøre den slags synlig. En tabel om forældet status, der selv er forældet, er værre end ingen tabel.
 
 **`docs/AAR-0-DRIFTSPLAN-2026-09-17.md`, §7:** et register over ting, ingen havde målt. Løb de otte rækker igennem. Er nogen af dem afklaret siden i går, så luk dem — med **hvem** der målte det og **hvornår**, ikke ved at slette rækken.
 
