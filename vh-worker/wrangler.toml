@@ -9,7 +9,18 @@
 # vendhjem.<subdomain>.workers.dev uden for Access, som er bundet til
 # vendhjem.dk-stier. Maalt aabent i S592.
 #
-# Deploy:  cd vh-worker && CLOUDFLARE_API_TOKEN=$(cat /tmp/.cf_token_vh) npx wrangler@4 deploy
+# Deploy: tryk paa knappen. GitHub → Actions → «Udrul til Cloudflare» →
+# Run workflow. Den koerer migrationer, deploy og et readback, og tokenet
+# ligger som hemmelighed hos GitHub.
+#
+# I haanden, hvis du er en agent med et token i miljoeet:
+#   cd vh-worker && npx wrangler@4 d1 migrations apply vendhjem-fonde --remote
+#   cd vh-worker && npx wrangler@4 deploy
+#
+# Stien /tmp/.cf_token_vh stod her indtil 17.09.2026. Den findes ikke paa en
+# Windows-maskine — i Git Bash er /tmp bare AppData\Local\Temp — og et
+# menneske, der foelger linjen, faar wrangler til at falde tilbage paa en
+# udloebet OAuth-session. Skriv aldrig en sandkastesti som en opskrift.
 
 name = "vendhjem"
 main = "src/index.js"
