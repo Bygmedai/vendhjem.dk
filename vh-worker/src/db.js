@@ -130,6 +130,19 @@ export async function opretPerson(db, { navn, mail = null, telefon = null, statu
   return db.prepare(`SELECT * FROM people WHERE id = ?1`).bind(pid).first();
 }
 
+/** Genkend på mail, ellers opret. Samme mail bliver aldrig to personer. */
+export async function findEllerOpretPerson(db, { navn, mail }) {
+  const kendt = await hentPerson(db, mail);
+  if (kendt) return kendt;
+  try {
+    return await opretPerson(db, { navn, mail });
+  } catch (e) {
+    const igen = await hentPerson(db, mail);
+    if (igen) return igen;
+    throw e;
+  }
+}
+
 export async function tildelRolle(db, { person_id, rolle, gyldig_fra, gyldig_til = null }) {
   const rid = id();
   await db.prepare(
@@ -259,13 +272,39 @@ export async function gemOphold(db, opholdId, {
   return db.prepare(`SELECT * FROM ophold WHERE id = ?1`).bind(opholdId).first();
 }
 
-export async function opretPlads(db, { ophold_id, person_id, status = "forespurgt", pris = null }) {
+export async function opretPlads(db, { ophold_id, person_id, status = "forespurgt", pris = null, besked = null }) {
   const pid = id();
   await db.prepare(`
-    INSERT INTO pladser (id, ophold_id, person_id, status, pris, oprettet)
-    VALUES (?1, ?2, ?3, ?4, ?5, ?6)`
-  ).bind(pid, ophold_id, person_id, status, pris, nu()).run();
+    INSERT INTO pladser (id, ophold_id, person_id, status, pris, oprettet, besked)
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`
+  ).bind(pid, ophold_id, person_id, status, pris, nu(), besked).run();
   return db.prepare(`SELECT * FROM pladser WHERE id = ?1`).bind(pid).first();
+}
+
+export async function findAktivPlads(db, ophold_id, person_id) {
+  return db.prepare(
+    `SELECT * FROM pladser WHERE ophold_id = ?1 AND person_id = ?2 AND status != 'afbudt'`
+  ).bind(ophold_id, person_id).first();
+}
+
+export async function saetPladsMailFejl(db, pladsId, fejl) {
+  await db.prepare(`UPDATE pladser SET mail_fejl = ?2 WHERE id = ?1`)
+    .bind(pladsId, fejl).run();
+  return db.prepare(`SELECT * FROM pladser WHERE id = ?1`).bind(pladsId).first();
+}
+
+export async function aabneForespoergsler(db) {
+  const { results } = await db.prepare(`
+    SELECT p.*, pe.navn AS person_navn, pe.mail AS person_mail,
+           o.start_dato, o.slut_dato, t.navn AS type_navn
+      FROM pladser p
+      JOIN people pe ON pe.id = p.person_id
+      JOIN ophold o ON o.id = p.ophold_id
+      JOIN opholdstyper t ON t.id = o.type_id
+     WHERE p.status = 'forespurgt'
+        OR (p.mail_fejl IS NOT NULL AND p.mail_fejl != '')
+     ORDER BY p.oprettet`).all();
+  return results;
 }
 
 export async function saetPladsStatus(db, pladsId, status) {

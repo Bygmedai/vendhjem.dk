@@ -43,11 +43,23 @@ export function enhedFraRequest(request) {
 }
 
 export function sessionCookie(token) {
-  return cookie(SESSION_NAVN, token, { maxAge: SESSION_TTL });
+  // Path=/ så /sporene kan se at man er inde via /mit (C2: to tryk).
+  return cookie(SESSION_NAVN, token, { maxAge: SESSION_TTL, path: "/" });
 }
 
 export function rydSessionCookie() {
-  return cookie(SESSION_NAVN, "", { maxAge: 0 });
+  return cookie(SESSION_NAVN, "", { maxAge: 0, path: "/" });
+}
+
+/** Aktiv person fra /mit-sessionen. Ingen rollekrav — det er /mits sag. */
+export async function sessionPerson(env, request) {
+  const tok = sessionFraRequest(request);
+  if (!tok || !env.SESSION_NOEGLE) return null;
+  const s = await laesSession(env.SESSION_NOEGLE, tok);
+  if (!s) return null;
+  const p = await env.FONDE_DB.prepare(`SELECT * FROM people WHERE id = ?1`).bind(s.person_id).first();
+  if (!p || p.status !== "aktiv") return null;
+  return p;
 }
 
 export function enhedCookie(value) {

@@ -1,13 +1,20 @@
 // Ophold: intern kalender bag Access, offentlig /sporene uden.
+// C2: forespørgsel på /sporene/forespørg — uden betaling, uden ny auth.
 import { opholdstyper, opholdListe, opholdSag, opretOphold, gemOphold,
-         opretPlads, saetPladsStatus, personer, offentligeOphold, lukkedeUger } from "./db.js";
-import { opholdOversigt, opholdSide, sporeneSide } from "./ophold-sider.js";
+         opretPlads, saetPladsStatus, saetPladsMailFejl, findAktivPlads,
+         findEllerOpretPerson, aabneForespoergsler, personer,
+         offentligeOphold, lukkedeUger } from "./db.js";
+import { opholdOversigt, opholdSide, sporeneSide, sporeneForesporgSide,
+         sporeneTakSide, sporeneFuldtSide, periodeTekst } from "./ophold-sider.js";
 import { side, fejlTilstand } from "./flade.js";
-import { TEKST } from "./tekst.js";
+import { TEKST, kvitteringBrev, bekraeftelsesBrev } from "./tekst.js";
+import { sendMail } from "./mail.js";
+import { sessionPerson } from "./session.js";
 
 const ROD = "/internt/ophold";
 const STATUS = new Set(["planlagt", "åben", "fuld", "lukket", "afholdt"]);
 const PLADS = new Set(["forespurgt", "bekræftet", "betalt", "afbudt"]);
+const MAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const redirect = (til, besked) =>
   new Response(null, { status: 303, headers: { Location: besked ? `${til}?m=${encodeURIComponent(besked)}` : til } });
@@ -44,15 +51,126 @@ function dbFejl(e) {
   return s.replace(/^D1_ERROR:\s*/i, "").replace(/:\s*SQLITE[A-Z_ ().0-9]*$/i, "").trim() || s;
 }
 
+function kanForespørges(o) {
+  return Boolean(o) && o.status === "åben";
+}
+
 export function erSporene(sti, pathname) {
-  return sti === "/sporene" || pathname === "/sporene.html";
+  const p = afkodSti(pathname || sti);
+  return p === "/sporene" || p.startsWith("/sporene/") || pathname === "/sporene.html";
+}
+
+function afkodSti(p) {
+  try { return decodeURIComponent(p || ""); }
+  catch { return p || ""; }
 }
 
 export function erOphold(sti) {
   return sti === ROD || sti.startsWith(ROD + "/");
 }
 
+async function sendKvittering(env, { person, o }) {
+  const brev = kvitteringBrev({
+    navn: person.navn,
+    type_navn: o.type_navn,
+    periode: periodeTekst(o.start_dato, o.slut_dato),
+  });
+  await sendMail(env, { to: person.mail, ...brev });
+}
+
+async function sendBekraeftelse(env, pladsId) {
+  const row = await env.FONDE_DB.prepare(`
+    SELECT p.*, pe.navn AS person_navn, pe.mail AS person_mail,
+           o.start_dato, o.slut_dato, o.pris, t.navn AS type_navn,
+           t.inkluderet, t.pris_note, t.spor, t.pris_fra
+      FROM pladser p
+      JOIN people pe ON pe.id = p.person_id
+      JOIN ophold o ON o.id = p.ophold_id
+      JOIN opholdstyper t ON t.id = o.type_id
+     WHERE p.id = ?1`).bind(pladsId).first();
+  if (!row?.person_mail) throw new Error("ingen mail på personen");
+  const brev = bekraeftelsesBrev({
+    navn: row.person_navn,
+    type_navn: row.type_navn,
+    periode: periodeTekst(row.start_dato, row.slut_dato),
+    inkluderet: row.inkluderet,
+    pris_note: row.pris_note,
+    spor: row.spor,
+    vis_pris: row.pris ?? row.pris_fra,
+  });
+  await sendMail(env, { to: row.person_mail, ...brev });
+}
+
+async function besvarForesporg(request, env, opholdId) {
+  const db = env.FONDE_DB;
+  const o = await opholdSag(db, opholdId);
+  if (!o) return html("Opholdet findes ikke.", 404);
+  const session = await sessionPerson(env, request);
+
+  if (!kanForespørges(o)) {
+    return html(sporeneFuldtSide({ o }), 409);
+  }
+
+  if (request.method === "GET") {
+    return html(sporeneForesporgSide({ o, person: session }));
+  }
+
+  if (request.method !== "POST") return new Response("Findes ikke.", { status: 404 });
+
+  const fd = await request.formData();
+  let person = session;
+  if (!person) {
+    const navn = String(fd.get("navn") || "").trim();
+    const mail = String(fd.get("mail") || "").trim();
+    if (!navn || !MAIL_RE.test(mail)) {
+      return html(sporeneForesporgSide({
+        o, person: null, advarsel: "Skriv navn og en rigtig mail.",
+      }), 400);
+    }
+    person = await findEllerOpretPerson(db, { navn, mail });
+  }
+
+  const besked = String(fd.get("besked") || "").trim() || null;
+  let plads = await findAktivPlads(db, o.id, person.id);
+  if (!plads) {
+    try {
+      plads = await opretPlads(db, {
+        ophold_id: o.id, person_id: person.id, status: "forespurgt", besked,
+      });
+    } catch (e) {
+      const igen = await findAktivPlads(db, o.id, person.id);
+      if (igen) plads = igen;
+      else if (/opholdet er fuldt/i.test(String(e?.message || e))) {
+        return html(sporeneFuldtSide({ o }), 409);
+      } else throw e;
+    }
+  }
+
+  try {
+    await sendKvittering(env, { person, o });
+    await saetPladsMailFejl(db, plads.id, null);
+  } catch (e) {
+    await saetPladsMailFejl(db, plads.id, String(e.message || e));
+  }
+
+  return html(sporeneTakSide({ o, person }));
+}
+
 export async function besvarSporene(request, env) {
+  const url = new URL(request.url);
+  const sti = afkodSti(url.pathname).replace(/\/+$/, "") || "/sporene";
+  const mForm = sti.match(/^\/sporene\/forespørg\/([A-Za-z0-9_-]{4,64})$/);
+  if (mForm) {
+    try {
+      return await besvarForesporg(request, env, mForm[1]);
+    } catch (e) {
+      return html(side({
+        titel: TEKST.fejl, aktiv: "ophold", bruger: null,
+        indhold: fejlTilstand({ detalje: String(e.message || e) }),
+      }), 500);
+    }
+  }
+
   try {
     const db = env.FONDE_DB;
     const [typer, aabne, lukkede] = await Promise.all([
@@ -72,9 +190,11 @@ export async function besvarOphold(request, env, bruger, url) {
 
   try {
     if (request.method === "GET" && sti === ROD) {
-      const [liste, typer] = await Promise.all([opholdListe(db), opholdstyper(db)]);
+      const [liste, typer, forespurgte] = await Promise.all([
+        opholdListe(db), opholdstyper(db), aabneForespoergsler(db),
+      ]);
       return html(opholdOversigt({
-        bruger, liste, typer, advarsel: url.searchParams.get("m"),
+        bruger, liste, typer, forespurgte, advarsel: url.searchParams.get("m"),
       }));
     }
 
@@ -110,7 +230,16 @@ export async function besvarOphold(request, env, bruger, url) {
       const status = String(fd.get("status") || "");
       if (!PLADS.has(status)) return redirect(`${ROD}/${oid}`, "Ukendt status.");
       try {
+        const foer = await db.prepare(`SELECT status FROM pladser WHERE id = ?1`).bind(pid).first();
         await saetPladsStatus(db, pid, status);
+        if (status === "bekræftet" && foer?.status !== "bekræftet") {
+          try {
+            await sendBekraeftelse(env, pid);
+            await saetPladsMailFejl(db, pid, null);
+          } catch (e) {
+            await saetPladsMailFejl(db, pid, String(e.message || e));
+          }
+        }
       } catch (e) {
         return redirect(`${ROD}/${oid}`, dbFejl(e));
       }
