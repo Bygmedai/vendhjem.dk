@@ -16,7 +16,7 @@ export function oversigt({ bruger, sager, org }) {
       ? `<span class="mangler mono">${mangler} af ${s.krav} mangler</span>`
       : `<span class="meta">alle ${s.krav} bilag uploadet</span>`}</td>
 <td class="mono">${kr(s.beloeb_ansoegt)}</td>
-<td>${esc(s.ansvarlig || "—")}<span class="meta" style="display:block;margin-top:4px">${esc(s.naeste_handling || "")}</span></td>
+<td>${esc(s.ansvarlig_navn || "—")}<span class="meta" style="display:block;margin-top:4px">${esc(s.naeste_handling || "")}</span></td>
 </tr>`;
   }).join("") : `<tr><td colspan="6"><p class="soft">Ingen sager endnu.</p></td></tr>`;
 
@@ -55,7 +55,7 @@ export function oversigt({ bruger, sager, org }) {
   });
 }
 
-export function sagside({ bruger, s, hash, advarsel }) {
+export function sagside({ bruger, s, hash, personer = [], advarsel }) {
   const senesteGodk = s.godkendelser[0];
   const godkGaelder = senesteGodk && senesteGodk.pakke_hash === hash && senesteGodk.beslutning === "godkendt";
   const manglerListe = s.krav.filter((k) => k.paakraevet && k.dokumenter.length === 0);
@@ -116,7 +116,12 @@ ${advarsel ? `<section class="stage" style="padding-top:18px"><div class="ramme"
   <p class="felt-label meta-s">Ansøgt beløb (hele kroner)</p>
   <input class="felt" type="number" name="beloeb" value="${s.beloeb_ansoegt ?? ""}" placeholder="ikke fastlagt">
   <p class="felt-label meta-s mt2">Ansvarlig</p>
-  <input class="felt" type="text" name="ansvarlig" value="${esc(s.ansvarlig || "")}">
+  <select class="felt" name="ansvarlig">
+    <option value="">—</option>
+    ${personer.map((p) =>
+      `<option value="${esc(p.id)}"${p.id === s.ansvarlig ? " selected" : ""}>${esc(p.navn)}</option>`
+    ).join("")}
+  </select>
   <p class="felt-label meta-s mt2">Intern afleveringsfrist</p>
   <input class="felt" type="datetime-local" name="intern_frist" value="${s.intern_frist ? esc(s.intern_frist.slice(0, 16)) : ""}">
 </div>

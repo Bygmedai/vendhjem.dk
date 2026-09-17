@@ -59,8 +59,10 @@ to renderede navigationer og fejler, hvis de igen er forskellige.
 
     node test/koer.mjs
 
-33 prøver. Rigtige migrationer og rigtig SQL mod `node:sqlite`; kun D1, R2 og
-Access er stubbet. Prøverne skal være grønne før deploy.
+Kør `python3 build.py` først, så `internt/oekonomi.html` findes (gitignored) —
+prøve 11 sammenligner den interne navigation. Rigtige migrationer og rigtig
+SQL mod `node:sqlite`; kun D1, R2 og Access er stubbet. Prøverne skal være
+grønne før deploy.
 
 ## Flader — mål dem, husk dem ikke
 
@@ -84,13 +86,22 @@ Lukket i to lag, med vilje:
 
 ## Migrationer
 
-Tokenet har nu D1 Write, så det normale virker:
+`0001_init.sql` og `0002_seed_ldp.sql` blev kørt i produktion gennem
+Cloudflare-connectoren, før tokenet havde skriveadgang, og er bagefter
+registreret i `d1_migrations`. De køres ikke igen.
+
+`0003_people.sql` (BYG-555 A1) er **ikke** applied remote fra denne PR.
+Denne agent har ingen Cloudflare-token (`/tmp/.cf_token_vh` findes ikke her).
+Steven kører, når D1 Write er på det token der deployer:
 
     npx wrangler@4 d1 migrations apply vendhjem-fonde --remote
 
-`0001_init.sql` og `0002_seed_ldp.sql` blev kørt gennem Cloudflare-connectoren,
-før tokenet havde skriveadgang, og er bagefter registreret i `d1_migrations`.
-De køres ikke igen.
+Opfind ikke at D1 Write eller Workers R2 Storage Write findes i en given
+kørsel. Uden D1 Write nægter wrangler apply. Uden R2 Write kan bilag ikke
+lægges op, selv om GET-sundhedstjekket kan svare.
+
+Workeren med A1-koden skal ikke deployes, før 0003 er applied: `ansvarlig`
+er person_id, og fladen slår navnet op i `people`.
 
 Produktionsdatabasen: `vendhjem-fonde`, `f1cacc8c-2720-400e-906a-64f2627789e8`,
 WEUR. Bilag i R2-bucket'en `vendhjem-fonde-bilag`.
@@ -119,6 +130,22 @@ ligger `/internt` åbent uden for Access. Målt åbent i S592.
 `LOKAL_TEST` sættes kun på kommandolinjen ved `wrangler dev`, står aldrig i
 `wrangler.toml`, og grenen kræver desuden at værten er localhost. Efter hvert
 deploy måles det, at den ikke kan nås i produktion.
+
+## Personregister (BYG-555 A1)
+
+`people` er ét menneske, én post. `roles` er person ↔ rolle med
+`gyldig_fra` / `gyldig_til`. Udløb rører ikke personposten.
+
+Mail er nuværende kontaktpunkt, ikke identitet. `hentPerson(mail)` slår op på
+den mail der står nu. Skiftes mailen, finder den gamle ikke personen, og
+sager der peger på `person_id` bliver stående.
+
+Interne helpers i `src/db.js`: `hentPerson`, `roller`, `harRolle`,
+`opretPerson`, `tildelRolle`, `udloebRolle`, `skiftMail`. Ingen login-UI
+og ingen invitationer her — det er A2/B.
+
+`applications.ansvarlig` er `person_id`. Fladen viser navnet (Steven på
+LDP-sagen). Login, invitationsflow og en selvstændig person-UI er A2/B.
 
 ## Det, der bevidst ikke er bygget endnu
 

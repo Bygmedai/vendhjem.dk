@@ -6,7 +6,7 @@
 // aldrig denne kode.
 
 import { identitet } from "./access.js";
-import { sager, sag, organisation, pakkeHash, log, id, nu } from "./db.js";
+import { sager, sag, organisation, personer, pakkeHash, log, id, nu } from "./db.js";
 import { oversigt, sagside } from "./sider.js";
 import { side } from "./views.js";
 
@@ -112,8 +112,8 @@ export default {
       if (request.method === "GET" && mSag) {
         const s = await sag(db, mSag[1]);
         if (!s) return html("Sagen findes ikke.", 404);
-        const hash = await pakkeHash(db, s.id);
-        return html(sagside({ bruger, s, hash, advarsel: url.searchParams.get("m") }));
+        const [hash, folk] = await Promise.all([pakkeHash(db, s.id), personer(db)]);
+        return html(sagside({ bruger, s, hash, personer: folk, advarsel: url.searchParams.get("m") }));
       }
 
       const mFil = sti.match(new RegExp(`^${ROD}/fil/([A-Za-z0-9_-]{4,64})$`));
@@ -148,11 +148,17 @@ export default {
 
         if (handling === "gem") {
           const b = fd.get("beloeb");
+          let ansvarlig = fd.get("ansvarlig") || null;
+          if (ansvarlig === "") ansvarlig = null;
+          if (ansvarlig) {
+            const p = await db.prepare(`SELECT id FROM people WHERE id = ?1`).bind(ansvarlig).first();
+            if (!p) return redirect(tilbage, "Ukendt person.");
+          }
           await db.prepare(`
             UPDATE applications SET beloeb_ansoegt = ?2, ansvarlig = ?3,
                    naeste_handling = ?4, intern_frist = ?5, opdateret = ?6 WHERE id = ?1`)
             .bind(appId, b === "" || b == null ? null : Number(b),
-                  fd.get("ansvarlig") || null, fd.get("naeste") || null,
+                  ansvarlig, fd.get("naeste") || null,
                   fd.get("intern_frist") || null, nu()).run();
           await log(db, { app_id: appId, aktoer: bruger.navn, handling: "rettede sagens felter" });
           return redirect(tilbage);

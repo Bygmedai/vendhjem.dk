@@ -4,9 +4,11 @@
 // Kør: node test/koer.mjs
 import { readFileSync } from "node:fs";
 import { lavD1, lavR2, lavAssets } from "./stubs.mjs";
+import { hentPerson, roller, harRolle, opretPerson, tildelRolle, udloebRolle, skiftMail } from "../src/db.js";
 
 const init = readFileSync(new URL("../migrations/0001_init.sql", import.meta.url), "utf8");
 const seed = readFileSync(new URL("../migrations/0002_seed_ldp.sql", import.meta.url), "utf8");
+const peopleSql = readFileSync(new URL("../migrations/0003_people.sql", import.meta.url), "utf8");
 
 let ok = 0, fejl = 0;
 const t = (navn, betingelse, ekstra = "") => {
@@ -17,7 +19,7 @@ const t = (navn, betingelse, ekstra = "") => {
 // Access stubbes ved at overskrive modulets identitet gennem LOKAL_TEST-grenen.
 const worker = (await import("../src/index.js")).default;
 
-const env = { FONDE_DB: lavD1([init, seed]), FONDE_FILER: lavR2(), ASSETS: lavAssets(), LOKAL_TEST: "1" };
+const env = { FONDE_DB: lavD1([init, seed, peopleSql]), FONDE_FILER: lavR2(), ASSETS: lavAssets(), LOKAL_TEST: "1" };
 const BASE = "http://localhost:8788";
 const A = "app-ldp-2026";
 
@@ -30,6 +32,7 @@ console.log("\n1 · Oversigten");
   const h = await tekst(r);
   t("svarer 200", r.status === 200, r.status);
   t("viser LDP-sagen", h.includes("LDP Småøer 2026"));
+  t("viser Steven som ansvarlig", h.includes("Steven Wensley"));
   t("viser fristen 9. oktober", h.includes("09. oktober 2026"));
   t("viser at 7 bilag mangler", h.includes("7 af 7 mangler"), h.match(/\d+ af \d+ mangler/)?.[0]);
   t("viser at CVR mangler", h.includes("Intet CVR"));
@@ -50,11 +53,12 @@ console.log("\n2 · Sagssiden");
 console.log("\n3 · Gem felter");
 {
   const r = await hent(`/internt/fonde/sag/${A}/gem`, {
-    method: "POST", body: new URLSearchParams({ beloeb: "485000", ansvarlig: "Steven", naeste: "Stiftende generalforsamling" }),
+    method: "POST", body: new URLSearchParams({ beloeb: "485000", ansvarlig: "p-steven", naeste: "Stiftende generalforsamling" }),
   });
   t("omdirigerer", r.status === 303, r.status);
   const h = await tekst(await hent(`/internt/fonde/sag/${A}`));
   t("beløbet er gemt", h.includes("485000") || h.includes("485.000"));
+  t("fladen viser stadig Steven", h.includes("Steven Wensley"));
   t("aktivitetslog fik en linje", h.includes("rettede sagens felter"));
 }
 
@@ -173,6 +177,45 @@ console.log("\n11 · Navigationen er den samme begge steder");
      JSON.stringify(stierWorker));
   t("de to navigationer er identiske",
      JSON.stringify(stierStatisk) === JSON.stringify(stierWorker));
+}
+
+console.log("\n12 · Personregister (BYG-555 A1)");
+{
+  const db = env.FONDE_DB;
+
+  const steven = await hentPerson(db, "steven@bygmedai.dk");
+  t("seed: Steven findes på Access-mail", steven?.navn === "Steven Wensley", steven?.navn);
+  t("seed: de tre kerne-mails findes",
+     Boolean(await hentPerson(db, "laiydeh@gmail.com")) &&
+     Boolean(await hentPerson(db, "haruki@bygmedai.dk")));
+  t("seed: Steven har rollen kerne", await harRolle(db, "p-steven", "kerne"));
+
+  const app = await db.prepare(`SELECT ansvarlig FROM applications WHERE id = ?1`).bind(A).first();
+  t("LDP-sagens ansvarlig er person_id, ikke fritekst", app.ansvarlig === "p-steven", app.ansvarlig);
+
+  const ny = await opretPerson(db, { navn: "Prøveperson", mail: "proeve@vendhjem.test" });
+  t("opret person", ny?.id && ny.navn === "Prøveperson", ny?.id);
+
+  const rolle = await tildelRolle(db, { person_id: ny.id, rolle: "medlem" });
+  t("tildel rolle", rolle?.rolle === "medlem" && await harRolle(db, ny.id, "medlem"));
+
+  await udloebRolle(db, rolle.id);
+  t("udløb rolle — personposten er urørt",
+     !(await harRolle(db, ny.id, "medlem")) &&
+     (await hentPerson(db, "proeve@vendhjem.test"))?.id === ny.id);
+
+  const mangler = await hentPerson(db, "findes-ikke@vendhjem.test");
+  t("opslag på mail der ikke findes returnerer null", mangler === null, mangler);
+
+  // Mail er kontakt, ikke identitet: skift, gammel slår ikke længere op.
+  await skiftMail(db, ny.id, "nyt@vendhjem.test");
+  t("efter mailskift: gammel mail → null, ny mail → samme person",
+     (await hentPerson(db, "proeve@vendhjem.test")) === null &&
+     (await hentPerson(db, "nyt@vendhjem.test"))?.id === ny.id);
+
+  const rollerNu = await roller(db, ny.id);
+  t("roller() returnerer historikken, også udløbne",
+     rollerNu.length === 1 && rollerNu[0].gyldig_til != null);
 }
 
 console.log(`\n${ok} bestået, ${fejl} fejlet\n`);
