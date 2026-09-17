@@ -1,0 +1,34 @@
+# Alt her serveres IKKE som statiske filer af Workeren ([assets] directory = "../").
+# Maalt 17.09.2026 (S594): uden denne fil laa /.git/, /vh-worker/src/, wrangler.toml
+# og build.py aabent paa vendhjem.dk efter et deploy fra main. Filen laa kun paa
+# forken. Fjern aldrig denne fil.
+.git
+.github
+.wrangler
+node_modules
+tests
+design
+vh-worker
+app
+build.py
+nav-internt.json
+package.json
+package-lock.json
+playwright.config.js
+.htmlvalidate.json
+.gitignore
+.assetsignore
+CNAME
+*.md
+agersoe.html
+blog.html
+faellesskab.html
+finddinvej.html
+integral.html
+integral-kvadranter.html
+integral-linjer.html
+integral-niveauer.html
+integral-tilstande.html
+integral-typer.html
+refleksion.html
+lai-yde.jpg
