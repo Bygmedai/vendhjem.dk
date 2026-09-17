@@ -845,6 +845,21 @@ console.log("\n23 · Ophold-fladen og offentlig kalender");
   const offentligLukket = await tekst(await hent("/sporene"));
   t("lukket retreat vises ikke som åben dato eller lukket uge", !/august/i.test(offentligLukket));
 
+  const overlapHttp = await hent("/internt/ophold/opret", {
+    method: "POST",
+    body: new URLSearchParams({
+      type_id: "ot-retreats",
+      start_dato: "2027-04-17",
+      slut_dato: "2027-04-22",
+      kapacitet: "25",
+      status: "åben",
+    }),
+  });
+  const overlapLoc = decodeURIComponent(overlapHttp.headers.get("Location") || "");
+  t("fladen viser overlap på dansk, uden D1_ERROR",
+     overlapLoc.includes("hele stedet er optaget") && !/D1_ERROR|SQLITE/i.test(overlapLoc),
+     overlapLoc);
+
   const nede = { ...env, FONDE_DB: { prepare() { throw new Error("D1 nede"); } }, LOKAL_TEST: "1" };
   const fald = await worker.fetch(new Request(BASE + "/sporene"), nede, {});
   t("kalender falder tilbage til assets ved D1-fejl", (await tekst(fald)) === "asset", fald.status);

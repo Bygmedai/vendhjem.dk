@@ -37,6 +37,13 @@ function isoDato(v) {
   return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
 }
 
+function dbFejl(e) {
+  const s = String(e?.message || e);
+  const kendt = s.match(/hele stedet er optaget i den periode|opholdet er fuldt/);
+  if (kendt) return kendt[0];
+  return s.replace(/^D1_ERROR:\s*/i, "").replace(/:\s*SQLITE[A-Z_ ().0-9]*$/i, "").trim() || s;
+}
+
 export function erSporene(sti, pathname) {
   return sti === "/sporene" || pathname === "/sporene.html";
 }
@@ -91,7 +98,7 @@ export async function besvarOphold(request, env, bruger, url) {
         });
         return redirect(`${ROD}/${o.id}`);
       } catch (e) {
-        return redirect(ROD, String(e.message || e));
+        return redirect(ROD, dbFejl(e));
       }
     }
 
@@ -105,7 +112,7 @@ export async function besvarOphold(request, env, bruger, url) {
       try {
         await saetPladsStatus(db, pid, status);
       } catch (e) {
-        return redirect(`${ROD}/${oid}`, String(e.message || e));
+        return redirect(`${ROD}/${oid}`, dbFejl(e));
       }
       return redirect(`${ROD}/${oid}`);
     }
@@ -124,7 +131,7 @@ export async function besvarOphold(request, env, bruger, url) {
       try {
         await opretPlads(db, { ophold_id: oid, person_id, status, pris: heltal(fd.get("pris")) });
       } catch (e) {
-        return redirect(tilbage, String(e.message || e));
+        return redirect(tilbage, dbFejl(e));
       }
       return redirect(tilbage);
     }
@@ -150,7 +157,7 @@ export async function besvarOphold(request, env, bruger, url) {
           note: fd.get("note") || null,
         });
       } catch (e) {
-        return redirect(tilbage, String(e.message || e));
+        return redirect(tilbage, dbFejl(e));
       }
       return redirect(tilbage);
     }
