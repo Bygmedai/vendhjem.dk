@@ -8,7 +8,8 @@
 import { identitet } from "./access.js";
 import { sager, sag, organisation, personer, pakkeHash, log, id, nu } from "./db.js";
 import { oversigt, sagside } from "./sider.js";
-import { side } from "./views.js";
+import { side, fejlTilstand } from "./flade.js";
+import { TEKST } from "./tekst.js";
 
 const ROD = "/internt/fonde";
 
@@ -20,10 +21,12 @@ const html = (s, status = 200) =>
 
 function afvist(bruger) {
   return html(side({
-    titel: "Ingen adgang", aktiv: "fonde", bruger,
-    indhold: `<section class="stage sektion"><p class="sec">Ingen adgang</p>
-<h1 class="stor maxw">Den her side kræver, at du er logget ind som menneske.</h1>
-<p class="lead maxw mt3">Servicetokens kan læse, men ikke godkende eller indsende. Det er med vilje: en maskine må ikke stå som den, der traf beslutningen.</p></section>`,
+    titel: TEKST.ingenAdgang, aktiv: "fonde", bruger,
+    indhold: fejlTilstand({
+      titel: TEKST.ingenAdgang,
+      lead: TEKST.ingenAdgangH1,
+      broed: TEKST.ingenAdgangLead,
+    }),
   }), 403);
 }
 
@@ -253,11 +256,8 @@ export default {
     } catch (e) {
       // Fejl må aldrig efterlade en falsk «godkendt»-status. Vi siger det højt.
       return html(side({
-        titel: "Fejl", aktiv: "fonde", bruger,
-        indhold: `<section class="stage sektion"><p class="sec">Fejl</p>
-<h1 class="stor maxw">Handlingen blev ikke gennemført.</h1>
-<p class="lead maxw mt3">Intet er markeret som godkendt eller indsendt på et forkert grundlag.</p>
-<pre class="small mt3" style="white-space:pre-wrap">${String(e.message || e).replace(/[<&]/g, "")}</pre></section>`,
+        titel: TEKST.fejl, aktiv: "fonde", bruger,
+        indhold: fejlTilstand({ detalje: String(e.message || e) }),
       }), 500);
     }
   },

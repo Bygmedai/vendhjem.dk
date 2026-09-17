@@ -218,5 +218,42 @@ console.log("\n12 · Personregister (BYG-555 A1)");
      rollerNu.length === 1 && rollerNu[0].gyldig_til != null);
 }
 
+console.log("\n13 · Fladekontrakt (BYG-565 G1)");
+{
+  const { ukendteKlasser, farverUdenforPalet } = await import("../src/kontrakt.js");
+  const { oversigt } = await import("../src/sider.js");
+  const { side, fejlTilstand, tomTilstand } = await import("../src/flade.js");
+  const css = readFileSync(new URL("../../assets/vh.css", import.meta.url), "utf8");
+
+  t("ukendt klasse fejler",
+     ukendteKlasser('<div class="kort-xyz">x</div>', css).includes("kort-xyz"));
+  t("farve uden for paletten fejler",
+     !farverUdenforPalet("color:#ff00aa", css).ok);
+  t("palettens papir-farve er tilladt",
+     farverUdenforPalet("color:#e9e7e0", css).ok);
+
+  const fladeHtml = [
+    await tekst(await hent("/internt/fonde/")),
+    await tekst(await hent(`/internt/fonde/sag/${A}`)),
+    oversigt({ bruger: { navn: "x" }, sager: [], org: {} }),
+    side({ titel: "Fejl", aktiv: "fonde", bruger: { navn: "x" }, indhold: fejlTilstand() }),
+    tomTilstand(),
+  ].join("\n");
+
+  const ukendt = ukendteKlasser(fladeHtml, css);
+  t("fondsfladen bruger kun klasser fra vh.css", ukendt.length === 0, ukendt.join(", "));
+
+  const farver = farverUdenforPalet(fladeHtml, css);
+  t("fondsfladen indfører ingen farve uden for paletten",
+     farver.ok, JSON.stringify(farver));
+
+  const kilder = ["flade.js", "sider.js", "views.js", "index.js", "tekst.js"]
+    .map((f) => readFileSync(new URL(`../src/${f}`, import.meta.url), "utf8")).join("\n");
+  const kildeFarver = farverUdenforPalet(kilder, css);
+  t("flade-kilden indfører ingen farve uden for paletten",
+     kildeFarver.ok, JSON.stringify(kildeFarver));
+  t("tom liste bruger TEKST.tomListe", fladeHtml.includes("Ingen sager endnu."));
+}
+
 console.log(`\n${ok} bestået, ${fejl} fejlet\n`);
 process.exit(fejl ? 1 : 0);

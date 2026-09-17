@@ -4,6 +4,22 @@ Bor på `vendhjem.dk/internt/fonde`, bag den Cloudflare Access der allerede stå
 foran `/internt`. Data i D1, bilag i R2. Alt andet på domænet serveres som
 statiske filer af `[assets]` og rører aldrig denne kode.
 
+## Læs det her, før du bygger en flade
+
+Kontrakten står øverst i `assets/vh.css`. Én skærm. Hvis den er længere, følger
+ingen den.
+
+- Brug `src/flade.js` (side, nav, tabel, felt, knap, statusPil, tomTilstand,
+  fejlTilstand) og `src/tekst.js`. Opfind ikke en ottende variant.
+- Kun klasser der findes i `vh.css`. Ingen runde hjørner, ingen skygger, ingen
+  kort i rækker. `--accent` højst to gange pr. sektion. Ny farve er forbudt.
+- Navigationen kommer fra `nav-internt.json`. Ret aldrig `src/nav-internt.js`.
+- Prøve 11 og 13 i `test/koer.mjs` fanger drift: to navigationer, ukendt klasse,
+  farve uden for paletten.
+
+Sådan bygger du en korrekt flade uden at spørge. Redesign, nye farver og React
+er uden for scope.
+
 ## Hvorfor det ikke ligger i bygmedai-portalen
 
 Sirius' arkitektur (BYG-545) foreslog at forke portalen og bygge ovenpå, med
@@ -45,7 +61,7 @@ Det er hele pointen. En godkendelse gælder det, bestyrelsen faktisk så.
 ## Navigationen har én kilde
 
 `nav-internt.json` i repo-roden. `build.py` renderer de statiske interne sider
-fra den og **genererer** `src/nav-internt.js`, som `views.js` importerer.
+fra den og **genererer** `src/nav-internt.js`, som `flade.js` importerer.
 
 Redigér aldrig `src/nav-internt.js` i hånden — den overskrives ved hvert build.
 
