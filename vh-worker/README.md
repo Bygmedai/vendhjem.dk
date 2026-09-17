@@ -140,9 +140,15 @@ er ikke sjusk; det er forskellen på en status og en formodning.
 Kører du en migration, så mål bagefter og ret tabellen. En status skrevet ud
 fra hvad man lige har gjort, er en hukommelse, ikke en måling.
 
-En agent uden Cloudflare-token (`/tmp/.cf_token_vh` findes ikke i alle
-kørsler) kan ikke køre apply. Steven kører, når D1 Write er på det token
-der deployer:
+**Kør dem fra GitHub, ikke fra en terminal.** Actions → «Udrul til
+Cloudflare» → Run workflow. Den kører migrationer, derefter deploy, og
+måler bagefter at fladen svarer. Tokenet ligger som hemmeligheden
+`CLOUDFLARE_API_TOKEN` hos GitHub og skal sættes én gang.
+
+Det er den vej, et menneske skal gå. Ingen skal lære wrangler for at få
+det, der allerede er merget, ud at virke.
+
+En agent med et token i miljøet kan køre dem i hånden:
 
     npx wrangler@4 d1 migrations apply vendhjem-fonde --remote
 
@@ -217,7 +223,20 @@ menneske opdager det. `test/flader.sh` bruger den.
 
 ## Deploy
 
-    CLOUDFLARE_API_TOKEN=$(cat /tmp/.cf_token_vh) npx wrangler@4 deploy
+**GitHub → Actions → «Udrul til Cloudflare» → Run workflow.** Den kører
+migrationer, derefter deploy, og måler bagefter at `/sporene` svarer med
+datoer, at `/internt` er lukket på både apex og www, og at de offentlige
+sider svarer 200. Fejler readbacket, er jobbet rødt — en kommando, der kom
+tilbage uden fejl, er en påstand; en måling er et kald.
+
+Engangsopsætning: Settings → Secrets and variables → Actions → hemmeligheden
+`CLOUDFLARE_API_TOKEN` med **Workers Scripts: Edit** og **D1: Edit** på konto
+`e91b41e73aafbedf6e0512076e0544c2`. Tokenet ligger derefter kun hos GitHub og
+hos Cloudflare — aldrig i repoet, i en log eller i en fil på nogens maskine.
+
+En agent med et token i miljøet kan stadig køre den i hånden:
+
+    npx wrangler@4 deploy
 
 `workers_dev = false` og `preview_urls = false` i `wrangler.toml` **må ikke
 fjernes**. Uden dem slår wrangler workers.dev til igen ved hvert deploy, og så

@@ -1,0 +1,154 @@
+# Udrulning til Cloudflare — fra en knap på GitHub, ikke fra en terminal.
+#
+# HVORFOR DEN FINDES
+#
+# Indtil 17.09.2026 skulle et menneske køre wrangler i hånden med et token
+# hentet fra /tmp/.cf_token_vh. Den sti er en sandkasse-konvention for en
+# Linux-agent. Paa en Windows-maskine findes filen ikke, wrangler faldt
+# tilbage paa en udloebet OAuth-session, og fire mergede PR'er blev liggende
+# uden for databasen, mens den side der skal saelge aaret sagde «ingen datoer».
+#
+# Ingen skal laere wrangler for at faa det, der allerede er merget, ud at
+# virke. Tryk paa knappen.
+#
+# SAADAN KOERER DU DEN
+#
+#   github.com/Bygmedai/vendhjem.dk  →  Actions  →  «Udrul til Cloudflare»
+#   →  Run workflow  →  Run workflow
+#
+# ENGANGSOPSAETNING (kun foerste gang)
+#
+#   Settings → Secrets and variables → Actions → New repository secret
+#   Navn:   CLOUDFLARE_API_TOKEN
+#   Vaerdi: et Cloudflare-token med
+#             Account · Workers Scripts : Edit
+#             Account · D1              : Edit
+#           paa konto e91b41e73aafbedf6e0512076e0544c2 (staar i wrangler.toml)
+#
+#   Tokenet ligger derefter kun hos GitHub og hos Cloudflare. Det staar
+#   aldrig i repoet, i en log eller i en fil paa nogens maskine.
+#
+# ZONE B. Kun fra main, kun naar et menneske trykker. Se CLAUDE.md om de tre
+# CI-zoner: A secretless PR+push · B post-merge fra beskyttet main · C bag
+# trusted adapter.
+
+name: Udrul til Cloudflare
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: udrul
+  cancel-in-progress: false
+
+jobs:
+  udrul:
+    name: Migrationer, deploy og readback
+    runs-on: ubuntu-latest
+    # Kun fra main. En udrulning fra en gren ville sende ufaerdig kode ud.
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Er tokenet sat?
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
+            echo "::error::Hemmeligheden CLOUDFLARE_API_TOKEN findes ikke."
+            echo ""
+            echo "Saet den én gang:"
+            echo "  Settings → Secrets and variables → Actions → New repository secret"
+            echo "  Navn:   CLOUDFLARE_API_TOKEN"
+            echo "  Rettigheder paa tokenet: Workers Scripts Edit + D1 Edit"
+            echo ""
+            echo "Intet er koert. Databasen og Workeren er uroert."
+            exit 1
+          fi
+          echo "Tokenet er sat. Vaerdien vises ikke."
+
+      # Migrationerne foerst. Deployer man foer, kigger den nye flade efter
+      # kolonner, der ikke findes endnu.
+      - name: Migrationer til D1
+        working-directory: vh-worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx wrangler@4 d1 migrations apply vendhjem-fonde --remote
+
+      - name: Deploy af Workeren
+        working-directory: vh-worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx wrangler@4 deploy
+
+      # Kun et readback maa haevde at noget er udrullet. En kommando, der kom
+      # tilbage uden fejl, er en paastand; en maaling er et kald.
+      - name: Readback — svarer fladen som den skal?
+        run: |
+          set -u
+          fejl=0
+
+          sig() { printf '%-42s %s\n' "$1" "$2"; }
+
+          # Op til seks forsoeg — en udrulning er hurtig, men ikke oejeblikkelig.
+          for i in 1 2 3 4 5 6; do
+            side=$(curl -sS https://vendhjem.dk/sporene || true)
+            echo "$side" | grep -q "2027" && break
+            [ "$i" = 6 ] || sleep 10
+          done
+
+          if echo "$side" | grep -q "2027"; then
+            sig "/sporene viser datoer" "ja"
+          else
+            sig "/sporene viser datoer" "NEJ"
+            echo "::error::/sporene viser ingen 2027-dato efter udrulningen."
+            echo "Migrationerne kan vaere koert uden at seedet gik ind, eller"
+            echo "kalenderen er tom med vilje. Se 0009_kalender_2027."
+            fejl=1
+          fi
+
+          internt=$(curl -s -o /dev/null -w '%{http_code}' https://vendhjem.dk/internt)
+          if [ "$internt" = "200" ]; then
+            sig "/internt er lukket" "NEJ ($internt)"
+            echo "::error::/internt svarer 200. Access daekker den ikke laengere."
+            fejl=1
+          else
+            sig "/internt er lukket" "ja ($internt)"
+          fi
+
+          www=$(curl -s -o /dev/null -w '%{http_code}' https://www.vendhjem.dk/internt)
+          if [ "$www" = "200" ]; then
+            sig "www/internt er lukket" "NEJ ($www)"
+            echo "::error::www.vendhjem.dk/internt svarer 200. Det hul laa aabent i et doegn i september."
+            fejl=1
+          else
+            sig "www/internt er lukket" "ja ($www)"
+          fi
+
+          for p in / /sporene /fundamentet /bliv-en-del /maend; do
+            k=$(curl -s -o /dev/null -w '%{http_code}' "https://vendhjem.dk$p")
+            if [ "$k" = "200" ]; then sig "offentlig $p" "200"
+            else sig "offentlig $p" "FEJL ($k)"; fejl=1; fi
+          done
+
+          exit $fejl
+
+      - name: Sig hvad der skete
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "### Udrullet og maalt" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Migrationerne er koert, Workeren er deployet, og fladen svarer." >> $GITHUB_STEP_SUMMARY
+            echo "Aabn <https://vendhjem.dk/sporene> — der skal staa datoer." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### Noget gik galt" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Se trinnet ovenfor der er roedt. Staar der at tokenet mangler," >> $GITHUB_STEP_SUMMARY
+            echo "er intet koert. Staar readbacket roedt, er noget udrullet —" >> $GITHUB_STEP_SUMMARY
+            echo "men fladen svarer ikke som den skal, og det skal ses paa." >> $GITHUB_STEP_SUMMARY
+          fi
