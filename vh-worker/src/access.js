@@ -5,8 +5,8 @@
 // signaturen selv i stedet for at stole på headeren — ellers ville enhver, der
 // kunne nå Workeren uden om Access, kunne påstå at være hvem som helst.
 //
-// Derfor er der ingen login-kode, ingen sessions og ingen kodeord i dette
-// projekt. Det er med vilje.
+// /internt har derfor ingen egen login-kode. Fællesskabet på /mit har sit
+// eget (magic link + session-cookie) og rører ikke den her fil.
 
 const TEAM = "patient-feather-24c6";
 const CERTS_URL = `https://${TEAM}.cloudflareaccess.com/cdn-cgi/access/certs`;

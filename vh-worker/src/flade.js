@@ -1,6 +1,7 @@
-// Fælles serverkomponenter til interne flader. Ingen React, intet byggetrin.
-// side · nav · tabel · felt · knap · status-pil · tom · fejl
+// Fælles serverkomponenter. Ingen React, intet byggetrin.
+// side · mitSide · nav · tabel · felt · knap · status-pil · tom · fejl
 // Udseende kommer fra assets/vh.css. Ny klasse eller ny farve = prøven fejler.
+// /internt bruger side(). /mit (uden for Access) bruger mitSide().
 
 import { PUNKTER } from "./nav-internt.js";
 import { TEKST } from "./tekst.js";
@@ -15,6 +16,76 @@ ${PUNKTER.map((p) =>
     `<a href="/${p.sti}"${p.id === aktiv ? ' aria-current="page"' : ""}>${esc(p.label)}</a>`
   ).join("\n")}
 </nav>`;
+}
+
+export function mitSide({ titel, bruger, indhold }) {
+  const logud = bruger
+    ? `<nav class="nav" aria-label="Mit">
+<form method="post" action="/mit/logud" style="margin:0">
+<button class="lnk" type="submit">${esc(TEKST.logUd)}</button>
+</form>
+</nav>`
+    : `<nav class="nav" aria-label="Mit">
+<a href="/">${esc(TEKST.tilForsiden)}</a>
+</nav>`;
+  return `<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>${esc(titel)} · Vendhjem</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#e9e7e0">
+<link rel="preload" href="/assets/fonts/lora-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/jetbrains-mono-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/vh.css">
+</head>
+<body class="intern-flade">
+<header class="site-head">
+<div class="stage row">
+<a class="brand" href="${bruger ? "/mit" : "/"}">Vend <em>Hjem</em></a>
+${logud}
+</div>
+</header>
+<main>
+${indhold}
+</main>
+<footer class="site-foot">
+<div class="stage row">
+<p>${esc(bruger ? TEKST.mitFod(bruger.navn) : TEKST.mitFodGaest)}</p>
+<p>${esc(TEKST.mitNote)}</p>
+</div>
+</footer>
+${bruger ? "" : passkeyLoginScript()}
+</body>
+</html>`;
+}
+
+function passkeyLoginScript() {
+  return `<script>
+(function(){
+  if (!window.PublicKeyCredential) return;
+  function b64(s){ s=s.replace(/-/g,"+").replace(/_/g,"/"); s+= "=".repeat((4-s.length%4)%4); var bin=atob(s), u=new Uint8Array(bin.length); for (var i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return u.buffer; }
+  function b64u(buf){ var u=new Uint8Array(buf), s=""; for (var i=0;i<u.length;i++) s+=String.fromCharCode(u[i]); return btoa(s).replace(/\\+/g,"-").replace(/\\//g,"_").replace(/=+$/g,""); }
+  fetch("/mit/passkey/begin",{method:"POST",credentials:"same-origin"}).then(function(r){return r.json()}).then(function(opt){
+    if (!opt || !opt.challenge) return;
+    opt.challenge = b64(opt.challenge);
+    if (opt.allowCredentials) opt.allowCredentials.forEach(function(c){ c.id = b64(c.id); });
+    var get = { publicKey: opt };
+    if (PublicKeyCredential.isConditionalMediationAvailable)
+      PublicKeyCredential.isConditionalMediationAvailable().then(function(ok){ if (ok) get.mediation = "conditional"; return navigator.credentials.get(get); }).then(faerdig).catch(function(){});
+    else navigator.credentials.get(get).then(faerdig).catch(function(){});
+  }).catch(function(){});
+  function faerdig(cred){
+    if (!cred) return;
+    fetch("/mit/passkey/faerdig",{method:"POST",credentials:"same-origin",headers:{"content-type":"application/json"},body:JSON.stringify({
+      id: cred.id, rawId: b64u(cred.rawId), type: cred.type,
+      response: { clientDataJSON: b64u(cred.response.clientDataJSON), authenticatorData: b64u(cred.response.authenticatorData), signature: b64u(cred.response.signature), userHandle: cred.response.userHandle ? b64u(cred.response.userHandle) : null }
+    })}).then(function(r){ if (r.ok) location.href = "/mit"; }).catch(function(){});
+  }
+})();
+</script>`;
 }
 
 export function side({ titel, aktiv, bruger, indhold }) {

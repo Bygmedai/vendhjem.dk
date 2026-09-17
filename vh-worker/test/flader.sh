@@ -59,6 +59,31 @@ else
   echo "  sprunget over — noeglen findes ikke lokalt (hent «Vendhjem sundhedsnoegle» fra Bitwarden)"
 fi
 
+echo "── /mit er UDEN for Access (fællesskab, BYG-556) ──"
+# Access er bundet til /internt. /mit maa ALDRIG sende til cloudflareaccess
+# — det ville spise en seat. Apex skal svare 200 (loginformular). www maa
+# 301 til apex, men ikke Access.
+for v in "${VAERTER[@]}"; do
+  c=$(kode "$v" "/mit")
+  loc=$(curl -s -o /dev/null -w "%{redirect_url}" "https://$v/mit")
+  if echo "$loc$c" | grep -q "cloudflareaccess.com"; then
+    echo "  FEJL  $v/mit sender til Access — fællesskabet maa ikke bruge en seat"; FEJL=1
+  elif [ "$v" = "www.vendhjem.dk" ] && [ "$c" = "301" ]; then
+    echo "  ok    $v/mit -> 301 (apex)"
+  elif [ "$c" = "200" ]; then
+    echo "  ok    $v/mit -> 200 (uden Access)"
+  else
+    echo "  FEJL  $v/mit -> $c (forventet 200 paa apex / 301 paa www, aldrig Access)"; FEJL=1
+  fi
+done
+for v in "${VAERTER[@]}"; do
+  h=$(curl -sL "https://$v/mit")
+  for n in "${HEMMELIGT[@]}"; do
+    if echo "$h" | grep -q "$n"; then echo "  FEJL  $v/mit laekker «$n»"; FEJL=1; fi
+  done
+done
+echo "  (ingen FEJL over = /mit laekker ikke internt indhold)"
+
 echo "── workers.dev skal vaere lukket ──"
 c=$(kode vendhjem.steven-e91.workers.dev "/internt/")
 if [ "$c" = "200" ]; then echo "  FEJL  workers.dev er aaben igen — tjek workers_dev = false"; FEJL=1
