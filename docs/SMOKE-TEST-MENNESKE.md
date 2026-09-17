@@ -15,14 +15,33 @@ Du skal bruge: en browser, en mailadresse systemet ikke kender, og en telefon. S
 
 Fire PR'er blev merget i dag. **Ingen af dem er i databasen.** Koden ligger på main; tabellerne og datoerne gør ikke. Kører du testen nu, fejler trin 1, 2 og 3 — ikke fordi noget er i stykker, men fordi der ikke er noget at se på endnu.
 
-To kommandoer, i den rækkefølge:
+To kommandoer, i den rækkefølge. Første linje spørger om tokenet uden at vise
+det og uden at lægge det i din bash-historik:
 
-```
+```bash
+read -rsp 'Cloudflare-token: ' CLOUDFLARE_API_TOKEN && export CLOUDFLARE_API_TOKEN && echo
+
+cd vh-worker
 npx wrangler@4 d1 migrations apply vendhjem-fonde --remote
-cd vh-worker && CLOUDFLARE_API_TOKEN=$(cat /tmp/.cf_token_vh) npx wrangler@4 deploy
+npx wrangler@4 deploy
+
+unset CLOUDFLARE_API_TOKEN
 ```
+
+Tokenet skal have **Workers Scripts: Edit** og **D1: Edit** på konto
+`e91b41e73aafbedf6e0512076e0544c2` (den står i `wrangler.toml`).
+
+`wrangler.toml` og README nævner `/tmp/.cf_token_vh`. **Det er en
+sandkasse-konvention for en Linux-agent, ikke en opskrift til et menneske.**
+Den fil findes ikke på en Windows-maskine — i Git Bash er `/tmp` bare
+`C:\Users\<dig>\AppData\Local\Temp` — og et langlivet token med deploy- og
+skriverettigheder, der ligger i en temp-mappe, er en fil, du glemmer. Lad
+være med at lave den. Luk terminalen bagefter; så findes tokenet kun i
+Cloudflare.
 
 Den første lægger `0008` (forespørgselsfelterne) og `0009` (kalenderen) i databasen. Den anden sender koden ud. **Rækkefølgen er ikke til forhandling** — deployer du først, kigger den nye flade efter kolonner, der ikke findes endnu.
+
+**Verificér dem hver for sig.** Efter den første kommando — og før du deployer — skal `/sporene` allerede vise datoer, fordi den kode, der henter dem, har været ude siden C1. Gør den ikke det, gik `apply` ikke igennem, og et deploy ovenpå skjuler bare hvad der er galt.
 
 Gå videre, når begge er kørt uden fejl.
 
@@ -44,11 +63,15 @@ Gå videre, når begge er kørt uden fejl.
 
 **Hvis der stadig står «ingen datoer» overalt:** migrationen er ikke kørt. Tilbage til «Før du går i gang».
 
+**Og vær præcis om hvilken af de to der mangler.** C1 er allerede ude og læser `ophold` fra databasen. Er `0009` kørt, står datoerne her **uden** at du har deployet. Ser du ingen datoer, er det derfor `apply`, der mangler — ikke `deploy`. De to fejl ligner hinanden på skærmen og løses hvert sit sted.
+
 **Hvis der står datoer, men ingen lukkede uger:** kun halvdelen af seedet gik ind. Sig til — det skal undersøges, ikke gentages.
 
 ---
 
 ## Trin 2 · Kan en fremmed forespørge? — 5 minutter
+
+> **Stop, hvis trin 1 ikke gik godt.** Står der stadig «ingen datoer», så er der ingen åbne ophold — og **FORESPØRG-knappen sidder på et åbent ophold.** Så mangler knappen ikke; der er bare ikke noget at forespørge på. Gå tilbage til «Før du går i gang». Trin 2 kan ikke bestås før trin 1.
 
 **PR #27.** Det her er den vigtigste test på hele siden, for det er den eneste vej fra «nogen så sitet» til «nogen kommer».
 
