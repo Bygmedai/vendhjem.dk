@@ -174,3 +174,102 @@ export async function skiftMail(db, person_id, mail) {
     .bind(person_id, mail).run();
   return db.prepare(`SELECT * FROM people WHERE id = ?1`).bind(person_id).first();
 }
+
+const OPTAGENDE = `'forespurgt','bekræftet','betalt'`;
+
+export async function opholdstyper(db) {
+  const { results } = await db.prepare(
+    `SELECT * FROM opholdstyper ORDER BY sortering, navn`
+  ).all();
+  return results;
+}
+
+export async function opholdListe(db) {
+  const { results } = await db.prepare(`
+    SELECT o.*, t.navn AS type_navn, t.spor, t.hele_stedet, t.prismodel,
+           t.pris_fra, t.pris_note,
+           (SELECT COUNT(*) FROM pladser p
+             WHERE p.ophold_id = o.id AND p.status IN (${OPTAGENDE})) AS optaget
+      FROM ophold o
+      JOIN opholdstyper t ON t.id = o.type_id
+     ORDER BY o.start_dato, t.sortering`).all();
+  return results;
+}
+
+export async function offentligeOphold(db) {
+  const { results } = await db.prepare(`
+    SELECT o.*, t.navn AS type_navn, t.spor, t.hele_stedet, t.prismodel,
+           t.pris_fra, t.pris_note, t.inkluderet, t.beskrivelse,
+           COALESCE(o.pris, t.pris_fra) AS vis_pris
+      FROM ophold o
+      JOIN opholdstyper t ON t.id = o.type_id
+     WHERE o.status IN ('åben','fuld')
+     ORDER BY o.start_dato`).all();
+  return results;
+}
+
+export async function lukkedeUger(db) {
+  const { results } = await db.prepare(`
+    SELECT o.*, t.navn AS type_navn
+      FROM ophold o
+      JOIN opholdstyper t ON t.id = o.type_id
+     WHERE o.status = 'lukket' OR t.spor = 'lukket'
+     ORDER BY o.start_dato`).all();
+  return results;
+}
+
+export async function opholdSag(db, opholdId) {
+  const o = await db.prepare(`
+    SELECT o.*, t.navn AS type_navn, t.spor, t.hele_stedet, t.prismodel,
+           t.pris_fra, t.pris_note, t.inkluderet, t.beskrivelse,
+           (SELECT COUNT(*) FROM pladser p
+             WHERE p.ophold_id = o.id AND p.status IN (${OPTAGENDE})) AS optaget
+      FROM ophold o
+      JOIN opholdstyper t ON t.id = o.type_id
+     WHERE o.id = ?1`).bind(opholdId).first();
+  if (!o) return null;
+  const { results } = await db.prepare(`
+    SELECT p.*, pe.navn AS person_navn, pe.mail AS person_mail
+      FROM pladser p
+      JOIN people pe ON pe.id = p.person_id
+     WHERE p.ophold_id = ?1
+     ORDER BY p.oprettet`).bind(opholdId).all();
+  return { ...o, pladser: results };
+}
+
+export async function opretOphold(db, {
+  type_id, start_dato, slut_dato, kapacitet, status = "planlagt", pris = null, note = null,
+}) {
+  const oid = id();
+  await db.prepare(`
+    INSERT INTO ophold (id, type_id, start_dato, slut_dato, kapacitet, status, pris, note, oprettet)
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)`
+  ).bind(oid, type_id, start_dato, slut_dato, kapacitet, status, pris, note, nu()).run();
+  return db.prepare(`SELECT * FROM ophold WHERE id = ?1`).bind(oid).first();
+}
+
+export async function gemOphold(db, opholdId, {
+  start_dato, slut_dato, kapacitet, status, pris = null, note = null,
+}) {
+  await db.prepare(`
+    UPDATE ophold SET start_dato = ?2, slut_dato = ?3, kapacitet = ?4,
+           status = ?5, pris = ?6, note = ?7
+     WHERE id = ?1`
+  ).bind(opholdId, start_dato, slut_dato, kapacitet, status, pris, note).run();
+  return db.prepare(`SELECT * FROM ophold WHERE id = ?1`).bind(opholdId).first();
+}
+
+export async function opretPlads(db, { ophold_id, person_id, status = "forespurgt", pris = null }) {
+  const pid = id();
+  await db.prepare(`
+    INSERT INTO pladser (id, ophold_id, person_id, status, pris, oprettet)
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6)`
+  ).bind(pid, ophold_id, person_id, status, pris, nu()).run();
+  return db.prepare(`SELECT * FROM pladser WHERE id = ?1`).bind(pid).first();
+}
+
+export async function saetPladsStatus(db, pladsId, status) {
+  await db.prepare(`UPDATE pladser SET status = ?2 WHERE id = ?1`)
+    .bind(pladsId, status).run();
+  return db.prepare(`SELECT * FROM pladser WHERE id = ?1`).bind(pladsId).first();
+}

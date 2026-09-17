@@ -50,4 +50,10 @@ export const TEKST = {
   arkiver: "Arkivér",
   historiskIndsend: "Registrér historisk indsendelse",
   klarBlokeret: "Bekræftet uopfyldt adgangskrav. Sagen kan ikke markeres klar.",
+
+  tomOphold: "Ingen ophold i kalenderen endnu.",
+  tomKalender: "Ingen datoer i kalenderen endnu. Når et ophold åbnes, står det her.",
+  ingenDatoerSpor: "Ingen datoer åbne på det her spor endnu.",
+  opretOphold: "Opret ophold",
+  tomPladser: "Ingen på listen endnu.",
 };

@@ -12,7 +12,7 @@ set -u
 FEJL=0
 VAERTER=(vendhjem.dk www.vendhjem.dk)
 OFFENTLIG=(/ /sporene /fundamentet /maend /bliv-en-del /privatlivspolitik /cookies)
-INTERN=(/internt /internt/ /internt/stedet /internt/oekonomi /internt/timer /internt/anlaeg /internt/registrering /internt/fonde/ /internt/fonde/ny /internt/korpus /internt/korpus/)
+INTERN=(/internt /internt/ /internt/stedet /internt/ophold/ /internt/oekonomi /internt/timer /internt/anlaeg /internt/registrering /internt/fonde/ /internt/fonde/ny /internt/korpus /internt/korpus/)
 HEMMELIGT=("60.922" "asbest" "21.333" "148,5" "Rum for rum")
 
 kode() { curl -s -o /dev/null -w "%{http_code}" "https://$1$2"; }
