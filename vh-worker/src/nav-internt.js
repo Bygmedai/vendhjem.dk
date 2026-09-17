@@ -31,6 +31,11 @@ export const PUNKTER = [
   "label": "Timer og indskud"
  },
  {
+  "id": "korpus",
+  "sti": "internt/korpus/",
+  "label": "Korpus"
+ },
+ {
   "id": "fonde",
   "sti": "internt/fonde/",
   "label": "Fonde"

@@ -42,4 +42,12 @@ export const TEKST = {
   mitPasskeyIgang: "Browseren spørger nu, om den må huske dig. Det tager et øjeblik.",
   mitPasskeyFejl: "Det lykkedes ikke at huske enheden. Du er stadig inde — prøv igen næste gang, eller lad være. Magic link virker uanset.",
   mitSessionMangler: "Login er ikke sat op endnu (SESSION_NOEGLE mangler). Sig det til den, der driver siden.",
+
+  antagelse: "antagelse",
+  adgangskrav: "Adgangskrav",
+  vurdering: "Vurdering",
+  markerKlar: "Markér klar",
+  arkiver: "Arkivér",
+  historiskIndsend: "Registrér historisk indsendelse",
+  klarBlokeret: "Bekræftet uopfyldt adgangskrav. Sagen kan ikke markeres klar.",
 };
