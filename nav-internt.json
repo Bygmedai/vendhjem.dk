@@ -11,6 +11,7 @@
     { "id": "korpus",       "sti": "internt/korpus/",      "label": "Korpus" },
     { "id": "fonde",        "sti": "internt/fonde/",       "label": "Fonde" },
     { "id": "registrering", "sti": "internt/registrering", "label": "Registrering" },
-    { "id": "breve",        "sti": "internt/breve",        "label": "Breve" }
+    { "id": "breve",        "sti": "internt/breve",        "label": "Breve" },
+    { "id": "natten",       "sti": "internt/natten",       "label": "Natten" }
   ]
 }

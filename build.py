@@ -7,13 +7,57 @@ import json as _json
 import os, re
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
-FOOT_DATE = "15. september 2026"
+import subprocess as _sp, datetime as _dt
+
+# «Senest ændret» i foden. Datoen kom fra hukommelsen («Udkast · 15. sep-
+# tember») og blev ikke rettet, mens sitet aendrede sig hver dag. Nu tages
+# den fra det seneste commit; Udrul koerer build.py paa main, saa den
+# levende side viser dagen for den seneste merge. Uden git: i dag.
+_MDR = ["januar", "februar", "marts", "april", "maj", "juni", "juli",
+        "august", "september", "oktober", "november", "december"]
+def _senest():
+    try:
+        iso = _sp.check_output(["git", "log", "-1", "--format=%cs"], cwd=ROOT,
+                               stderr=_sp.DEVNULL, text=True).strip()
+        d = _dt.date.fromisoformat(iso)
+    except Exception:
+        d = _dt.date.today()
+    return f"{d.day}. {_MDR[d.month - 1]} {d.year}"
+FOOT_DATE = _senest()
+
+def fod_offentlig():
+    """Foden paa alle offentlige sider — ogsaa dem Workeren bygger.
+    Skrives til vh-worker/src/fod.js nederst, saa der er én fod, ikke to."""
+    return f'''<footer class="site-foot">
+<div class="stage row">
+<p>Vend Hjem · Agersø · Slagelse Kommune</p>
+<p>Senest ændret {FOOT_DATE} · Lederudvikling og foredrag ligger på <a href="https://www.humandirection.dk/">humandirection.dk</a></p>
+<p><a href="/noter">Noter</a> · <a href="/privatlivspolitik">Privatlivspolitik</a> · <a href="/cookies">Cookies</a></p>
+</div>
+</footer>'''
 
 # Intern navigation har ÉN kilde: nav-internt.json. Den blev delt i to —
 # build.py og fondsværktøjets views.js — og listerne drev fra hinanden, så
 # man ikke kunne komme fra Økonomi til Fonde. To lister holdt i sync af
 # hukommelse er et løfte, hukommelsen ikke kan holde.
 NAV_INTERNT = _json.load(open(os.path.join(ROOT, "nav-internt.json"), encoding="utf-8"))["punkter"]
+
+# Stigen paa /bliv-en-del har én kilde: stigen.json. Se BYG-576.
+STIGEN = _json.load(open(os.path.join(ROOT, "stigen.json"), encoding="utf-8"))["lag"]
+
+def stigen_html():
+    celler = []
+    for i, l in enumerate(STIGEN):
+        k = ' class="loeft"' if l["id"] == "med" else ""
+        celler.append(f'''<div{k}>
+<p class="sec">{l["navn"]}</p>
+<p class="meta">{l["timer"]} · {l["timer_note"]}</p>
+<p class="small mt2">{l["hvem"]}</p>
+<p class="meta-s mt3">Du giver</p><p class="small mt1">{l["giver"]}</p>
+<p class="meta-s mt2">Du får</p><p class="small mt1">{l["faar"]}</p>
+<p class="meta-s mt2">Vejen ind</p><p class="small mt1">{l["vej"]}</p>
+</div>''')
+    return '<div class="g g-3">\n' + "\n".join(celler) + '\n</div>'
 
 def nav_internt(depth, current):
     ud = []
@@ -83,14 +127,7 @@ def foot(intern=False, path=""):
 </body>
 </html>
 '''
-    return f'''</main>
-<footer class="site-foot">
-<div class="stage row">
-<p>Vend Hjem · Agersø · Slagelse Kommune</p>
-<p>Udkast · {FOOT_DATE} · Lederudvikling og foredrag ligger på <a href="https://www.humandirection.dk/">humandirection.dk</a></p>
-<p><a href="{depth}privatlivspolitik">Privatlivspolitik</a> · <a href="{depth}cookies">Cookies</a></p>
-</div>
-</footer>
+    return '</main>\n' + fod_offentlig() + '''
 </body>
 </html>
 '''
@@ -153,8 +190,8 @@ def foto(slug, cap, path="", sizes="(max-width: 760px) 100vw, 700px", cls=""):
     """Foto som figur i spalten: billede, 1px streg, mono-tekst. Ingen ramme, ingen skygge."""
     d = "/"  # alle stier absolutte, se HVORFOR-ABSOLUTTE-STIER
     k = (" " + cls) if cls else ""
-    return (f'<figure class="foto{k}">\n' + _pic(slug, d, sizes) +
-            f'\n<figcaption class="meta">{cap}</figcaption>\n</figure>')
+    tekst = f'\n<figcaption class="meta">{cap}</figcaption>' if cap else ""
+    return (f'<figure class="foto{k}">\n' + _pic(slug, d, sizes) + tekst + '\n</figure>')
 
 def foto_i_horisont(slug, cap, path="", cls="h-side", stil="", sizes=None):
     """Foto der udfylder en horisont-figur (designsystemets .horizon > img).
@@ -251,6 +288,11 @@ pages["index.html"] = head("Vend Hjem · Agersø", "Vi laver en gammel campingpl
 <div><p class="sec">Bliv en del</p><p class="small soft">Forløbet fra den første samtale til en aftale, og hvad der gælder, hvis du vil stoppe. <a class="lnk" href="/bliv-en-del">Se forløbet →</a></p></div>
 </div>
 </section>
+
+<section class="stage sektion">
+<p class="lead maxw" style="color:var(--blaek)">Der står ét langt bord. Det er dér, vi spiser sammen, og dér dagen samler sig — efter arbejdet, når nogen kommer, når nogen skal videre.</p>
+<p class="meta mt3"><a href="/noter">Noter fra stedet →</a></p>
+</section>
 ''' + foot()
 
 # ───────────────────────────── FUNDAMENTET (1d) ─────────────────────────────
@@ -304,7 +346,7 @@ pages["fundamentet.html"] = head("Fundamentet · Vend Hjem", "Det, stedet hviler
 <div><div class="maxw">
 <p class="sec">Største drøm og største frygt</p>
 <p class="small">Før du skriver under på en aftale, taler vi om din største drøm for at være med og det, du frygter mest. Samtalen hjælper os med at få dine ønsker og forbehold med i det, vi aftaler.</p>
-<p class="xs soft mt3">Den samtale tages to ad gangen, i et rum med en dør. Ikke på et møde.</p>
+<p class="xs soft mt3">Den samtale tager vi to ad gangen, i et rum med en dør, hvor der er tid til den.</p>
 </div></div>
 <div class="media">''' + foto_i_horisont("vaerelse", "", stil="min-height:300px") + '''</div>
 </div>
@@ -638,9 +680,9 @@ pages["maend.html"] = head("Mandegrupper · Vend Hjem", "Femten mænd, en weeken
 <p class="sec">Sådan ligger en weekend</p>
 <div class="tl">
 <div><div class="pkt"></div><p class="t">Fredag eftermiddag</p><p class="b">Færgen fra Stigsnæs, et kvarter. Kaffe, rundtur - og telefonen i en kasse ved døren, hvis du vil. De fleste lægger den.</p></div>
-<div><div class="pkt"></div><p class="t">Fredag aften</p><p class="b">Mad fra storkøkkenet. Bål. En runde: hvorfor er du kommet, og hvad er du bange for at sige. Ingen kommenterer.</p></div>
+<div><div class="pkt"></div><p class="t">Fredag aften</p><p class="b">Mad fra storkøkkenet. Bål. En runde: hvorfor er du kommet, og hvad er du bange for at sige. Der lyttes, og ingen behøver svare på det.</p></div>
 <div><div class="pkt a"></div><p class="t">Lørdag</p><p class="b">Arbejde om formiddagen - rigtigt arbejde, valgt fordi femten utrænede hænder faktisk kan flytte det. Sauna og havet om eftermiddagen. Workshop om aftenen.</p></div>
-<div><div class="pkt"></div><p class="t">Søndag</p><p class="b">Morgenmad, oprydning, en sidste runde: hvad tager du med. Så færgen igen. Ingen gruppe på nettet bagefter.</p></div>
+<div><div class="pkt"></div><p class="t">Søndag</p><p class="b">Morgenmad, oprydning, en sidste runde: hvad tager du med. Så færgen igen. Det, der blev sagt, bliver på øen.</p></div>
 </div>
 </section>
 
@@ -666,7 +708,7 @@ pages["maend.html"] = head("Mandegrupper · Vend Hjem", "Femten mænd, en weeken
 <li><span>Isolering</span><span class="r">loft og vægge</span></li>
 <li><span>Udearealer</span><span class="r">stier, hegn, bålplads, bænke</span></li>
 </ul>
-<p class="note mt2">Tag, el, VVS og alt bærende laves af folk med papir på det. Femten frivillige på et tag er en dårlig idé, uanset hvor gode intentionerne er.</p>
+<p class="note mt2">Tag, el, VVS og alt bærende laves af folk med papir på det. Resten er der plads til at lære sammen, med jorden under fødderne.</p>
 </div>
 </div>
 </section>
@@ -685,11 +727,23 @@ pages["bliv-en-del.html"] = head("Bliv en del · Vend Hjem", "Forløbet fra brev
 
 <section class="stage">
 <div class="g g-4">
-<div class="trin"><p class="nr">01</p><p class="t">Du skriver</p><p class="b">Et brev. Ikke en formular med felter til "interesseområde".</p><p class="m">Lai svarer inden 7 dage</p></div>
-<div class="trin"><p class="nr">02</p><p class="t">To samtaler</p><p class="b">Én om hvad du vil. Én om hvad du har svært ved. Den anden er den vigtige.</p><p class="m">3–6 uger</p></div>
+<div class="trin"><p class="nr">01</p><p class="t">Du skriver</p><p class="b">Et brev med dine egne ord. Det behøver ikke være langt.</p><p class="m">Lai svarer inden 7 dage</p></div>
+<div class="trin"><p class="nr">02</p><p class="t">To samtaler</p><p class="b">Én om det, du drømmer om. Én om det, du er bange for. Begge tæller.</p><p class="m">3–6 uger</p></div>
 <div class="trin loeft"><p class="nr a">03</p><p class="t">Prøveaftale</p><p class="b">Du bor og arbejder her. Slutdatoen står i aftalen fra begyndelsen.</p><p class="m">6 måneder · skriftlig</p></div>
 <div class="trin"><p class="nr">04</p><p class="t">Medlem</p><p class="b">Begge siger ja igen. Timer, indskud og mandat skrives ned, som de er aftalt.</p><p class="m">Tages op hvert år</p></div>
 </div>
+</section>
+
+<section class="stage sektion">
+<div class="maxw">
+<p class="sec">Tre måder at være her på</p>
+<h2 style="font-size:clamp(22px,2.8vw,28px)">Man kan være her som gæst, som en der er med, eller som en der bærer.</h2>
+<p class="lead mt2">Forskellen er, hvor meget tid du lægger, og hvad du får for den. Det står her, så ingen behøver gætte.</p>
+</div>
+</section>
+
+<section class="stage mt3">
+''' + stigen_html() + '''
 </section>
 
 <section class="stage mt4">
@@ -701,10 +755,10 @@ pages["bliv-en-del.html"] = head("Bliv en del · Vend Hjem", "Forløbet fra brev
 <div>
 <p class="sec">Døren ud - sådan ser den ud</p>
 <ul class="tjek">
-<li><span>Du siger op med tre måneders varsel. Ingen skal forklare sig.</span></li>
+<li><span>Du kan sige op med tre måneders varsel, uden at skulle forklare hvorfor.</span></li>
 <li><span>Dine indskud har en aftalt karakter - kapital, lån eller udlæg. Det står på papir fra dag ét.</span></li>
-<li><span>Dine timer opgøres på det grundlag, de blev aftalt på. Ikke på hvad nogen husker.</span></li>
-<li><span>Går det i hårdknude, kommer der en tredje part ind. Aftalt på forhånd.</span></li>
+<li><span>Dine timer opgøres på det grundlag, de blev aftalt på, så ingen skal huske for hinanden.</span></li>
+<li><span>Går det i hårdknude, henter vi en tredje part ind, som vi har aftalt på forhånd.</span></li>
 </ul>
 <p class="xs soft mt3">Prøveaftalen beskriver dit ophold, dine opgaver og den periode, vi sammen har aftalt. Den giver dig ikke en ejerandel eller tilsagn om en bolig eller en varig plads i fællesskabet.</p>
 </div>
@@ -787,6 +841,111 @@ pages["cookies.html"] = head("Cookies · Vend Hjem", "Sitet sætter ingen cookie
 <p class="meta mt4"><a href="/privatlivspolitik">Privatlivspolitik →</a></p>
 </section>
 ''' + foot()
+
+# ───────────────────────────── NOTER (BYG-578) ─────────────────────────────
+# Én side, der vokser mellem toppene. Kilden er noter-kilder/*.md (ikke noter/:
+# en mappe med det navn ville skygge for /noter hos enhver statisk server) — én fil pr. note,
+# navngivet ÅÅÅÅ-MM-DD-slug.md, med to linjer øverst:
+#   titel: Registreringen, første weekend
+#   foto: udeplads            (valgfri — en slug fra images/sted)
+# derefter en tom linje og teksten. Afsnit adskilles af tomme linjer;
+# «## Overskrift» bliver en mellemrubrik; *kursiv*, **fed** og [tekst](url)
+# virker. Ikke mere markdown end det. Nyeste øverst. Ingen tags, ingen
+# kommentarer, intet nyhedsbrev — RSS på /noter.xml er nok til at følge med.
+NOTER_DIR = os.path.join(ROOT, "noter-kilder")
+
+def _inline(t):
+    t = t.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    t = re.sub(r"\[([^\]]+)\]\((https?://[^)\s]+|/[^)\s]*)\)", r'<a href="\2">\1</a>', t)
+    t = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", t)
+    t = re.sub(r"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", r"<em>\1</em>", t)
+    return t
+
+def _note_html(body):
+    ud = []
+    for blok in re.split(r"\n\s*\n", body.strip()):
+        blok = blok.strip()
+        if not blok:
+            continue
+        if blok.startswith("## "):
+            ud.append(f'<p class="sec mt3">{_inline(blok[3:].strip())}</p>')
+        else:
+            ud.append(f'<p class="small">{_inline(" ".join(l.strip() for l in blok.splitlines()))}</p>')
+    return "\n".join(ud)
+
+def laes_noter():
+    noter = []
+    if not os.path.isdir(NOTER_DIR):
+        return noter
+    for fn in sorted(os.listdir(NOTER_DIR), reverse=True):
+        m = re.match(r"^(\d{4}-\d{2}-\d{2})-([a-z0-9-]+)\.md$", fn)
+        if not m:
+            continue
+        raw = open(os.path.join(NOTER_DIR, fn), encoding="utf-8").read()
+        hoved, _, body = raw.partition("\n\n")
+        felter = dict(l.split(":", 1) for l in hoved.splitlines() if ":" in l)
+        felter = {k.strip(): v.strip() for k, v in felter.items()}
+        d = _dt.date.fromisoformat(m.group(1))
+        noter.append({
+            "dato": d, "dato_dk": f"{d.day}. {_MDR[d.month - 1]} {d.year}",
+            "slug": m.group(2), "titel": felter.get("titel", m.group(2)),
+            "foto": felter.get("foto", ""), "body": body, "html": _note_html(body),
+        })
+    return noter
+
+NOTER = laes_noter()
+
+def _note_blok(n):
+    f = ("\n" + foto(n["foto"], "", sizes="(max-width: 760px) 100vw, 700px", cls="mt3")) if n["foto"] and n["foto"] in FOTO_MAN else ""
+    return f'''<section class="stage blok blok-top" id="{n["slug"]}">
+<div class="maxw">
+<p class="meta">{n["dato_dk"]}</p>
+<h2 class="mt1">{_inline(n["titel"])}</h2>
+<div class="stak mt3">
+{n["html"]}
+</div>{f}
+</div>
+</section>'''
+
+_noter_tom = '''<section class="stage blok blok-top">
+<div class="maxw">
+<p class="small soft">Den første note kommer efter registreringsweekenden 19.–21. september 2026: hvad der blev fundet, og hvad det betyder for det, vi bygger om først.</p>
+</div>
+</section>'''
+
+pages["noter.html"] = head("Noter · Vend Hjem", "Små noter fra stedet, mellem de store dage: hvad der blev gjort, fundet og målt, og hvad der venter.", "noter.html", current=None) + '''
+<section class="stage blok">
+<div class="maxw">
+<p class="sec">Noter</p>
+<h1 style="font-size:clamp(26px,3.4vw,34px)">Det, der sker mellem de store dage.</h1>
+<p class="lead mt2">Små noter fra stedet: hvad der blev gjort, fundet og målt, og hvad der venter. Nyeste øverst.</p>
+<p class="meta mt3"><a href="/noter.xml">Følg med i din læser (RSS) →</a></p>
+</div>
+</section>
+''' + ("\n".join(_note_blok(n) for n in NOTER) if NOTER else _noter_tom) + '''
+''' + foot()
+
+def _rss():
+    def x(t): return t.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    items = []
+    for n in NOTER:
+        pub = _dt.datetime.combine(n["dato"], _dt.time(8, 0), tzinfo=_dt.timezone(_dt.timedelta(hours=2))).strftime("%a, %d %b %Y %H:%M:%S %z")
+        items.append(f'''<item>
+<title>{x(n["titel"])}</title>
+<link>https://vendhjem.dk/noter#{n["slug"]}</link>
+<guid isPermaLink="true">https://vendhjem.dk/noter#{n["slug"]}</guid>
+<pubDate>{pub}</pubDate>
+<description>{x(n["html"])}</description>
+</item>''')
+    return ('<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">\n<channel>\n'
+            '<title>Vend Hjem · Noter</title>\n<link>https://vendhjem.dk/noter</link>\n'
+            '<description>Små noter fra stedet på Agersø, mellem de store dage.</description>\n<language>da</language>\n'
+            '<atom:link href="https://vendhjem.dk/noter.xml" rel="self" type="application/rss+xml"/>\n'
+            + "\n".join(items) + '\n</channel>\n</rss>\n')
+
+pages["noter.xml"] = _rss()
+pages["noter.html"] = pages["noter.html"].replace(
+    "</head>", '<link rel="alternate" type="application/rss+xml" title="Vend Hjem · Noter" href="/noter.xml">\n</head>', 1)
 
 # ───────────────────────────── 404 ─────────────────────────────
 # Et tomt 404-svar er en blind vej. Siden giver vej tilbage.
@@ -1089,6 +1248,63 @@ def _kilde(navn):
     with open(os.path.join(ROOT, "internt-kilder", navn), encoding="utf-8") as f:
         return f.read()
 
+# ───────────────────────────── INTERNT / NATTEN (BYG-577) ─────────────────────────────
+# Intern for nu — Stevens beslutning 18.09.2026. Reglerne for burns, raves og
+# fester skrives, før den første holdes. Stoffer og alkohol aftales pr.
+# arrangement og siges ikke offentligt. Naboer varsles kun ved højtalere ude.
+pages["internt/natten.html"] = head("Natten · Internt", "Det, vi har aftalt om nætterne: én der er vågen, samtykke, aftalen for aftenen, naboerne og hvad vi gør, når noget går galt.", "internt/natten.html", intern=True, current="natten") + '''
+<section class="stage blok">
+<p class="sec">Internt · natten</p>
+<h1 style="font-size:clamp(26px,3.4vw,34px)">Det, vi har aftalt om nætterne.</h1>
+<p class="lead maxw mt2">Festivaler, burns og raves er en del af stedet, og vi vil gerne have, at de kan være vilde uden at nogen kommer til skade. Derfor står det her, skrevet ned før den første, så vi kan finde det igen, når det er tre om natten og nogen har brug for det.</p>
+<p class="meta mt3">Aftalt 18. september 2026 · tages op efter hver fest med gæster udefra</p>
+</section>
+
+<section class="stage">
+<div class="g g-2">
+<div class="loeft">
+<p class="sec">Én, der er vågen</p>
+<p class="small">Når vi er flere end 20 om natten, er der én af os, der hverken drikker eller tager noget, og som kan findes hele natten. Navnet står ved døren, og alle får det at vide, når de kommer. Det er en rolle, man tager på skift, og den er en gave til de andre, ikke en straf.</p>
+<p class="meta mt2">Over 20 gæster · navn ved døren</p>
+</div>
+<div>
+<p class="sec">Samtykke</p>
+<p class="small">Et nej er et nej, også klokken tre, også når det er sagt lavt. Den, der er vågen, kan bede hvem som helst om at gå hjem, uden at der skal diskuteres. Og der er et rum med en dør, man kan lukke, hvis man har brug for at være alene eller for at være to i fred.</p>
+<p class="meta mt2">Et rum med en dør · hele natten</p>
+</div>
+<div>
+<p class="sec">Aftalen for aftenen</p>
+<p class="small">Hvad der gælder for alkohol og andet, aftaler vi fra arrangement til arrangement, mellem dem, der holder det, og den, der er vågen. Aftalen skrives ned, før gæsterne kommer, og den, der er vågen, kender den. Vi skriver den ikke på den offentlige side.</p>
+<p class="meta mt2">Pr. arrangement · skrevet ned før</p>
+</div>
+<div>
+<p class="sec">Naboerne</p>
+<p class="small">Stedet ligger for sig selv, og det, der sker inde i salen, generer ingen. Står der højtalere udenfor, får naboerne besked i god tid, med dato og et telefonnummer til en, der tager den, når den ringer.</p>
+<p class="meta mt2">Kun ved højtalere ude · dato og nummer</p>
+</div>
+</div>
+</section>
+
+<section class="stage sektion">
+<div class="g g-2 nb">
+<div>
+<p class="sec">Når noget går galt</p>
+<ul class="tjek">
+<li><span>Ring 112 ved fare for liv. Lægevagten i Region Sjælland: 1818. Adressen er Egholmvej 23, Agersø, 4230 Skælskør.</span></li>
+<li><span>Færgen har sidste afgang om aftenen, og planen for dagen hænger ved døren. Ved akut behov er det 112, der sørger for, at hjælpen når øen.</span></li>
+<li><span>Forbindskassen har én fast plads, som den, der er vågen, kender. Hvor, står her, når den er hængt op.</span></li>
+<li><span>Den, der er vågen, skriver ned, hvad der skete, samme nat, mens det er klart. Ikke for at placere skyld, men for at vi kan gøre det bedre næste gang.</span></li>
+</ul>
+</div>
+<div>
+<p class="sec">Det, der stadig mangler</p>
+<p class="small soft">Hvor forbindskassen faktisk hænger, og hvilket telefonnummer naboerne skal have, sætter Lai ind, når stedet er registreret. Indtil da står det her som det, vi har besluttet, og ikke som det, der er hængt op.</p>
+<p class="meta mt2">Udestår · Lai</p>
+</div>
+</div>
+</section>
+''' + foot(intern=True, path="internt/natten.html")
+
 pages["internt/registrering.html"] = head("Registrering · Internt", "Feltregistrering af rum, udearealer og tekniske anlaeg. Virker uden net.", "internt/registrering.html", intern=True, current="registrering") + _kilde("registrering-body.html.in") + foot(intern=True, path="internt/registrering.html")
 pages["internt/registrering-sw.js"] = _kilde("registrering-sw.js")
 
@@ -1199,3 +1415,22 @@ ${celler}
 }
 """)
     print("genererede vh-worker/src/fotos.js")
+
+# Generér Workerens fod fra samme kilde som de statiske sider. Foden stod
+# hardcodet i offentligSkal med «Udkast · 15. september» i tre dage efter
+# sitet gik live. Redigér ALDRIG vh-worker/src/fod.js i hånden.
+_fodjs = os.path.join(ROOT, "vh-worker", "src", "fod.js")
+if os.path.isdir(os.path.dirname(_fodjs)):
+    with open(_fodjs, "w", encoding="utf-8") as f:
+        f.write("// GENERERET af build.py. Ret ikke her — ret fod_offentlig() i build.py.\n")
+        f.write("export const SENEST = " + _json.dumps(FOOT_DATE, ensure_ascii=False) + ";\n")
+        f.write("export const FOD = " + _json.dumps(fod_offentlig(), ensure_ascii=False) + ";\n")
+    print("genererede vh-worker/src/fod.js")
+
+# Generér Workerens stige fra stigen.json. Redigér ALDRIG vh-worker/src/stigen.js.
+_stigejs = os.path.join(ROOT, "vh-worker", "src", "stigen.js")
+if os.path.isdir(os.path.dirname(_stigejs)):
+    with open(_stigejs, "w", encoding="utf-8") as f:
+        f.write("// GENERERET af build.py fra stigen.json. Ret ikke her.\n")
+        f.write("export const LAG = " + _json.dumps(STIGEN, ensure_ascii=False, indent=1) + ";\n")
+    print("genererede vh-worker/src/stigen.js")

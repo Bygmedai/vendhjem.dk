@@ -336,7 +336,7 @@ console.log("\n13 · Fladekontrakt (BYG-565 G1)");
   t("fondsfladen indfører ingen farve uden for paletten",
      farver.ok, JSON.stringify(farver));
 
-  const kilder = ["flade.js", "sider.js", "views.js", "index.js", "tekst.js", "mit.js", "session.js", "mail.js", "webauthn.js", "krypto.js", "korpus.js", "runde.js", "ophold.js", "ophold-sider.js", "breve.js", "fotos.js"]
+  const kilder = ["flade.js", "sider.js", "views.js", "index.js", "tekst.js", "mit.js", "session.js", "mail.js", "webauthn.js", "krypto.js", "korpus.js", "runde.js", "ophold.js", "ophold-sider.js", "breve.js", "fotos.js", "fod.js", "stigen.js"]
     .map((f) => readFileSync(new URL(`../src/${f}`, import.meta.url), "utf8")).join("\n");
   const kildeFarver = farverUdenforPalet(kilder, css);
   t("flade-kilden indfører ingen farve uden for paletten",
@@ -1236,6 +1236,13 @@ console.log("\n26 · Brevet på /bliv-en-del lander i systemet (BYG-558 B1)");
   const listeHtml = await tekst(liste);
   t("/internt/breve viser brevene", liste.status === 200 && listeHtml.includes("Mette Ny") && listeHtml.includes(brevTekst), liste.status);
   t("listen viser mailfejlen på Fridas brev", /Resend nede/.test(listeHtml));
+  // Siden lover svar inden 7 dage. Et brev, der har ventet 8, skal sige det selv.
+  const forOtteDage = new Date(Date.now() - 8 * 86400000).toISOString();
+  await db.prepare(`INSERT INTO breve (id, person_id, navn, mail, tekst, status, oprettet) VALUES ('brev_gammel', ?1, 'Gamle Gorm', 'gorm@example.com', 'Jeg skrev for otte dage siden og har ikke hørt noget endnu.', 'nyt', ?2)`)
+    .bind(mette.id, forOtteDage).run();
+  const listeGammel = await tekst(await hent("/internt/breve"));
+  t("et ubesvaret brev på 8 dage markeres som ventende", /har ventet 8 dage/.test(listeGammel) && /Gamle Gorm/.test(listeGammel));
+  t("et nyt brev fra i dag markeres ikke som ventende", !/Mette Ny[\s\S]{0,600}har ventet/.test(listeGammel));
   t("listen har Breve i navigationen", /href="\/internt\/breve"[^>]*aria-current="page"/.test(listeHtml));
   const kontraktBreve = (await import("../src/kontrakt.js")).ukendteKlasser(listeHtml,
      readFileSync(new URL("../../assets/vh.css", import.meta.url), "utf8"));
@@ -1274,6 +1281,22 @@ console.log("\n27 · Fotos paa den LEVENDE /sporene (ikke den statiske fil)");
   t("hvert foto i modulet har baade maal og alt-tekst",
      Object.keys(FOTO).every((k) => ALT[k] && FOTO[k].w > 0 && FOTO[k].h > 0),
      Object.keys(FOTO).filter((k) => !ALT[k]).join(", "));
+}
+
+console.log("\n28 · Stigen har én kilde (BYG-576)");
+{
+  const kilde = JSON.parse(readFileSync(new URL("../../stigen.json", import.meta.url), "utf8")).lag;
+  const { LAG } = await import("../src/stigen.js");
+  t("stigen.js er genereret fra stigen.json", JSON.stringify(LAG) === JSON.stringify(kilde));
+  t("tre lag med navn, timer, giver, får og vej ind",
+     kilde.length === 3 && kilde.every((l) => l.navn && l.timer && l.giver && l.faar && l.vej),
+     kilde.map((l) => l.navn).join(", "));
+  const side = readFileSync(new URL("../../bliv-en-del.html", import.meta.url), "utf8");
+  t("hvert lags timetal staar paa /bliv-en-del, saa kilden og siden ikke kan drive",
+     kilde.every((l) => side.includes(l.timer) && side.includes(l.navn)),
+     kilde.filter((l) => !side.includes(l.timer)).map((l) => l.navn).join(", "));
+  t("ingen «altid», «aldrig» eller «hver gang» i stigen",
+     !/\b(altid|aldrig|hver gang)\b/i.test(JSON.stringify(kilde)));
 }
 
 console.log(`\n${ok} bestået, ${fejl} fejlet\n`);
