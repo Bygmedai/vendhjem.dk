@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Uden net · Vendhjem</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#e9e7e0">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/vh.css">
+</head>
+<body class="intern-flade">
+<header class="site-head">
+<div class="stage row">
+<a class="brand" href="/mit">Vend <em>Hjem</em></a>
+<nav class="nav" aria-label="Mit"><a href="/mit">Prøv igen</a></nav>
+</div>
+</header>
+<main>
+<section class="stage sektion">
+<p class="sec">Uden net</p>
+<h1 class="stor maxw">Du er ikke på nettet lige nu.</h1>
+<p class="lead maxw mt3">Det sker på en ø. Du kan stadig skrive dagen ned her — den bliver liggende på telefonen og sendt, så snart der er forbindelse igen.</p>
+<p class="small soft maxw mt3" id="status"></p>
+
+<form class="maxw mt4" id="timeform" style="max-width:480px">
+<p class="felt-label meta-s mt2">Hvad lavede du</p>
+<input class="felt" type="text" name="hvad" placeholder="Ryddede op i laden" required>
+<div class="g g-2 nb mt3">
+<div>
+<p class="felt-label meta-s">Timer</p>
+<input class="felt" type="number" name="timer" placeholder="4" required>
+</div>
+<div>
+<p class="felt-label meta-s">Dato</p>
+<input class="felt" type="date" name="dato" required>
+</div>
+</div>
+<p class="mt3"><button class="knap knap-accent" type="submit">Gem på telefonen</button></p>
+</form>
+
+<p class="xs soft maxw mt4">Linjen ligger kun på den her telefon, indtil serveren har sagt ja. Ryd ikke browserdata, før den er sendt.</p>
+</section>
+</main>
+<footer class="site-foot">
+<div class="stage row">
+<p>Vendhjem · uden net</p>
+</div>
+</footer>
+<script>
+// Samme nøgle som køen i mit.js. Ændres den ét sted, skal den ændres begge,
+// og prøven i vh-worker/test/koer.mjs fanger det.
+(function(){
+  var NØGLE = "vh-timer-koe";
+  var f = document.getElementById("timeform");
+  var s = document.getElementById("status");
+  function koe(){ try { return JSON.parse(localStorage.getItem(NØGLE) || "[]"); } catch (e) { return []; } }
+  function gem(k){ try { localStorage.setItem(NØGLE, JSON.stringify(k)); return true; } catch (e) { return false; } }
+  function vis(){
+    var n = koe().length;
+    s.textContent = n ? (n === 1 ? "1 dag venter på net." : n + " dage venter på net.") : "";
+  }
+  f.dato.value = new Date().toISOString().slice(0, 10);
+  f.addEventListener("submit", function(e){
+    e.preventDefault();
+    var rk = { hvad: f.hvad.value.trim(), timer: f.timer.value, dato: f.dato.value };
+    if (!rk.hvad || !rk.timer) { s.textContent = "Skriv hvad du lavede, og hvor mange timer det tog."; return; }
+    var k = koe(); k.push(rk);
+    if (!gem(k)) { s.textContent = "Telefonen kunne ikke gemme den. Skriv den på papir."; return; }
+    f.reset();
+    f.dato.value = new Date().toISOString().slice(0, 10);
+    vis();
+  });
+  window.addEventListener("online", function(){ location.href = "/mit/skriv"; });
+  vis();
+})();
+</script>
+</body>
+</html>

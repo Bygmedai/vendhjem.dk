@@ -54,6 +54,10 @@ database_name = "vendhjem-fonde"
 database_id = "f1cacc8c-2720-400e-906a-64f2627789e8"
 migrations_dir = "migrations"
 
+# Månedlig sikkerhedskopi: den 1. klokken 04:00 UTC. Se src/sikkerhedskopi.js.
+[triggers]
+crons = ["0 4 1 * *"]
+
 [[r2_buckets]]
 binding = "FONDE_FILER"
 bucket_name = "vendhjem-fonde-bilag"

@@ -10,6 +10,7 @@ import { oversigt, sagside } from "./sider.js";
 import { side, fejlTilstand } from "./flade.js";
 import { TEKST } from "./tekst.js";
 import { mitFetch } from "./mit.js";
+import { koerSikkerhedskopi } from "./sikkerhedskopi.js";
 import { haandterKorpus, ROD_KORPUS } from "./korpus.js";
 import {
   haandterRunde, listerRunder, saetAdgang, saetKlar, arkiverSag, historiskIndsendelse, FONDE,
@@ -42,6 +43,16 @@ function afvist(bruger) {
 }
 
 export default {
+  // Månedlig sikkerhedskopi af D1 til R2. Se src/sikkerhedskopi.js om hvorfor.
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(koerSikkerhedskopi(env).then((r) => {
+      console.log("sikkerhedskopi", JSON.stringify(r));
+    }).catch((e) => {
+      // En fejlet kopi må aldrig være tavs.
+      console.error("sikkerhedskopi FEJLEDE", String(e && e.message || e));
+    }));
+  },
+
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 

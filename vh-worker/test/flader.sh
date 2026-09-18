@@ -11,7 +11,7 @@
 set -u
 FEJL=0
 VAERTER=(vendhjem.dk www.vendhjem.dk)
-OFFENTLIG=(/ /sporene /fundamentet /permakultur /maend /bliv-en-del /noter /privatlivspolitik /cookies)
+OFFENTLIG=(/ /sporene /fundamentet /permakultur /maend /bliv-en-del /noter /privatlivspolitik /cookies /mit-offline /mit-sw.js /assets/mit.webmanifest)
 INTERN=(/internt /internt/ /internt/stedet /internt/ophold/ /internt/oekonomi /internt/timer /internt/anlaeg /internt/registrering /internt/fonde/ /internt/fonde/ny /internt/korpus /internt/korpus/ /internt/breve /internt/natten)
 HEMMELIGT=("60.922" "asbest" "21.333" "148,5" "Rum for rum")
 

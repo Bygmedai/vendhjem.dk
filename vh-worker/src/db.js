@@ -341,3 +341,93 @@ export async function breveListe(db) {
   ).all();
   return results;
 }
+
+// ── Aftaler og timer (BYG-569 H1) ────────────────────────────────────────────
+//
+// Reglen fra fundamentet: timerne opgøres på det grundlag, de blev aftalt på.
+// Derfor kopieres grundlag og lag ned på hver linje ved oprettelsen og slås
+// ALDRIG op i aftalen bagefter. En aftale kan genforhandles; en registrering
+// kan ikke omskrives af den.
+
+/** Den aftale, der gælder på en dato. Ingen aftale → null, ikke fejl. */
+export async function gaeldendeAftale(db, person_id, dato = nu().slice(0, 10)) {
+  return db.prepare(
+    `SELECT * FROM aftaler
+      WHERE person_id = ?1 AND start_dato <= ?2
+        AND (slut_dato IS NULL OR slut_dato >= ?2)
+      ORDER BY start_dato DESC LIMIT 1`
+  ).bind(person_id, dato).first();
+}
+
+export async function opretTime(db, { person_id, dato, timer, hvad, aftale = null }) {
+  const tid = id();
+  await db.prepare(
+    `INSERT INTO timer (id, person_id, aftale_id, dato, timer, hvad, grundlag, lag, oprettet)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)`
+  ).bind(
+    tid, person_id, aftale?.id ?? null, dato, timer, hvad,
+    aftale?.grundlag ?? "frivillig", aftale?.lag ?? null, nu(),
+  ).run();
+  return db.prepare(`SELECT * FROM timer WHERE id = ?1`).bind(tid).first();
+}
+
+/** Personens egne linjer, nyeste først. */
+export async function mineTimer(db, person_id, { graense = 50 } = {}) {
+  const { results } = await db.prepare(
+    `SELECT * FROM timer WHERE person_id = ?1
+      ORDER BY dato DESC, oprettet DESC LIMIT ?2`
+  ).bind(person_id, graense).all();
+  return results;
+}
+
+/** Personens sum i en periode, delt op på grundlag. */
+export async function mineTimerSum(db, person_id, fra, til) {
+  const { results } = await db.prepare(
+    `SELECT grundlag, SUM(timer) AS timer, COUNT(*) AS dage
+       FROM timer WHERE person_id = ?1 AND dato >= ?2 AND dato <= ?3
+      GROUP BY grundlag`
+  ).bind(person_id, fra, til).all();
+  const ud = { i_alt: 0, dage: 0, frivillig: 0, aftalt_modydelse: 0, betalt: 0 };
+  for (const r of results) {
+    ud[r.grundlag] = Number(r.timer) || 0;
+    ud.i_alt += Number(r.timer) || 0;
+    ud.dage += Number(r.dage) || 0;
+  }
+  return ud;
+}
+
+/**
+ * Stedets fælles fremdrift i en periode: samlede timer, hvor mange der har
+ * lagt dem, og de seneste linjer uden navn. Ingen opgørelse pr. person —
+ * ingen rangliste, hverken her eller på fladen. Fundamentet, /internt/timer.
+ */
+export async function stedetsTimer(db, fra, til) {
+  const sum = await db.prepare(
+    `SELECT COALESCE(SUM(timer), 0) AS timer,
+            COUNT(DISTINCT person_id) AS folk,
+            COUNT(*) AS linjer
+       FROM timer WHERE dato >= ?1 AND dato <= ?2`
+  ).bind(fra, til).first();
+  const { results: seneste } = await db.prepare(
+    `SELECT dato, timer, hvad FROM timer WHERE dato >= ?1 AND dato <= ?2
+      ORDER BY dato DESC, oprettet DESC LIMIT 8`
+  ).bind(fra, til).all();
+  return {
+    timer: Number(sum?.timer) || 0,
+    folk: Number(sum?.folk) || 0,
+    linjer: Number(sum?.linjer) || 0,
+    seneste,
+  };
+}
+
+/** Næste ophold personen står på, fra og med i dag. */
+export async function mitNaesteOphold(db, person_id, idag = nu().slice(0, 10)) {
+  return db.prepare(
+    `SELECT o.*, t.navn AS type_navn, p.status AS plads_status
+       FROM pladser p
+       JOIN ophold o ON o.id = p.ophold_id
+       JOIN opholdstyper t ON t.id = o.type_id
+      WHERE p.person_id = ?1 AND p.status != 'afbudt' AND o.slut_dato >= ?2
+      ORDER BY o.start_dato LIMIT 1`
+  ).bind(person_id, idag).first();
+}
