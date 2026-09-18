@@ -253,7 +253,6 @@ ${kort}
 
 <section class="stage mt3">
 ${fotoBaand(["faellesspisning", "cafe"], { sizes: "(max-width: 600px) 100vw, 589px", stil: "min-height:320px" })}
-<p class="xs soft mt3 maxw">Billederne er fra stedet, som det er blevet brugt indtil nu. Det meste af det herover er ikke sket endnu.</p>
 </section>
 
 <section class="stage blok">
