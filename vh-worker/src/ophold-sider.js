@@ -272,6 +272,7 @@ export function offentligSkal({ titel, canonical, description, indhold, aktiv = 
 <nav class="nav" aria-label="Hovedmenu">
 <a href="/fundamentet"${cur("fundamentet")}>Fundamentet</a>
 <a href="/sporene"${cur("sporene")}>Sporene</a>
+<a href="/permakultur"${cur("permakultur")}>Permakultur</a>
 <a href="/bliv-en-del"${cur("bliv-en-del")}>Bliv en del</a>
 <a href="https://vendhjem.dk/internt/">Log ind →</a>
 </nav>
