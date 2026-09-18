@@ -2194,5 +2194,87 @@ console.log("\n40 · Vagter: et tidspunkt med pladser (BYG-583)");
      `${uden.status} ${uden.headers.get("Location")}`);
 }
 
+console.log("\n41 · Nejet bliver sendt, og en ubesvaret forespoergsel ligner ikke en solgt plads (BYG-575)");
+{
+  // To fund fra roegproeven 18.09, maalt live af mig samme morgen:
+  //
+  //   1. Kvitteringen lover «ja eller nej — ikke et maaske». Jaet blev sendt.
+  //      Nejet blev ikke. Den, der spurgte, hoerte aldrig noget.
+  //   2. Oversigten viste «1/15», mens forespoergslen stod ubesvaret. Ti
+  //      ubesvarede ville staa som «10/15» paa en side, der skal hjaelpe to
+  //      mennesker med at beslutte noget.
+
+  const db = env.FONDE_DB;
+  const { opholdListe, opholdSag, saetPladsStatus } = await import("../src/db.js");
+  const { TEKST } = await import("../src/tekst.js");
+
+  const aabent = (await opholdListe(db)).find((o) => o.status === "åben" && o.kapacitet > 2);
+  t("der findes et aabent ophold at proeve paa", Boolean(aabent), JSON.stringify(aabent || {}));
+
+  mails.length = 0;
+  const foresp = await hent(`/sporene/forespørg/${aabent.id}`, {
+    method: "POST",
+    body: new URLSearchParams({ navn: "Ane Spoerger", mail: "ane.spoerger@example.dk" }),
+  });
+  t("en forespoergsel kan sendes", foresp.status === 200 || foresp.status === 303, String(foresp.status));
+  t("og kvitteringen lander hos den, der spurgte", mails.some((m) => /ane\.spoerger/.test(JSON.stringify(m))),
+     JSON.stringify(mails).slice(0, 160));
+
+  // --- Fund 2: tallet ---
+  const spoerger = await db.prepare(
+    `SELECT * FROM people WHERE lower(mail) = 'ane.spoerger@example.dk'`).first();
+  const sag = await opholdSag(db, aabent.id);
+  const pl = sag.pladser.find((x) => x.person_id === spoerger.id && x.status === "forespurgt");
+  t("pladsen staar som forespurgt", Boolean(pl), JSON.stringify(sag.pladser.map((x) => x.status)));
+  t("den TAELLER stadig med i optaget — den holder en plads", sag.optaget >= 1, String(sag.optaget));
+  t("og den taelles ogsaa for sig, saa fladen kan skelne", sag.ubesvaret >= 1, String(sag.ubesvaret));
+
+  const listen = await opholdListe(db);
+  const iListen = listen.find((o) => o.id === aabent.id);
+  t("oversigten baerer begge tal", iListen.optaget >= 1 && iListen.ubesvaret >= 1,
+     `${iListen.optaget}/${iListen.ubesvaret}`);
+
+  const side = await tekst(await hent(`/internt/ophold/${aabent.id}`));
+  t("og siden siger det med ord, ikke kun med et tal",
+     new RegExp(TEKST.opholdHeraf(sag.ubesvaret).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).test(side),
+     TEKST.opholdHeraf(sag.ubesvaret));
+
+  // --- Fund 1: nejet ---
+  mails.length = 0;
+  await hent(`/internt/ophold/${aabent.id}/plads/${pl.id}/status`, {
+    method: "POST", body: new URLSearchParams({ status: "afbudt" }),
+  });
+  const afslag = mails.find((m) => /ane\.spoerger/.test(JSON.stringify(m)));
+  t("et nej bliver sendt til den, der spurgte", Boolean(afslag), JSON.stringify(mails).slice(0, 200));
+  t("og det siger nej uden at opfinde en grund",
+     afslag && /kan ikke give dig en plads/.test(afslag.text) && !/ikke plads nok/.test(afslag.text),
+     afslag ? afslag.text.slice(0, 160) : "ingen mail");
+  t("det lover ikke noget, ingen kode holder",
+     afslag && !/holder øje med, hvem der har spurgt/.test(afslag.text));
+  t("og det peger paa en doer, der er aaben", afslag && /\/sporene/.test(afslag.text));
+
+  // --- Og pladsen er fri igen ---
+  const efter = await opholdSag(db, aabent.id);
+  t("et nej frigiver pladsen", efter.ubesvaret === sag.ubesvaret - 1, `${sag.ubesvaret} -> ${efter.ubesvaret}`);
+
+  // --- Det vigtige skel: et afbud fra dem selv er ikke et nej fra os ---
+  mails.length = 0;
+  await hent(`/sporene/forespørg/${aabent.id}`, {
+    method: "POST", body: new URLSearchParams({ navn: "Bo Selvafbud", mail: "bo.selv@example.dk" }),
+  });
+  const selv = await db.prepare(
+    `SELECT * FROM people WHERE lower(mail) = 'bo.selv@example.dk'`).first();
+  const sag2 = await opholdSag(db, aabent.id);
+  const pl2 = sag2.pladser.find((x) => x.person_id === selv.id);
+  await saetPladsStatus(db, pl2.id, "bekræftet");
+  mails.length = 0;
+  await hent(`/internt/ophold/${aabent.id}/plads/${pl2.id}/status`, {
+    method: "POST", body: new URLSearchParams({ status: "afbudt" }),
+  });
+  t("melder man selv afbud fra en bekraeftet plads, faar man IKKE et afslag",
+     !mails.some((m) => /kan ikke give dig en plads/.test(m.text || "")),
+     JSON.stringify(mails).slice(0, 200));
+}
+
 console.log(`\n${ok} bestået, ${fejl} fejlet\n`);
 process.exit(fejl ? 1 : 0);

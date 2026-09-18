@@ -188,6 +188,14 @@ export async function skiftMail(db, person_id, mail) {
   return db.prepare(`SELECT * FROM people WHERE id = ?1`).bind(person_id).first();
 }
 
+// En forespurgt plads HOLDER en plads. Det er ikke en fejl: 0007_ophold.sql
+// afviser den næste, når tallet rammer kapaciteten, og lukker opholdet. Ville
+// man lade være med at tælle den, kunne ti ubesvarede plus femten bekræftede
+// stå på et ophold til femten.
+//
+// Fladen skal derfor ikke vise et mindre tal. Den skal vise det SAMME tal og
+// sige, hvor meget af det der endnu ikke er svaret på — ellers ligner en
+// ubesvaret forespørgsel en solgt plads (BYG-575, fund 2).
 const OPTAGENDE = `'forespurgt','bekræftet','betalt'`;
 
 export async function opholdstyper(db) {
@@ -202,7 +210,9 @@ export async function opholdListe(db) {
     SELECT o.*, t.navn AS type_navn, t.spor, t.hele_stedet, t.prismodel,
            t.pris_fra, t.pris_note,
            (SELECT COUNT(*) FROM pladser p
-             WHERE p.ophold_id = o.id AND p.status IN (${OPTAGENDE})) AS optaget
+             WHERE p.ophold_id = o.id AND p.status IN (${OPTAGENDE})) AS optaget,
+           (SELECT COUNT(*) FROM pladser p
+             WHERE p.ophold_id = o.id AND p.status = 'forespurgt') AS ubesvaret
       FROM ophold o
       JOIN opholdstyper t ON t.id = o.type_id
      ORDER BY o.start_dato, t.sortering`).all();
@@ -236,7 +246,9 @@ export async function opholdSag(db, opholdId) {
     SELECT o.*, t.navn AS type_navn, t.spor, t.hele_stedet, t.prismodel,
            t.pris_fra, t.pris_note, t.inkluderet, t.beskrivelse,
            (SELECT COUNT(*) FROM pladser p
-             WHERE p.ophold_id = o.id AND p.status IN (${OPTAGENDE})) AS optaget
+             WHERE p.ophold_id = o.id AND p.status IN (${OPTAGENDE})) AS optaget,
+           (SELECT COUNT(*) FROM pladser p
+             WHERE p.ophold_id = o.id AND p.status = 'forespurgt') AS ubesvaret
       FROM ophold o
       JOIN opholdstyper t ON t.id = o.type_id
      WHERE o.id = ?1`).bind(opholdId).first();

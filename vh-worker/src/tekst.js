@@ -179,6 +179,12 @@ export const TEKST = {
   takLead: "Vi har din forespørgsel. Inden tre dage skriver vi tilbage, om pladsen er din.",
   opholdFuldt: "Opholdet er fuldt. Vi tager ikke flere forespørgsler på den her dato.",
   opholdIkkeAabent: "Det ophold kan ikke forespørges på.",
+  // Forespurgt er IKKE det samme som bekræftet — men den holder en plads
+  // (0007_ophold.sql). Derfor står tallet, og det ubesvarede står ved siden af.
+  opholdHeraf: (n) => `heraf ${n === 1 ? "én ubesvaret" : `${n} ubesvarede`}`,
+  opholdAfvistMail: "Afbud sendt",
+  opholdAfvistMailFejl: "Afbuddet kunne ikke sendes",
+
   bekraeft: "Bekræft",
   afvis: "Afvis",
   forespørgsler: "Forespørgsler",
@@ -230,6 +236,38 @@ export function kvitteringBrev({ navn, type_navn, periode }) {
       `Vi har din forespørgsel på ${type_navn}, ${periode}.\n\n` +
       `Inden tre dage skriver vi tilbage, om pladsen er din.\n\n` +
       `Vendhjem\nAgersø`,
+  };
+}
+
+/**
+ * Nejet.
+ *
+ * Kvitteringen lover «ja eller nej — ikke et måske». Indtil 18.09.2026 blev
+ * der kun sendt et ja, og den, der spurgte, hørte aldrig noget. Et nej, der
+ * ikke bliver sendt, er ikke et nej. Det er tavshed, og tavshed er værre.
+ *
+ * Brevet er kort med vilje. Et langt afslag læses som en forklaring, man skal
+ * tage stilling til, og det er ikke det, det er. Det siger nej, det siger at
+ * døren ikke er lukket, og så holder det op.
+ *
+ * DET SIGER IKKE HVORFOR, OG DET LOVER INGENTING.
+ *
+ * Første udkast sagde «der er bare ikke plads nok» og «vi holder øje med, hvem
+ * der har spurgt før». Begge dele måtte ud. Knappen bruges også, når svaret er
+ * nej af andre grunde end plads, så en opdigtet forklaring kan være løgn. Og
+ * der findes ingen kode, der husker, hvem der har spurgt før — et løfte, ingen
+ * mekanisme bærer, er værre end intet løfte.
+ */
+export function afslagsBrev({ navn, type_navn, periode }) {
+  return {
+    subject: `Om din forespørgsel på ${type_navn}`,
+    text:
+      `Hej ${navn}\n\n` +
+      `Tak fordi du spurgte om ${type_navn}, ${periode}.\n\n` +
+      `Vi kan ikke give dig en plads den her gang.\n\n` +
+      `Du er velkommen til at spørge igen til et andet ophold. De åbne datoer ` +
+      `står på vendhjem.dk/sporene.\n\n` +
+      `Vend Hjem\nAgersø`,
   };
 }
 
