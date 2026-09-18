@@ -1400,6 +1400,12 @@ console.log("\n29 · Timer, aftale og appen på /mit (BYG-569 H1)");
   const offline = readFileSync(new URL("mit-offline.html", rod), "utf8");
   t("service workeren cacher ALDRIG en personlig /mit-side",
      !/["']\/mit["']/.test(sw) && /mode === "navigate"/.test(sw));
+  // En rettelse i stilarket skal vise sig FØRSTE gang appen åbnes, ikke anden.
+  t("stilarket hentes fra nettet først, så en udrulning ses med det samme",
+     /var FRISK = \[OFFLINE, "\/assets\/vh\.css"\]/.test(sw) &&
+     /FRISK\.indexOf\(url\.pathname\) !== -1[\s\S]{0,120}fetch\(req\)/.test(sw));
+  t("skrifter og ikoner bliver i cachen — de ændrer sig ikke",
+     /var FAST = \[/.test(sw) && /lora-var\.woff2/.test(sw.slice(sw.indexOf("var FAST"))));
   t("offline-siden er den, service workeren falder tilbage på", /var OFFLINE = "\/mit-offline"/.test(sw));
   t("køen bruger samme nøgle i appen og på offline-siden",
      /vh-timer-koe/.test(offline) && /vh-timer-koe/.test(readFileSync(new URL("vh-worker/src/mit.js", rod), "utf8")));
