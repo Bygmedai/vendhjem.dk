@@ -7,7 +7,7 @@ import { opholdstyper, opholdListe, opholdSag, opretOphold, gemOphold,
 import { opholdOversigt, opholdSide, sporeneSide, sporeneForesporgSide,
          sporeneTakSide, sporeneFuldtSide, periodeTekst } from "./ophold-sider.js";
 import { side, fejlTilstand } from "./flade.js";
-import { TEKST, kvitteringBrev, bekraeftelsesBrev } from "./tekst.js";
+import { TEKST, kvitteringBrev, bekraeftelsesBrev, afslagsBrev } from "./tekst.js";
 import { sendMail } from "./mail.js";
 import { sessionPerson } from "./session.js";
 
@@ -97,6 +97,36 @@ async function sendBekraeftelse(env, pladsId) {
     pris_note: row.pris_note,
     spor: row.spor,
     vis_pris: row.pris ?? row.pris_fra,
+  });
+  await sendMail(env, { to: row.person_mail, ...brev });
+}
+
+/**
+ * Nejet, sendt.
+ *
+ * «afbudt» dækker to helt forskellige ting, og de må ikke få samme brev:
+ *
+ *   forespurgt -> afbudt     VI siger nej. Der skal sendes et afslag.
+ *   bekræftet  -> afbudt     DE melder afbud. Der skal intet sendes — et
+ *                            «vi kan ikke give dig en plads» til en, der selv
+ *                            sagde fra, er koldt og forvirrende.
+ *
+ * Derfor kigger kaldstedet på den FORRIGE status, ikke kun på den nye.
+ */
+async function sendAfslag(env, pladsId) {
+  const row = await env.FONDE_DB.prepare(`
+    SELECT p.*, pe.navn AS person_navn, pe.mail AS person_mail,
+           o.start_dato, o.slut_dato, t.navn AS type_navn
+      FROM pladser p
+      JOIN people pe ON pe.id = p.person_id
+      JOIN ophold o ON o.id = p.ophold_id
+      JOIN opholdstyper t ON t.id = o.type_id
+     WHERE p.id = ?1`).bind(pladsId).first();
+  if (!row?.person_mail) throw new Error("ingen mail på personen");
+  const brev = afslagsBrev({
+    navn: row.person_navn,
+    type_navn: row.type_navn,
+    periode: periodeTekst(row.start_dato, row.slut_dato),
   });
   await sendMail(env, { to: row.person_mail, ...brev });
 }
@@ -235,6 +265,16 @@ export async function besvarOphold(request, env, bruger, url) {
         if (status === "bekræftet" && foer?.status !== "bekræftet") {
           try {
             await sendBekraeftelse(env, pid);
+            await saetPladsMailFejl(db, pid, null);
+          } catch (e) {
+            await saetPladsMailFejl(db, pid, String(e.message || e));
+          }
+        }
+        // Kun NÅR VI siger nej til en, der spurgte. Et afbud fra en, der selv
+        // sagde fra, får ingenting — se sendAfslag om hvorfor.
+        if (status === "afbudt" && foer?.status === "forespurgt") {
+          try {
+            await sendAfslag(env, pid);
             await saetPladsMailFejl(db, pid, null);
           } catch (e) {
             await saetPladsMailFejl(db, pid, String(e.message || e));

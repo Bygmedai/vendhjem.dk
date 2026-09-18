@@ -49,7 +49,9 @@ export function opholdOversigt({ bruger, liste, typer, advarsel, forespurgte = [
   <span class="meta" style="display:block;margin-top:4px">${esc(o.hele_stedet ? "hele stedet" : "kan deles")}</span></td>
 <td>${esc(periodeTekst(o.start_dato, o.slut_dato))}</td>
 <td>${statusPil(OPHOLD_TRIN, o.status)}</td>
-<td class="mono">${o.optaget}/${o.kapacitet}</td>
+<td class="mono">${o.optaget}/${o.kapacitet}${
+  o.ubesvaret ? `<span class="m">${esc(TEKST.opholdHeraf(o.ubesvaret))}</span>` : ""
+}</td>
 <td class="mono">${esc(kr(o.pris ?? o.pris_fra) || TEKST.streg)}</td>
 </tr>`);
 
@@ -148,7 +150,9 @@ ${advarsel ? `<section class="stage" style="padding-top:18px"><div class="ramme"
 <p class="sec"><a href="/internt/ophold/">Ophold</a> / ${esc(o.type_navn)}</p>
 <h1>${esc(periodeTekst(o.start_dato, o.slut_dato))}</h1>
 <div class="mt3">${statusPil(OPHOLD_TRIN, o.status)}</div>
-<p class="small soft mt2">${o.optaget} af ${o.kapacitet} pladser · ${o.hele_stedet ? "hele stedet" : "kan ligge samtidig med andet"}</p>
+<p class="small soft mt2">${o.optaget} af ${o.kapacitet} pladser${
+  o.ubesvaret ? ` · ${esc(TEKST.opholdHeraf(o.ubesvaret))}` : ""
+} · ${o.hele_stedet ? "hele stedet" : "kan ligge samtidig med andet"}</p>
 </section>
 
 <section class="stage blok sektion">
