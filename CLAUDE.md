@@ -1,7 +1,9 @@
 # CLAUDE.md — vendhjem.dk
 
-**Status:** udkast til review. Skrevet 18.09.2026 efter en fuld QA på `fb1fe61`.
-Alt herunder er målt på det tidspunkt, ikke husket. Hvor jeg ikke har målt, står det.
+**Status:** gældende. Skrevet af Vilde 18.09.2026 efter QA på `fb1fe61`, merged af
+Steven, og gennemgået af Haruki samme dag på `977ee30`. Alt herunder er målt, ikke
+husket. Hvor det ikke er målt, står det. Rettelser fra gennemgangen er markeret
+**[målt 18.09, Haruki]** — de erstatter det, der stod før, og ikke andet.
 
 ---
 
@@ -35,7 +37,12 @@ så er det filen.
 
 Workeren ejer i dag: `/sporene`, `/sporene/*`, **`/sporene.html`**, `/mit`,
 `/mit/*`, `/bliv-en-del/skriv`, `/internt/ophold*`, `/internt/breve*`,
-`/internt/fonde*`, `/internt/korpus*`, `/sundhed/fonde`. Resten er statiske filer.
+`/internt/fund*`, `/internt/fonde*`, `/internt/korpus*`, `/sundhed/fonde`.
+Resten er statiske filer.
+
+**[målt 18.09, Haruki]** `/internt/fund*` kom til i #48 og manglede i listen.
+Den her liste forældes, hver gang nogen tilføjer en rute — læs `index.js`, hvis
+det står på spil. Listen er en hjælp, ikke en kilde.
 
 Bemærk `/sporene.html`: Workeren fanger også filnavnet, så selv den direkte vej
 til filen giver den levende side. Du kan altså ikke omgå den ved at skrive `.html`
@@ -47,7 +54,7 @@ i adresselinjen.
 
 ```
 python3 build.py                 # skriver siderne + fire genererede JS-moduler
-node vh-worker/test/koer.mjs     # 234 prøver (fb1fe61). Kører IKKE i CI — se nedenfor
+node vh-worker/test/koer.mjs     # 308 prøver (977ee30). Kører nu i CI på hver PR
 bash vh-worker/test/flader.sh    # måler den levende flade
 ```
 
@@ -64,8 +71,18 @@ bash vh-worker/test/flader.sh    # måler den levende flade
 
 **Konsekvens:** ændrer du `nav-internt.json`, `stigen.json` eller et foto, så kør
 `build.py` og commit begge dele. Glemmer du det, driver kilden og koden fra
-hinanden. Prøve 28 fanger det for `stigen.js`, prøve 27 for `fotos.js`. For
-`nav-internt.js` fanger ingenting det.
+hinanden.
+
+**[målt 18.09, Haruki]** Det fanges nu af CI, ikke af en enkelt prøve: portneren
+`Worker-prøver` kører `build.py` og fejler, hvis et committet resultat ændrer sig.
+Det dækker alle fire moduler og de byggede sider på én gang.
+
+Til gengæld var beskrivelsen af prøverne ikke rigtig. Prøve 28 sammenligner
+`stigen.json` med `stigen.js` — den er en ægte kilde-mod-genereret-prøve. Prøve 27
+gør **ikke** det samme for `fotos.js`; den tjekker kun, at modulet er internt
+konsistent (hvert foto har mål og alt-tekst). Prøve 11 sammenligner de to
+navigationer med hinanden, ikke med `nav-internt.json` — er begge forældede, består
+den. Portneren ovenfor er det, der dækker hullet.
 
 ---
 
@@ -119,7 +136,21 @@ uden fejl, er en påstand. Et kald er en måling.
   under hånden.
 - **Copy på klientfladen er Lais.** Han har veto. Retter du en formulering, fordi
   den læser skævt, så sig det højt i PR'en — omskriv den ikke bare.
-- **Ingen ejer nævnes ved navn på den offentlige flade før udkøbet.** Afgjort i #33.
+- **[målt 18.09, Haruki — RETTET]** Der stod: «Ingen ejer nævnes ved navn på den
+  offentlige flade før udkøbet. Afgjort i #33.» Den regel gælder ikke som skrevet.
+  Målt på den levende flade samme dag: `/bliv-en-del` siger «Lai svarer inden 7
+  dage» og «brevet går til Lai», og `/privatlivspolitik` siger «Vend Hjem drives af
+  Lai Yde, Egholmvej 23». Det er ikke en fejl — **Steven bad udtrykkeligt om det**
+  («Sæt Lais navn på», 18.09.2026, bygget i #38), og en privatlivspolitik uden en
+  navngiven dataansvarlig er ikke en privatlivspolitik.
+
+  Det, der gælder: **Lai står som vært og som den, man skriver til. Ejerforholdet
+  og en fremtidig medejerkreds omtales ikke offentligt før udkøbet.** Hvis #33
+  besluttede noget andet, er det overhalet af Steven selv.
+
+  En fremtidig session, der læser den gamle formulering som lov, ville fjerne Lais
+  navn og dermed rulle en beslutning tilbage, principalen havde truffet. Det er
+  grunden til, at det her afsnit fylder så meget.
 
 ---
 
@@ -152,23 +183,54 @@ den kode, der står i dag.
 Målt 18.09.2026 på `fb1fe61`. De står her, fordi et hul, ingen har skrevet ned,
 bliver til en overraskelse.
 
-1. **De 234 Worker-prøver kører ikke i CI.** Quality Gate har fire jobs —
-   html-validate, broken-links, Lighthouse, Playwright — og ingen af dem rører
-   `vh-worker/`. Hele beviset for brevet, opholdene, overlaps-triggeren og
-   kalenderen ligger i en fil, kun et menneske kører. Siden merge nu udruller
-   automatisk, er der ingen automat mellem «grøn PR» og «ude i produktion».
-2. **`build.py` kører ikke i Quality Gate**, kun i `udrul.yml`. Sti-hegnet fyrer
-   altså først efter merge. Og porten validerer de *committede* HTML-filer —
-   glemmer nogen at køre `build.py` før commit, valideres én tekst og udrulles en
-   anden. På `fb1fe61` er de i sync; intet holder dem der.
+1. ~~**De 234 Worker-prøver kører ikke i CI.**~~ **LUKKET 18.09.2026.** Vilde
+   havde ret: `koer.mjs` stod ingen steder i nogen workflow, og merge udruller.
+   Portneren `Worker-prøver` i `test.yml` kører dem nu på hver PR og hver push.
+2. ~~**`build.py` kører ikke i Quality Gate.**~~ **LUKKET samme sted.** Portneren
+   kører `build.py` først — både fordi de interne sider er gitignored og skal
+   findes, før prøve 11 kan læse dem, og fordi sti-hegnet dermed fyrer *før*
+   merge i stedet for efter. Den fejler også, hvis `build.py` ændrer en committet
+   fil: så er kilde og bygget resultat drevet fra hinanden, og det er præcis den
+   fejl, der ellers valideres i én tekst og udrulles i en anden.
 3. **Ingen prøve rammer `.assetsignore`.** Hegnet, der lukkede `/.git/`, er
    ubevist.
 4. **GitHub Pages kører stadig** og bygger repoet på hver merge. `.assetsignore`
    gælder ikke der. Hullet er lukket af en 301 til vendhjem.dk (målt), altså af
    `CNAME` og af at Cloudflare ejer DNS'en. Pages gør ikke andet nyttigt.
 5. **23 forældreløse HTML-filer** — 11 i roden, 12 i `design/`. `build.py` rører
-   dem ikke, ingen side linker til dem, de står ikke i sitemap, og de er 404 på
-   fladen. Men porten validerer dem, og de bærer copy, ingen har godkendt.
+   dem ikke, ingen side linker til dem, og de står ikke i sitemap. Men porten
+   validerer dem, og de bærer copy, ingen har godkendt.
+
+   **[målt 18.09, Haruki]** «404 på fladen» er ikke rigtigt, og forskellen er
+   værd at kende. De er på `.assetsignore`, så de serveres ikke — men ti af dem
+   fanges af `_redirects` og svarer **301** til en nulevende side
+   (`/agersoe.html` → `/sporene`, `/blog.html` → `/`, `/finddinvej.html` →
+   humandirection.dk). De fem `integral-*.html` (kvadranter, linjer, niveauer,
+   tilstande, typer) har **ingen** redirect og svarer 404. Hvis de fem adresser
+   har været delt et sted, er det fem døde links, der kunne have været 301.
+
+6. **[målt 18.09, Haruki]** `.assetsignore` er en deny-liste, og hvert nyt hold
+   filer skal skrives på. `/stigen.json` og `/images/sted/_manifest.json` svarede
+   200. Indholdet er harmløst — det er kilden til sider, der i forvejen er
+   offentlige — men mekanikken er ikke. Begge er tilføjet, sammen med
+   `noter-kilder` og permakultur-manifestet. **Reglen er ikke «tjek listen», men
+   «en ny fil i roden er offentlig, indtil nogen skriver den på listen».**
+
+---
+
+## Hvad det her dokument er — og ikke er
+
+**[målt 18.09, Haruki]** Målingerne herover er efterprøvbare: de har en dato, en
+kommando og et svar, og du kan køre dem igen. Vurderingerne — hvad der er en god
+idé, hvad der bør gøres først — er vurderinger. De kan overrules, og Steven er den,
+der gør det.
+
+Det her er ikke en lov. Det er den hurtigste vej til ikke at lave de fejl, vi
+allerede har lavet. Møder du en regel her, som modsiger det, principalen lige har
+sagt, så gælder principalen — og så retter du reglen her, så den næste ikke falder
+i det samme hul. Det er nøjagtig, hvad der skete med ejernavnene ovenfor.
+
+En dato uden en måling bag er et gæt med selvtillid.
 
 ---
 

@@ -7,6 +7,38 @@ on:
     branches: [main]
 
 jobs:
+  # Worker-proeverne. De daekker brevet, opholdene, overlaps-triggeren,
+  # kalenderen, timerne, fundene, login og sikkerhedskopien — og de kunne
+  # frem til 18.09.2026 KUN koeres af et menneske i haanden. Siden merge
+  # udruller automatisk, var der ingen automat mellem «groen PR» og
+  # «ude i produktion». Det er hullet, denne portner lukker.
+  #
+  # build.py koeres foerst af to grunde: de interne sider er gitignored og
+  # findes ikke i et checkout (proeve 11 laeser internt/oekonomi.html), og
+  # sti-hegnet i build.py fyrede foer kun i udrul.yml — altsaa EFTER merge.
+  # Nu fyrer det paa hver PR.
+  proever:
+    name: Worker-prøver
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Byg siderne (internt/ findes ikke i checkout)
+        run: python3 build.py
+      - name: Er de byggede filer i sync med kilderne?
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::build.py aendrede filer, der er committet. Koer 'python3 build.py' og commit resultatet."
+            git status --short
+            git diff --stat
+            exit 1
+          fi
+          echo "Kilder og byggede filer er i sync."
+      - name: Prøver
+        run: node vh-worker/test/koer.mjs
+
   html-validate:
     name: HTML Validation
     runs-on: ubuntu-24.04
