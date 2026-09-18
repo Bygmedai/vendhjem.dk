@@ -1669,8 +1669,15 @@ console.log("\n34 · Natten flyttede derhen, hvor den kan læses");
   t("build.py bygger den ikke længere", !/internt\/natten/.test(readFileSync(new URL("build.py", rod), "utf8")));
   t("nav-internt.json har ikke et punkt, der peger på ingenting",
      !/internt\/natten/.test(readFileSync(new URL("nav-internt.json", rod), "utf8")));
+  const omdiriger = readFileSync(new URL("_redirects", rod), "utf8");
   t("den gamle adresse sender videre i stedet for at dø",
-     /\/internt\/natten \/mit\/aftalt 301/.test(readFileSync(new URL("_redirects", rod), "utf8")));
+     /\/internt\/natten \/mit\/aftalt 301/.test(omdiriger));
+  // Vilde maalte, at /internt/* aldrig naar _redirects: Access svarer 302 paa
+  // kanten foerst. Den linje hjaelper altsaa kun dem, der i forvejen har
+  // adgang. Faellesskabet skal have en OFFENTLIG sti at gaa ind ad.
+  t("der findes et kort, offentligt link, fællesskabet kan få i en sms",
+     /^\/natten \/mit\/aftalt 301$/m.test(omdiriger));
+  t("og det ligger ikke bag Access", !/^\/internt\/natten$/m.test(omdiriger.split("\n").find((l) => l.startsWith("/natten")) || ""));
 }
 
 console.log(`\n${ok} bestået, ${fejl} fejlet\n`);

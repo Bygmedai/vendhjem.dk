@@ -14,4 +14,14 @@
 /stedet /internt/stedet 301
 /hjulet /fundamentet 301
 # Natten flyttede til /mit/aftalt, hvor faellesskabet kan laese den.
+#
+# /natten er det korte link, Lai kan skrive i en sms klokken halv elleve. Det
+# sender til /mit, som beder om login og foerer videre til reglerne.
+#
+# /internt/natten staar her ogsaa, men den hjaelper kun de tre-fem af os med en
+# Access-plads: Access svarer 302 paa kanten FOER _redirects overhovedet kommer
+# til. Maalt 18.09.2026 af Vilde og efterproevet af Haruki — /hjulet giver 301
+# til /fundamentet, mens /internt/natten giver 302 til cloudflareaccess.com.
+# Linjen koster ingenting og fanger den, der har den gamle adresse i en fane.
+/natten /mit/aftalt 301
 /internt/natten /mit/aftalt 301
