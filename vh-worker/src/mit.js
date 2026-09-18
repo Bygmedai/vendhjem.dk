@@ -6,10 +6,12 @@ import {
   personMedGyldigRolle, sætSidstSet, sætPasskeyTilbud, id, nu,
   gaeldendeAftale, opretTime, mineTimer, mineTimerSum, stedetsTimer, mitNaesteOphold,
   logLoginForsoeg, hentPerson, opretFund, mineFund,
+  kommendeVagter, skrivPaa, skrivAf,
 } from "./db.js";
 import { mitSide, felt, knap, esc, tomTilstand } from "./flade.js";
 import { periodeTekst } from "./ophold-sider.js";
 import { aftaltIndhold } from "./aftalt.js";
+import { vagterNu, vagterSide } from "./vagter.js";
 import { TEKST } from "./tekst.js";
 import { sendMagicMail } from "./mail.js";
 import {
@@ -104,7 +106,7 @@ ${aftale.note ? `<p class="xs soft mt1">${esc(aftale.note)}</p>` : ""}
 </div>`;
 }
 
-function nuIndhold({ person, aftale, ophold, minSum, tilbud }) {
+function nuIndhold({ person, aftale, ophold, minSum, tilbud, vagter = [] }) {
   const opholdHtml = ophold
     ? `<p class="small mt1"><strong>${esc(ophold.type_navn)}</strong></p>
 <p class="meta mt1">${esc(periodeTekst(ophold.start_dato, ophold.slut_dato))} · ${esc(ophold.plads_status)}</p>`
@@ -132,6 +134,8 @@ ${maal}
 </div>
 
 ${aftaleKort(aftale)}
+
+${vagterNu(vagter)}
 
 <p class="mt4"><a class="lnk lnk-accent" href="/mit/skriv">Skriv dagens timer →</a></p>
 <p class="meta mt3"><a href="/mit/aftalt">${esc(TEKST.aftaltLink)}</a></p>
@@ -652,14 +656,15 @@ export async function mitFetch(request, env) {
       await enhedAf(request, sc);
       const idag = idagIso(env);
       const aar = idag.slice(0, 4);
-      const [aftale, ophold, minSum] = await Promise.all([
+      const [aftale, ophold, minSum, vagter] = await Promise.all([
         gaeldendeAftale(env.FONDE_DB, person.id, idag),
         mitNaesteOphold(env.FONDE_DB, person.id, idag),
         mineTimerSum(env.FONDE_DB, person.id, `${aar}-01-01`, `${aar}-12-31`),
+        kommendeVagter(env.FONDE_DB, person.id, { fra_dato: idag, graense: 30 }),
       ]);
       return html(sideHtml({
         titel: "Mit", bruger: person, fane: "nu",
-        indhold: nuIndhold({ person, aftale, ophold, minSum, tilbud: passkeyTilbud(person) }),
+        indhold: nuIndhold({ person, aftale, ophold, minSum, vagter, tilbud: passkeyTilbud(person) }),
       }), { cookies: sc });
     }
 
@@ -677,6 +682,39 @@ export async function mitFetch(request, env) {
         titel: TEKST.aftalt, bruger: person, fane: "nu",
         indhold: aftaltIndhold(),
       }), { cookies: sc });
+    }
+
+    if (person && request.method === "GET" && sti === "/mit/vagter") {
+      const sc = await sessionCookies(env, person, cookiesUd);
+      const vagter = await kommendeVagter(env.FONDE_DB, person.id, { fra_dato: idagIso(env), graense: 60 });
+      // Beskeden staar i adressen og ikke i en cookie: efter en POST sendes man
+      // hertil med 303, og en genindlaesning maa ikke skrive nogen paa igen.
+      const m = url.searchParams.get("m");
+      const besked = m === "fuld" ? { ok: false, t: TEKST.vagtFuldSvar }
+        : m === "fortid" ? { ok: false, t: TEKST.vagtFortidSvar }
+        : m === "vaek" ? { ok: false, t: TEKST.vagtFindesIkke }
+        : null;
+      return html(sideHtml({
+        titel: TEKST.vagter, bruger: person, fane: "nu",
+        indhold: vagterSide(vagter, besked),
+      }), { cookies: sc });
+    }
+
+    // Paa og af. To doere, ikke én med et felt der siger hvilken vej — en
+    // vippekontakt paa daarligt net kan man ikke vide tilstanden paa, og saa
+    // skriver det andet tryk én af igen.
+    const vagtM = sti.match(/^\/mit\/vagter\/([A-Za-z0-9_-]{4,64})\/(paa|af)$/);
+    if (request.method === "POST" && vagtM) {
+      if (!person) return redirect("/mit", cookiesUd);
+      const [, vagtId, retning] = vagtM;
+      if (retning === "af") {
+        await skrivAf(env.FONDE_DB, vagtId, person.id);
+        return redirect("/mit/vagter", await sessionCookies(env, person, cookiesUd));
+      }
+      const r = await skrivPaa(env.FONDE_DB, vagtId, person.id);
+      const sc = await sessionCookies(env, person, cookiesUd);
+      if (r.ok) return redirect("/mit/vagter", sc);
+      return redirect(`/mit/vagter?m=${r.grund === "fuld" ? "fuld" : "fortid"}`, sc);
     }
 
     if (person && request.method === "GET" && sti === "/mit/overblik") {
@@ -707,7 +745,7 @@ export async function mitFetch(request, env) {
         : timerPost(rk, env, person);
     }
 
-    if (!person && request.method === "GET" && (sti === "/mit/skriv" || sti === "/mit/overblik" || sti === "/mit/aftalt")) {
+    if (!person && request.method === "GET" && (sti === "/mit/skriv" || sti === "/mit/overblik" || sti === "/mit/aftalt" || sti === "/mit/vagter")) {
       await enhedAf(request, cookiesUd);
       return redirect("/mit", cookiesUd);
     }

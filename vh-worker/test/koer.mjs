@@ -26,8 +26,9 @@ const breveSql = readFileSync(new URL("../migrations/0011_breve.sql", import.met
 const timerSql = readFileSync(new URL("../migrations/0012_timer.sql", import.meta.url), "utf8");
 const loginSql = readFileSync(new URL("../migrations/0013_login_forsoeg.sql", import.meta.url), "utf8");
 const fundSql = readFileSync(new URL("../migrations/0014_fund.sql", import.meta.url), "utf8");
+const vagterSql = readFileSync(new URL("../migrations/0015_vagter.sql", import.meta.url), "utf8");
 const SKELET = [init, seed, peopleSql, mitSql, korpusSql, fondeE2, opholdSql, foresporgSql];
-const MIGRATIONER = [...SKELET, kalenderSql, breveSql, timerSql, loginSql, fundSql];
+const MIGRATIONER = [...SKELET, kalenderSql, breveSql, timerSql, loginSql, fundSql, vagterSql];
 
 let ok = 0, fejl = 0;
 const t = (navn, betingelse, ekstra = "") => {
@@ -2048,6 +2049,149 @@ console.log("\n39 · Readback-vaerktoejet til SQL-eksporten");
   t("den naevner trigger-faelden ved navn", /hele stedet er optaget/.test(koereplan));
   t("den siger hoejt hvad der STADIG ikke er gjort",
      /stadig ikke/i.test(koereplan) && /R2/.test(koereplan));
+}
+
+console.log("\n40 · Vagter: et tidspunkt med pladser (BYG-583)");
+{
+  // De seks acceptkriterier fra BYG-569, som aldrig blev proevet, fordi
+  // vagterne aldrig blev bygget. Sagen blev lukket som Done alligevel.
+  //
+  // Reglerne er i SKEMAET, ikke i handleren — se 0015_vagter.sql. Proeven her
+  // gaar gennem den rigtige flade, saa den ogsaa maaler, at handleren ikke
+  // omgaar dem.
+
+  const db = env.FONDE_DB;
+  const css = readFileSync(new URL("../../assets/vh.css", import.meta.url), "utf8");
+  const { ukendteKlasser } = await import("../src/kontrakt.js");
+  const { opretVagt, skrivPaa, kommendeVagter, hvemStaarPaa, vagtTal, opretPerson } = await import("../src/db.js");
+  const { laesVagt } = await import("../src/vagter-sider.js");
+  const { TEKST } = await import("../src/tekst.js");
+
+  const imorgen = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+  const steven = await hentPerson(db, "steven@bygmedai.dk");
+
+  // --- 1 · En vagt kan oprettes og tilmeldes paa ét tryk hver vej. ---
+  const jar = new Jar();
+  mails.length = 0;
+  await jar.hent("/mit");
+  await jar.hent("/mit/login", { method: "POST", body: new URLSearchParams({ mail: "steven@bygmedai.dk" }) });
+  const l = linkIMail(mails[0]);
+  await jar.hent(l ? stiFraUrl(l) : "/mit/link/x");
+
+  const kokken = await opretVagt(db, {
+    hvad: "Køkken, aftensmad", dato: imorgen, fra: "16:00", til: "19:00",
+    pladser: 2, hvor: "Hovedhuset", oprettet_af: steven.id,
+  });
+
+  const nuFoer = await tekst(await jar.hent("/mit"));
+  t("vagten staar paa Nu, uden at man skal lede", /Køkken, aftensmad/.test(nuFoer));
+  t("og siger hvor mange der mangler, i ord", /0 af 2 pladser/.test(nuFoer) && /mangler 2/.test(nuFoer),
+     (nuFoer.match(/\d af \d pladser[^<]*/) || [""])[0]);
+  t("Nu bruger stadig kun klasser fra vh.css", ukendteKlasser(nuFoer, css).length === 0,
+     ukendteKlasser(nuFoer, css).join(", "));
+
+  const paaSvar = await jar.hent(`/mit/vagter/${kokken.id}/paa`, { method: "POST" });
+  t("ét tryk skriver dig paa", paaSvar.status === 303, String(paaSvar.status));
+  t("og sender dig et sted hen, en genindlaesning ikke kan gentage",
+     paaSvar.headers.get("Location") === "/mit/vagter", paaSvar.headers.get("Location"));
+
+  const liste1 = await tekst(await jar.hent("/mit/vagter"));
+  t("listen siger at du er paa", /Du er på/.test(liste1));
+  t("og tilbyder vejen ud, ikke vejen ind igen", /vagter\/[^"]+\/af/.test(liste1) && !/vagter\/[^"]+\/paa/.test(liste1));
+
+  // --- 2 · Dobbelt tilmelding. To tryk skal give samme tilstand som ét. ---
+  await jar.hent(`/mit/vagter/${kokken.id}/paa`, { method: "POST" });
+  const efterTo = await db.prepare(`SELECT COUNT(*) AS n FROM paa WHERE vagt_id = ?1`).bind(kokken.id).first();
+  t("to tryk paa samme vagt giver én tilmelding, ikke to", efterTo.n === 1, String(efterTo.n));
+
+  // --- 3 · Afmelding frigiver pladsen med det samme. ---
+  const afSvar = await jar.hent(`/mit/vagter/${kokken.id}/af`, { method: "POST" });
+  const efterAf = await db.prepare(`SELECT COUNT(*) AS n FROM paa WHERE vagt_id = ?1`).bind(kokken.id).first();
+  t("ét tryk skriver dig af igen", afSvar.status === 303 && efterAf.n === 0, String(efterAf.n));
+  const liste2 = await tekst(await jar.hent("/mit/vagter"));
+  t("og pladsen er fri i samme oejeblik", /0 af 2 pladser/.test(liste2));
+
+  // --- 4 · En fuld vagt afviser. Skemaet, ikke handleren. ---
+  const a = await opretPerson(db, { navn: "Prøve A", mail: "proeve-a@vendhjem.dk" });
+  const b = await opretPerson(db, { navn: "Prøve B", mail: "proeve-b@vendhjem.dk" });
+  await skrivPaa(db, kokken.id, a.id);
+  await skrivPaa(db, kokken.id, b.id);
+  const fuld = await skrivPaa(db, kokken.id, steven.id);
+  t("den tredje paa en vagt med to pladser bliver afvist", fuld.ok === false && fuld.grund === "fuld",
+     JSON.stringify(fuld));
+
+  const fuldSvar = await jar.hent(`/mit/vagter/${kokken.id}/paa`, { method: "POST" });
+  t("og fladen siger det paa dansk i stedet for at fejle",
+     fuldSvar.status === 303 && fuldSvar.headers.get("Location") === "/mit/vagter?m=fuld",
+     fuldSvar.headers.get("Location"));
+  const medBesked = await tekst(await jar.hent("/mit/vagter?m=fuld"));
+  t("beskeden staar paa siden, ikke kun i adressen", /blev fuld, mens du kiggede/.test(medBesked));
+  t("og en fuld vagt tilbyder ingen knap, man ikke kan bruge",
+     /Fuld/.test(medBesked) && !new RegExp(`vagter/${kokken.id}/paa`).test(medBesked));
+
+  // --- 5 · En vagt i fortiden kan ikke tilmeldes, men kan stadig ses. ---
+  const gammel = await opretVagt(db, { hvad: "Gammel vagt", dato: "2020-01-01", pladser: 5, oprettet_af: steven.id });
+  const fortid = await skrivPaa(db, gammel.id, steven.id);
+  t("en vagt, der er gaaet, afviser tilmelding", fortid.ok === false && fortid.grund === "fortid",
+     JSON.stringify(fortid));
+  const stadigDer = await db.prepare(`SELECT hvad FROM vagter WHERE id = ?1`).bind(gammel.id).first();
+  t("men vagten er der stadig — den blev ikke slettet", stadigDer.hvad === "Gammel vagt");
+  const listeUdenFortid = await tekst(await jar.hent("/mit/vagter"));
+  t("og den staar ikke og roder paa listen over det kommende", !/Gammel vagt/.test(listeUdenFortid));
+
+  // --- 6 · Daekningstallet kommer fra posterne, ikke fra et felt. ---
+  const set = await kommendeVagter(db, steven.id, { fra_dato: imorgen });
+  const k = set.find((v) => v.id === kokken.id);
+  const rigtigt = await db.prepare(`SELECT COUNT(*) AS n FROM paa WHERE vagt_id = ?1`).bind(kokken.id).first();
+  t("daekningen er talt, ikke gemt", k.paa_antal === rigtigt.n && k.mangler === Math.max(0, k.pladser - rigtigt.n),
+     `${k.paa_antal}/${rigtigt.n}`);
+  const navne = (await hvemStaarPaa(db, kokken.id)).map((p) => p.navn);
+  t("og hvem der staar paa kan slaas op ved navn", navne.includes("Prøve A") && navne.includes("Prøve B"), navne.join(", "));
+
+  const tal = await vagtTal(db, imorgen);
+  t("tallet til oversigten taeller kun det kommende", tal.vagter >= 1 && typeof tal.mangler === "number",
+     JSON.stringify(tal));
+
+  // Én plads er en plads, ikke «1 pladser». Fundet ved at rendere, ikke ved at laese.
+  const { daekning } = await import("../src/vagter.js");
+  t("én plads hedder en plads", daekning({ paa_antal: 0, pladser: 1, mangler: 1 }).tekst === "0 af 1 plads",
+     daekning({ paa_antal: 0, pladser: 1, mangler: 1 }).tekst);
+  t("og to hedder pladser", daekning({ paa_antal: 1, pladser: 2, mangler: 1 }).tekst === "1 af 2 pladser");
+
+  // --- Ingen rangliste. Den staar der som en paastand, siden siger hoejt. ---
+  t("siden siger hoejt, at der ikke er en rangliste", /ikke, hvem der er på mest/.test(listeUdenFortid));
+
+  // --- Formularen siger fra paa dansk, ikke paa SQL. ---
+  const fd = (o) => ({ get: (k) => (k in o ? o[k] : null) });
+  t("en vagt uden pladser bliver afvist", laesVagt(fd({ hvad: "X", dato: imorgen }), imorgen).fejl === TEKST.vagtMangelFelter);
+  t("nul pladser er ikke en vagt", laesVagt(fd({ hvad: "X", dato: imorgen, pladser: "0" }), imorgen).fejl === TEKST.vagtPladserTal);
+  t("og 51 er ikke et moede, det er en fejl", laesVagt(fd({ hvad: "X", dato: imorgen, pladser: "51" }), imorgen).fejl === TEKST.vagtPladserTal);
+  t("en vagt bagud kan ikke oprettes", laesVagt(fd({ hvad: "X", dato: "2020-01-01", pladser: "2" }), imorgen).fejl === TEKST.vagtDatoFortid);
+  const god = laesVagt(fd({ hvad: "Gate", dato: imorgen, pladser: "3", fra: "08:00", til: "", hvor: " Porten " }), imorgen);
+  t("og en rigtig vagt slipper igennem med felterne trimmet",
+     god.vagt && god.vagt.pladser === 3 && god.vagt.fra === "08:00" && god.vagt.til === null && god.vagt.hvor === "Porten",
+     JSON.stringify(god));
+
+  // --- Den interne side har sin egen kontrakt, og den blev ikke maalt foer. ---
+  //
+  // mt5 fandtes ikke i vh.css. Det opdagede jeg ved at RENDERE siden, ikke ved
+  // at laese den: overskriften «Kommende» klistrede op ad kassen over sig.
+  // Proeven her maaler nu den interne flade ogsaa, saa naeste gang faelder den
+  // i porten i stedet for paa en skaerm.
+  const internSvar = await worker.fetch(
+    new Request("http://localhost:8788/internt/vagter"), env, {});
+  const internHtml = await internSvar.text();
+  t("den interne side svarer", internSvar.status === 200, String(internSvar.status));
+  t("og bruger kun klasser fra vh.css", ukendteKlasser(internHtml, css).length === 0,
+     ukendteKlasser(internHtml, css).join(", "));
+  t("den staar ikke og lover en knap til en, der ikke er i personregisteret",
+     /ikke i personregisteret/.test(internHtml) && !/Opret vagt/.test(internHtml),
+     internHtml.slice(0, 120));
+
+  // --- Uden login er der ingen vagter at se. ---
+  const uden = await hent("/mit/vagter");
+  t("uden login sendes man til doeren", uden.status === 303 && uden.headers.get("Location") === "/mit",
+     `${uden.status} ${uden.headers.get("Location")}`);
 }
 
 console.log(`\n${ok} bestået, ${fejl} fejlet\n`);

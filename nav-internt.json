@@ -1,18 +1,75 @@
 {
   "_hvorfor": "Én kilde til den interne navigation. build.py renderer de statiske interne sider; vh-worker/src/flade.js renderer fondsværktøjet. Da listen lå to steder, drev de fra hinanden: Fonde manglede på de statiske sider, og Registrering manglede i fondsværktøjet — så man kunne ikke komme fra Økonomi til Fonde. Rettes her, ét sted. vh-worker/src/nav-internt.js GENERERES af build.py; redigér den ikke.",
   "punkter": [
-    { "id": "offentlig",    "sti": "",                     "label": "← Offentlig side" },
-    { "id": "internt",      "sti": "internt/",             "label": "Oversigt" },
-    { "id": "stedet",       "sti": "internt/stedet",       "label": "Stedet" },
-    { "id": "ophold",       "sti": "internt/ophold/",      "label": "Ophold" },
-    { "id": "oekonomi",     "sti": "internt/oekonomi",     "label": "Økonomi" },
-    { "id": "anlaeg",       "sti": "internt/anlaeg",       "label": "Anlæg" },
-    { "id": "timer",        "sti": "internt/timer",        "label": "Timer og indskud" },
-    { "id": "korpus",       "sti": "internt/korpus/",      "label": "Korpus" },
-    { "id": "fonde",        "sti": "internt/fonde/",       "label": "Fonde" },
-    { "id": "registrering", "sti": "internt/registrering", "label": "Registrering" },
-    { "id": "breve",        "sti": "internt/breve",        "label": "Breve" },
-    { "id": "fund",         "sti": "internt/fund",         "label": "Fund" },
-    { "id": "kopi",         "sti": "internt/sikkerhedskopi", "label": "Sikkerhedskopi" }
+    {
+      "id": "offentlig",
+      "sti": "",
+      "label": "← Offentlig side"
+    },
+    {
+      "id": "internt",
+      "sti": "internt/",
+      "label": "Oversigt"
+    },
+    {
+      "id": "stedet",
+      "sti": "internt/stedet",
+      "label": "Stedet"
+    },
+    {
+      "id": "ophold",
+      "sti": "internt/ophold/",
+      "label": "Ophold"
+    },
+    {
+      "id": "oekonomi",
+      "sti": "internt/oekonomi",
+      "label": "Økonomi"
+    },
+    {
+      "id": "anlaeg",
+      "sti": "internt/anlaeg",
+      "label": "Anlæg"
+    },
+    {
+      "id": "timer",
+      "sti": "internt/timer",
+      "label": "Timer og indskud"
+    },
+    {
+      "id": "korpus",
+      "sti": "internt/korpus/",
+      "label": "Korpus"
+    },
+    {
+      "id": "fonde",
+      "sti": "internt/fonde/",
+      "label": "Fonde"
+    },
+    {
+      "id": "registrering",
+      "sti": "internt/registrering",
+      "label": "Registrering"
+    },
+    {
+      "id": "breve",
+      "sti": "internt/breve",
+      "label": "Breve"
+    },
+    {
+      "id": "vagter",
+      "sti": "internt/vagter",
+      "label": "Vagter"
+    },
+    {
+      "id": "fund",
+      "sti": "internt/fund",
+      "label": "Fund"
+    },
+    {
+      "id": "kopi",
+      "sti": "internt/sikkerhedskopi",
+      "label": "Sikkerhedskopi"
+    }
   ]
 }

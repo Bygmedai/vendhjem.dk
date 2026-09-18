@@ -46,8 +46,9 @@ der når ned til den, er en fil.
 
 Workeren ejer i dag: `/sporene`, `/sporene/*`, **`/sporene.html`**, `/mit`,
 `/mit/*`, `/bliv-en-del/skriv`, `/internt/ophold*`, `/internt/breve*`,
-`/internt/fund*`, `/internt/sikkerhedskopi*`, `/internt/fonde*`,
-`/internt/korpus*`, `/sundhed/fonde`. Resten er statiske filer.
+`/internt/fund*`, `/internt/vagter*`, `/internt/sikkerhedskopi*`,
+`/internt/fonde*`, `/internt/korpus*`, `/sundhed/fonde`,
+`/sundhed/sikkerhedskopi`. Resten er statiske filer.
 
 **Fælden i navnet:** `/mit-offline` og `/mit-sw.js` hedder noget med «mit», men
 Workeren fanger dem **ikke** — grenen matcher `/mit` og `/mit/*`, ikke `/mit-*`.
@@ -156,6 +157,38 @@ Der findes **to formater**: JSON fra cron og knappen (maskinen, hver nat,
 ingen wrangler), og SQL fra `wrangler d1 export` (et menneske, i hånden, før
 noget stort). Begge beholdes. Hvilken der er hvilken, står i
 `docs/SIKKERHEDSKOPI.md`, når #56 er inde.
+
+---
+
+## Vagter: reglerne ligger i skemaet
+
+Tilføjet 18.09.2026 (PR #58, BYG-583).
+
+En vagt er **et tidspunkt med pladser**, ikke en opgave med en ansvarlig. Der er
+ingen `ansvarlig`-kolonne og ingen `status`: en vagt er dækket, når der står
+folk på den, og dækningen bliver **udregnet** af rækkerne i `paa` — aldrig gemt
+som et tal, der kan blive forkert.
+
+Tre hegn står i `0015_vagter.sql`, ikke i en handler, og de skal blive der:
+
+| Hegn | Hvad det spærrer |
+| --- | --- |
+| `PRIMARY KEY (vagt_id, person_id)` | dobbeltklik på dårligt net er ikke to tilmeldinger |
+| `paa_kapacitet_ins` | to telefoner, der begge har talt seks ud af otte |
+| `paa_ikke_fortid` | en gammel side i en fane er en knap, der stadig virker |
+
+Flytter du dem op i JavaScript, fordi det er lettere at læse, holder de op med
+at virke i præcis de tilfælde, de er bygget til. `db.js` oversætter kun
+databasens indsigelse til dansk.
+
+**Kortet tegnes ét sted**, `vh-worker/src/vagter.js`, og bruges både på `/mit`
+og `/internt/vagter`. Tegner du det et sted mere, siger de to flader en dag
+hver sit om samme vagt. Det er samme fejlklasse som reglerne, der stod to
+steder i Natten.
+
+**Ingen rangliste.** Hvem der står på hvad er synligt. Hvem der står på mest er
+ikke en side, og bliver det ikke — Fundamentet siger, at intet niveau afgør,
+hvad nogen er værd. Prøve 40 holder fladen til det.
 
 ---
 
