@@ -336,7 +336,7 @@ console.log("\n13 · Fladekontrakt (BYG-565 G1)");
   t("fondsfladen indfører ingen farve uden for paletten",
      farver.ok, JSON.stringify(farver));
 
-  const kilder = ["flade.js", "sider.js", "views.js", "index.js", "tekst.js", "mit.js", "session.js", "mail.js", "webauthn.js", "krypto.js", "korpus.js", "runde.js", "ophold.js", "ophold-sider.js", "breve.js"]
+  const kilder = ["flade.js", "sider.js", "views.js", "index.js", "tekst.js", "mit.js", "session.js", "mail.js", "webauthn.js", "krypto.js", "korpus.js", "runde.js", "ophold.js", "ophold-sider.js", "breve.js", "fotos.js"]
     .map((f) => readFileSync(new URL(`../src/${f}`, import.meta.url), "utf8")).join("\n");
   const kildeFarver = farverUdenforPalet(kilder, css);
   t("flade-kilden indfører ingen farve uden for paletten",
@@ -1251,6 +1251,29 @@ console.log("\n26 · Brevet på /bliv-en-del lander i systemet (BYG-558 B1)");
   });
   const igen = await db.prepare(`SELECT * FROM breve WHERE id = ?1`).bind(brev.id).first();
   t("markér nyt fjerner tidspunktet", tilbage.status === 303 && igen.status === "nyt" && igen.besvaret == null);
+}
+
+console.log("\n27 · Fotos paa den LEVENDE /sporene (ikke den statiske fil)");
+{
+  // /sporene serveres af Workeren fra D1. sporene.html er kun noedudgangen.
+  // 18.09.2026 laa fotoene i den statiske fil og ALDRIG paa den levende side,
+  // fordi de blev lagt ét sted og maalt et andet. Steven fandt det.
+  const html = await tekst(await hent("/sporene"));
+  const slugs = [...html.matchAll(/images\/sted\/([a-z0-9-]+?)(?:-s)?\.(?:webp|avif)/g)].map((m) => m[1]);
+  const unikke = [...new Set(slugs)];
+  t("den levende /sporene har mindst tre fotos", unikke.length >= 3, unikke.join(", "));
+  t("fotoene kommer fra det genererede modul, ikke fra haanden",
+     html.includes('type="image/avif"') && html.includes('type="image/webp"'));
+  const imgs = html.match(/<img [^>]*>/g) || [];
+  t("alle <img> paa /sporene har en alt-tekst der siger noget",
+     imgs.length > 0 && imgs.every((i) => /alt="[^"]{10,}"/.test(i)), imgs.length + " billeder");
+  t("staaende fotos har et fokuspunkt, saa de ikke beskaeres til himmel",
+     html.includes("object-position:"), "ingen object-position");
+
+  const { FOTO, ALT } = await import("../src/fotos.js");
+  t("hvert foto i modulet har baade maal og alt-tekst",
+     Object.keys(FOTO).every((k) => ALT[k] && FOTO[k].w > 0 && FOTO[k].h > 0),
+     Object.keys(FOTO).filter((k) => !ALT[k]).join(", "));
 }
 
 console.log(`\n${ok} bestået, ${fejl} fejlet\n`);

@@ -1151,3 +1151,52 @@ if os.path.isdir(os.path.dirname(_navjs)):
         f.write("// GENERERET af build.py fra nav-internt.json. Ret ikke her.\n")
         f.write("export const PUNKTER = " + _json.dumps(NAV_INTERNT, ensure_ascii=False, indent=1) + ";\n")
     print("genererede vh-worker/src/nav-internt.js")
+
+# Generér Workerens fotos fra samme kilde. /sporene serveres af Workeren,
+# ikke af sporene.html — den statiske fil er kun nødudgangen, når D1 er nede.
+# Derfor stod fotoene fra 18.09.2026 i filen og ALDRIG på den levende side.
+# Målt af Steven samme dag. Manifest, alt-tekster og fokuspunkter må kun
+# findes ét sted; redigér ALDRIG vh-worker/src/fotos.js i hånden.
+_fotojs = os.path.join(ROOT, "vh-worker", "src", "fotos.js")
+if os.path.isdir(os.path.dirname(_fotojs)):
+    with open(_fotojs, "w", encoding="utf-8") as f:
+        f.write("// GENERERET af build.py fra images/sted/_manifest.json. Ret ikke her.\n")
+        f.write("export const FOTO = " + _json.dumps(FOTO_MAN, ensure_ascii=False, indent=1) + ";\n")
+        f.write("export const ALT = " + _json.dumps(FOTO_ALT, ensure_ascii=False, indent=1) + ";\n")
+        f.write("export const FOKUS = " + _json.dumps(FOTO_FOKUS, ensure_ascii=False, indent=1) + ";\n")
+        f.write(r"""
+const LF = String.fromCharCode(10);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+function srcset(slug, ext) {
+  const w = FOTO[slug].w;
+  const d = [];
+  if (w > 480) d.push(`/images/sted/${slug}-s.${ext} 480w`);
+  d.push(`/images/sted/${slug}.${ext} ${w}w`);
+  return d.join(", ");
+}
+
+/** Samme markup som build.py's _pic. Ét sted, to flader. */
+export function billede(slug, sizes) {
+  const m = FOTO[slug];
+  const fokus = FOKUS[slug] ? ` style="object-position:${FOKUS[slug]}"` : "";
+  return `<picture>
+<source type="image/avif" srcset="${srcset(slug, "avif")}" sizes="${sizes}">
+<source type="image/webp" srcset="${srcset(slug, "webp")}" sizes="${sizes}">
+<img src="/images/sted/${slug}.webp" width="${m.w}" height="${m.h}" alt="${esc(ALT[slug])}" loading="lazy" decoding="async"${fokus}>
+</picture>`;
+}
+
+export function fotoBaand(slugs, { sizes = "(max-width: 600px) 100vw, (max-width: 860px) 50vw, 390px", stil = "min-height:300px" } = {}) {
+  const kol = { 2: "g-2", 3: "g-3", 4: "g-4" }[slugs.length];
+  const celler = slugs.map((s) =>
+    `<div class="media"><div class="horizon h-side" style="${stil}">
+${billede(s, sizes)}
+</div></div>`).join(LF);
+  return `<div class="g ${kol} nb">
+${celler}
+</div>`;
+}
+""")
+    print("genererede vh-worker/src/fotos.js")

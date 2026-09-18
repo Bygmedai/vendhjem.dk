@@ -1,0 +1,141 @@
+// GENERERET af build.py fra images/sted/_manifest.json. Ret ikke her.
+export const FOTO = {
+ "oppefra": {
+  "w": 873,
+  "h": 670,
+  "kilde": "Agersø oppefra .png"
+ },
+ "udefra": {
+  "w": 894,
+  "h": 669,
+  "kilde": "Agersø udefra.png"
+ },
+ "salen": {
+  "w": 910,
+  "h": 686,
+  "kilde": "Agersø salen.png"
+ },
+ "salen-2": {
+  "w": 910,
+  "h": 674,
+  "kilde": "Agersø salen 2.png"
+ },
+ "koekken": {
+  "w": 908,
+  "h": 676,
+  "kilde": "Agersø køkken.png"
+ },
+ "koekken-2": {
+  "w": 912,
+  "h": 655,
+  "kilde": "Agersø køkken 2.png"
+ },
+ "spisestue": {
+  "w": 910,
+  "h": 681,
+  "kilde": "Agersø spiestue.png"
+ },
+ "sovesal": {
+  "w": 502,
+  "h": 683,
+  "kilde": "Agersø sovesal.png"
+ },
+ "vaerelse": {
+  "w": 912,
+  "h": 679,
+  "kilde": "Agersø værelse.png"
+ },
+ "vaerelse-dobbelt": {
+  "w": 903,
+  "h": 668,
+  "kilde": "Agersø værelse med dobbelt seng.png"
+ },
+ "hyggekrog": {
+  "w": 908,
+  "h": 680,
+  "kilde": "Agersø hyggekrog.png"
+ },
+ "solnedgang": {
+  "w": 907,
+  "h": 673,
+  "kilde": "Agersø solnedgang.png"
+ },
+ "bordet-i-marken": {
+  "w": 505,
+  "h": 674,
+  "kilde": "Agersø sommer hygge.png"
+ },
+ "udeplads": {
+  "w": 515,
+  "h": 680,
+  "kilde": "Agersø spise plads ude.png"
+ },
+ "cafe": {
+  "w": 503,
+  "h": 669,
+  "kilde": "Agersø cafe.png"
+ },
+ "faellesspisning": {
+  "w": 505,
+  "h": 685,
+  "kilde": "Agersø spiseplads 2.png"
+ }
+};
+export const ALT = {
+ "oppefra": "Stedet set fra luften i aftensol: seks hektar eng og læhegn med Storebælt bagved.",
+ "udefra": "Sti gennem hæk og buske op mod det hvide hus med rødt tag.",
+ "salen": "Salen med sofaer og tæpper under et loft af tang og synlige bjælker.",
+ "salen-2": "Salen med sofa, tæppe og maleri under skråt træloft.",
+ "koekken": "Industrikøkkenet med stålborde, komfur, opvaskemaskine og et langt træbord i midten.",
+ "koekken-2": "Mindre køkken med hvide skabe, komfur og køleskab.",
+ "spisestue": "Langbord med stole og bænk langs vinduet i spisestuen.",
+ "sovesal": "Sovesal med senge under skråvæg og gardiner imellem.",
+ "vaerelse": "Værelse med dobbeltseng, hvide vægge og et rødt maleri.",
+ "vaerelse-dobbelt": "Værelse med dobbeltseng op ad en rå murstensvæg.",
+ "hyggekrog": "Overdækket terrasse med bord, stole og en bemalet væg.",
+ "solnedgang": "Solnedgang over engen.",
+ "bordet-i-marken": "Et langt dækket bord midt i engen med horisonten bagved.",
+ "udeplads": "Udendørs opholdsplads med bålsted og bænke.",
+ "cafe": "Udendørs bar med tavler og skilte i aftenlys.",
+ "faellesspisning": "Mange mennesker spiser sammen ved langborde udenfor."
+};
+export const FOKUS = {
+ "faellesspisning": "center 78%",
+ "udeplads": "center 88%",
+ "cafe": "center 62%",
+ "bordet-i-marken": "center 62%"
+};
+
+const LF = String.fromCharCode(10);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+function srcset(slug, ext) {
+  const w = FOTO[slug].w;
+  const d = [];
+  if (w > 480) d.push(`/images/sted/${slug}-s.${ext} 480w`);
+  d.push(`/images/sted/${slug}.${ext} ${w}w`);
+  return d.join(", ");
+}
+
+/** Samme markup som build.py's _pic. Ét sted, to flader. */
+export function billede(slug, sizes) {
+  const m = FOTO[slug];
+  const fokus = FOKUS[slug] ? ` style="object-position:${FOKUS[slug]}"` : "";
+  return `<picture>
+<source type="image/avif" srcset="${srcset(slug, "avif")}" sizes="${sizes}">
+<source type="image/webp" srcset="${srcset(slug, "webp")}" sizes="${sizes}">
+<img src="/images/sted/${slug}.webp" width="${m.w}" height="${m.h}" alt="${esc(ALT[slug])}" loading="lazy" decoding="async"${fokus}>
+</picture>`;
+}
+
+export function fotoBaand(slugs, { sizes = "(max-width: 600px) 100vw, (max-width: 860px) 50vw, 390px", stil = "min-height:300px" } = {}) {
+  const kol = { 2: "g-2", 3: "g-3", 4: "g-4" }[slugs.length];
+  const celler = slugs.map((s) =>
+    `<div class="media"><div class="horizon h-side" style="${stil}">
+${billede(s, sizes)}
+</div></div>`).join(LF);
+  return `<div class="g ${kol} nb">
+${celler}
+</div>`;
+}

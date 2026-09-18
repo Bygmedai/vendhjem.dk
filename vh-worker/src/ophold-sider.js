@@ -2,6 +2,7 @@
 // bruger samme klasser som build.py — ikke intern-flade.
 
 import { side, esc, tabel, felt, knap, statusPil, tomTilstand } from "./flade.js";
+import { billede, fotoBaand } from "./fotos.js";
 import { TEKST } from "./tekst.js";
 
 const kr = (n) => (n == null ? null : n.toLocaleString("da-DK") + " kr.");
@@ -227,16 +228,32 @@ ${link ? `<p class="mt2"><a class="lnk" href="${esc(link.href)}">${esc(link.labe
     description: "Det, der sker på stedet: mandegrupper og rites of passage, retreats, festival, byg-med-uger, stille uger, campingvogne.",
     indhold: `
 <section class="stage blok">
+<div class="g g-54 nb">
+<div>
 <p class="sec">Sporene</p>
 <h1>Det, der sker på stedet.</h1>
 <p class="lead maxw mt2">Seks spor på ét sted. Noget laver vi selv, noget lægger vi plads til, og det meste bliver til sammen med dem, der er her.</p>
 ${kalenderLead}
+</div>
+<div class="media"><div class="horizon h-side" style="min-height:300px">
+${billede("bordet-i-marken", "(max-width: 860px) 100vw, 420px")}
+</div></div>
+</div>
 </section>
 
 <section class="stage">
 <div class="g g-2">
 ${kort}
 </div>
+</section>
+
+<section class="stage sektion">
+<p class="sec">Fra stedet</p>
+</section>
+
+<section class="stage mt3">
+${fotoBaand(["faellesspisning", "cafe"], { sizes: "(max-width: 600px) 100vw, 589px", stil: "min-height:320px" })}
+<p class="xs soft mt3 maxw">Billederne er fra stedet, som det er blevet brugt indtil nu. Det meste af det herover er ikke sket endnu.</p>
 </section>
 
 <section class="stage blok">
