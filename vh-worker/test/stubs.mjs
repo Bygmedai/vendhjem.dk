@@ -66,6 +66,16 @@ export function lavR2() {
         text: async () => (typeof v.body === "string" ? v.body : new TextDecoder().decode(v.body)),
       };
     },
+    // list() findes paa rigtige R2-bindings. Uden den kan sidsteKopi ikke
+    // proeves, og «hvornaar blev der sidst taget en kopi» forbliver ubesvaret.
+    async list(opts = {}) {
+      const praefiks = opts.prefix || "";
+      const objects = [...m.keys()].filter((k) => k.startsWith(praefiks)).map((key) => ({
+        key,
+        size: typeof m.get(key).body === "string" ? m.get(key).body.length : 0,
+      }));
+      return { objects, truncated: false };
+    },
     _size: () => m.size,
   };
 }

@@ -54,9 +54,14 @@ database_name = "vendhjem-fonde"
 database_id = "f1cacc8c-2720-400e-906a-64f2627789e8"
 migrations_dir = "migrations"
 
-# Månedlig sikkerhedskopi: den 1. klokken 04:00 UTC. Se src/sikkerhedskopi.js.
+# Daglig sikkerhedskopi: hver nat klokken 04:00 UTC. Se src/sikkerhedskopi.js.
+#
+# Stod til "0 4 1 * *" (den 1. i maaneden) indtil 18.09.2026. Workeren blev
+# udrullet den 18., saa foerste kopi ville vaere skrevet 1. oktober — tretten
+# doegn uden én eneste kopi af kalenderen, brevene og timerne. Filen er nogle
+# faa hundrede kilobyte; daglig koster ingenting.
 [triggers]
-crons = ["0 4 1 * *"]
+crons = ["0 4 * * *"]
 
 [[r2_buckets]]
 binding = "FONDE_FILER"

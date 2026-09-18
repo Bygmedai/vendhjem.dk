@@ -1820,5 +1820,130 @@ console.log("\n36 · Ingen gammel adresse peger ud i ingenting");
      }));
 }
 
+console.log("\n37 · Sikkerhedskopien kan udloeses, ses — og laeses tilbage");
+{
+  // HVORFOR DEN HER PROEVE FINDES
+  //
+  // Kopien blev bygget i #45 og var rigtigt bygget. Men maalt 18.09.2026:
+  //   - cron stod til den 1. i maaneden, og Workeren blev udrullet den 18.,
+  //     saa foerste kopi ville vaere skrevet 1. oktober. Nul kopier fandtes.
+  //   - koerSikkerhedskopi kunne KUN kaldes af cron. Ingen kunne tage én nu.
+  //   - ingen havde nogensinde laest en tilbage.
+  //
+  // Den sidste er den vaerste. En fil, ingen har proevet at gendanne fra, er
+  // ikke en sikkerhedskopi — den er et haab med et filnavn. Proeven her tager
+  // en rigtig kopi, bygger en TOM database af de samme migrationer, kykker
+  // kopien ind i den med genskabSql, og sammenligner raekke for raekke.
+  const { lavKopi, genskabSql, sidsteKopi, koerSikkerhedskopi, kopiNavn } =
+    await import("../src/sikkerhedskopi.js");
+
+  // --- Genskabelsen. Det er den, der betyder noget. ---
+  const kopi = await lavKopi(env.FONDE_DB);
+  const tom = lavD1(MIGRATIONER);
+  tom._raw.exec(genskabSql(kopi));
+
+  const tabellerMedIndhold = kopi.tabeller.filter((n) => (kopi.data[n] || []).length > 0);
+  t("der ER noget at gendanne (ellers maaler proeven ingenting)",
+     tabellerMedIndhold.length >= 3, `${tabellerMedIndhold.length} tabeller med raekker`);
+
+  const afvigelser = [];
+  for (const navn of kopi.tabeller) {
+    const foer = JSON.stringify(kopi.data[navn] || []);
+    const efter = JSON.stringify(tom._raw.prepare(`SELECT * FROM "${navn}"`).all());
+    if (foer !== efter) afvigelser.push(navn);
+  }
+  t("en tom database fyldt af kopien er raekke for raekke den samme",
+     afvigelser.length === 0, afvigelser.length ? `afviger: ${afvigelser.join(", ")}` : "");
+
+  // Negativt vidne. Uden det kan de to ovenfor bestaa, fordi migrationerne
+  // selv seeder en del — saa «ens» ville vaere sandt uden at gendanne noget.
+  const tom2 = lavD1(MIGRATIONER);
+  const forskelUdenGendannelse = kopi.tabeller.filter((navn) =>
+    JSON.stringify(kopi.data[navn] || []) !==
+    JSON.stringify(tom2._raw.prepare(`SELECT * FROM "${navn}"`).all()));
+  t("og proeven bider: uden genskabelsen ER de to databaser forskellige",
+     forskelUdenGendannelse.length > 0, `${forskelUdenGendannelse.length} tabeller afveg`);
+
+  // --- Knappen bag Access ---
+  const foerAntal = (await sidsteKopi(env)).antal;
+  const svar = await hent("/internt/sikkerhedskopi/nu", { method: "POST" });
+  t("knappen tager en kopi og sender tilbage til siden",
+     svar.status === 303 && (svar.headers.get("Location") || "").startsWith("/internt/sikkerhedskopi"),
+     `${svar.status} ${svar.headers.get("Location")}`);
+  t("og der ligger en kopi mere end foer", (await sidsteKopi(env)).antal === foerAntal + 1);
+
+  // --- Readbacket: kan vi SE at der findes en, uden at logge paa Cloudflare ---
+  const k = await sidsteKopi(env);
+  t("readbacket kender den nyeste kopis dato", k.ok && k.findes && /^\d{4}-\d{2}-\d{2}$/.test(k.nyeste), JSON.stringify(k));
+
+  // Alderen maales paa en REN R2. Den delte har filer fra afsnit 30 med
+  // opdigtede datoer, og en proeve, der maaler paa andres skrald, maaler ikke.
+  const rentEnv = { FONDE_DB: env.FONDE_DB, FONDE_FILER: lavR2() };
+  await koerSikkerhedskopi(rentEnv, new Date("2026-09-18T04:00:00Z"));
+  const kr = await sidsteKopi(rentEnv, new Date("2026-09-20T09:00:00Z"));
+  t("og hvor gammel den er i doegn", kr.alder_doegn === 2, String(kr.alder_doegn));
+  t("filnavnet er datoen, ikke et loebenummer", kr.nyeste === "2026-09-18", kr.nyeste);
+
+  const side37 = await tekst(await hent("/internt/sikkerhedskopi"));
+  t("siden viser datoen, ikke bare at der findes noget", side37.includes("Nyeste kopi"));
+  t("siden har knappen", /action="\/internt\/sikkerhedskopi\/nu"/.test(side37));
+  t("og den skriver gendannelsesvejen ned, saa den ikke skal opfindes den dag",
+     /genskabSql/.test(side37));
+  // Denne var tom i foerste udgave: den strippede bygmedai-adresser og ledte
+  // saa efter @. En tilfoejet mailadresse slap lige igennem. Nu maales der paa
+  // det, der faktisk er farligt: raekker FRA databasen paa en side, hvis hele
+  // formaal er at sige, at de findes — ikke hvad de indeholder.
+  const enPerson = env.FONDE_DB._raw.prepare("SELECT navn, mail FROM people WHERE mail IS NOT NULL LIMIT 1").get();
+  t("der ER en person at laekke (ellers maaler proeven ingenting)", Boolean(enPerson && enPerson.mail));
+  t("siden naevner ingen mailadresse fra databasen",
+     Boolean(enPerson) && !side37.includes(enPerson.mail), enPerson ? enPerson.mail : "");
+  t("og intet navn fra databasen", Boolean(enPerson) && !side37.includes(enPerson.navn), enPerson ? enPerson.navn : "");
+  t("siden indeholder overhovedet ingen @", !/@/.test(side37));
+
+  // --- En tom R2 skal SIGE at den er tom, ikke se rask ud ---
+  const tomR2 = await sidsteKopi({ FONDE_FILER: lavR2() });
+  t("ingen kopier siger «der findes ingen», ikke «ok»", tomR2.ok === true && tomR2.findes === false);
+
+  // --- Cron'en er daglig, ikke maanedlig ---
+  const toml = readFileSync(new URL("../wrangler.toml", import.meta.url), "utf8");
+  t("cron koerer hver nat, ikke den 1. i maaneden", /crons\s*=\s*\["0 4 \* \* \*"\]/.test(toml),
+     (toml.match(/crons.*/) || [""])[0]);
+
+  // --- Kopien maa aldrig kunne skrive i databasen ---
+  const sql = genskabSql(kopi);
+  // Den maa roere triggere — de skal ned, mens dataene gaar ind, og op igen
+  // bagefter. Den maa ALDRIG roere en tabel eller en raekke, der ikke er
+  // kopiens egen.
+  // Triggernes EGEN tekst indeholder UPDATE — det er deres arbejde (fx
+  // ophold_aabnes_fuld, der saetter status). Den maa ikke taelle med, saa vi
+  // maaler paa det, genskabSql selv skriver: alt uden om trigger-kroppene.
+  const udenTriggere = (kopi.triggere || [])
+    .reduce((tekst, tr) => tekst.split(String(tr.sql).trim().replace(/;*$/, "")).join(""), sql);
+  t("det, genskabelsen selv skriver, sletter ingen tabel og ingen raekke",
+     !/\bDROP\s+TABLE\b/i.test(udenTriggere) && !/\bDELETE\s+FROM\b/i.test(udenTriggere) &&
+     !/\bUPDATE\s+/i.test(udenTriggere) && !/\bALTER\s+/i.test(udenTriggere),
+     (udenTriggere.match(/\b(DROP\s+TABLE|DELETE\s+FROM|UPDATE|ALTER)\b/i) || [""])[0]);
+  t("og det eneste, den dropper, er triggere — som den selv saetter op igen",
+     [...udenTriggere.matchAll(/\bDROP\s+(\w+)/gi)].every((m) => /trigger/i.test(m[1])));
+  t("den saetter hegnene op igen, den tog ned",
+     (kopi.triggere || []).length > 0 &&
+     (kopi.triggere || []).every((tr) =>
+       new RegExp(`DROP TRIGGER IF EXISTS "${tr.name}"`).test(sql) &&
+       sql.includes(String(tr.sql).trim().replace(/;*$/, ""))),
+     `${(kopi.triggere || []).length} triggere`);
+  t("og den er tekst, ikke en handling — intet er skrevet nogen steder",
+     typeof sql === "string" && sql.startsWith("PRAGMA foreign_keys = OFF;"));
+
+  // --- Apostroffer og NULL. Den klassiske maade en kopi loeber i staa paa. ---
+  const stikprov = lavD1(MIGRATIONER);
+  stikprov._raw.exec(`INSERT INTO people (id, navn, mail, oprettet) VALUES ('t-1', 'O''Brien ''—'' test', NULL, '2026-09-18T00:00:00Z')`);
+  const k2 = await lavKopi(stikprov);
+  const tom3 = lavD1(MIGRATIONER);
+  tom3._raw.exec(genskabSql(k2));
+  const hentet = tom3._raw.prepare("SELECT navn, mail FROM people WHERE id = 't-1'").get();
+  t("et navn med apostroffer overlever turen", hentet && hentet.navn === "O'Brien '—' test", JSON.stringify(hentet));
+  t("og NULL bliver ved med at vaere NULL, ikke tom streng", hentet && hentet.mail === null);
+}
+
 console.log(`\n${ok} bestået, ${fejl} fejlet\n`);
 process.exit(fejl ? 1 : 0);

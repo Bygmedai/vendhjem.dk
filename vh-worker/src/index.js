@@ -18,6 +18,7 @@ import {
 } from "./runde.js";
 import { erSporene, erOphold, besvarSporene, besvarOphold } from "./ophold.js";
 import { erSkriv, erBreve, besvarSkriv, besvarBreve } from "./breve.js";
+import { erKopi, besvarKopi } from "./kopi-side.js";
 
 const ROD = FONDE;
 
@@ -44,7 +45,7 @@ function afvist(bruger) {
 }
 
 export default {
-  // Månedlig sikkerhedskopi af D1 til R2. Se src/sikkerhedskopi.js om hvorfor.
+  // Daglig sikkerhedskopi af D1 til R2. Se src/sikkerhedskopi.js om hvorfor.
   async scheduled(event, env, ctx) {
     ctx.waitUntil(koerSikkerhedskopi(env).then((r) => {
       console.log("sikkerhedskopi", JSON.stringify(r));
@@ -132,7 +133,8 @@ export default {
     const internOphold = erOphold(sti);
     const internBreve = erBreve(sti);
     const internFund = erFund(sti);
-    if (!internOphold && !internBreve && !internFund && !workerSti(url.pathname)) return env.ASSETS.fetch(request);
+    const internKopi = erKopi(sti);
+    if (!internOphold && !internBreve && !internFund && !internKopi && !workerSti(url.pathname)) return env.ASSETS.fetch(request);
 
     let bruger = await identitet(request);
 
@@ -155,6 +157,7 @@ export default {
     if (internOphold) return besvarOphold(request, env, bruger, url);
     if (internBreve) return besvarBreve(request, env, bruger, url);
     if (internFund) return besvarFund(request, env, bruger, url);
+    if (internKopi) return besvarKopi(request, env, bruger, url);
 
     const db = env.FONDE_DB;
     const r2 = env.FONDE_FILER;
