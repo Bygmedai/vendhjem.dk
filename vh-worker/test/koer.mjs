@@ -339,7 +339,7 @@ console.log("\n13 · Fladekontrakt (BYG-565 G1)");
   t("fondsfladen indfører ingen farve uden for paletten",
      farver.ok, JSON.stringify(farver));
 
-  const kilder = ["flade.js", "sider.js", "views.js", "index.js", "tekst.js", "mit.js", "session.js", "mail.js", "webauthn.js", "krypto.js", "korpus.js", "runde.js", "ophold.js", "ophold-sider.js", "breve.js", "fotos.js", "fod.js", "stigen.js", "sikkerhedskopi.js", "fund.js"]
+  const kilder = ["flade.js", "sider.js", "views.js", "index.js", "tekst.js", "mit.js", "session.js", "mail.js", "webauthn.js", "krypto.js", "korpus.js", "runde.js", "ophold.js", "ophold-sider.js", "breve.js", "fotos.js", "fod.js", "stigen.js", "sikkerhedskopi.js", "fund.js", "aftalt.js"]
     .map((f) => readFileSync(new URL(`../src/${f}`, import.meta.url), "utf8")).join("\n");
   const kildeFarver = farverUdenforPalet(kilder, css);
   t("flade-kilden indfører ingen farve uden for paletten",
@@ -1625,6 +1625,52 @@ console.log("\n33 · Sitet lover ikke en side, der ikke er der");
   t("sitemap er genereret, ikke håndholdt — alle offentlige sider står i den",
      ["", "fundamentet", "sporene", "permakultur", "maend", "bliv-en-del", "privatlivspolitik", "cookies"]
        .every((sti) => sitemap.includes(`https://vendhjem.dk/${sti}<`)));
+}
+
+console.log("\n34 · Natten flyttede derhen, hvor den kan læses");
+{
+  const css = readFileSync(new URL("../../assets/vh.css", import.meta.url), "utf8");
+  const { ukendteKlasser, farverUdenforPalet } = await import("../src/kontrakt.js");
+  const { NATTEN, GAAR_GALT } = await import("../src/aftalt.js");
+
+  mails.length = 0;
+  const jar = new Jar();
+  await jar.hent("/mit");
+  await jar.hent("/mit/login", { method: "POST", body: new URLSearchParams({ mail: "steven@bygmedai.dk" }) });
+  const lenke = linkIMail(mails[0]);
+  await jar.hent(lenke ? stiFraUrl(lenke) : "/mit/link/x");
+
+  const side = await tekst(await jar.hent("/mit/aftalt"));
+  t("fællesskabet kan læse nattens regler", /Én, der er vågen/.test(side) && /Et nej er et nej/.test(side));
+  t("alle fem afsnit står der",
+     NATTEN.every((n) => side.includes(n.sec)) && /Når noget går galt/.test(side),
+     NATTEN.filter((n) => !side.includes(n.sec)).map((n) => n.sec).join(", "));
+  t("nødnumrene står der, som man skal kunne slå dem op klokken tre",
+     GAAR_GALT.every((l) => side.includes(l.slice(0, 40))));
+  t("det, der stadig mangler, står som udestående — ikke som et gæt", /Udestår · Lai/.test(side));
+  // Den skal PEGE paa det offentlige, ikke gentage det. En regel, der staar to
+  // steder, bliver til to regler. «do-ocracy» som tre ord i et link er en
+  // henvisning; fundamentets egne saetninger maa ikke staa her.
+  t("den peger videre til det, der ER offentligt, i stedet for at gentage det",
+     /href="\/fundamentet"/.test(side) && /href="\/bliv-en-del"/.test(side) &&
+     !/Taget lægges ikke efter stemmetal/.test(side) &&
+     !/tre måneders varsel/.test(side));
+  t("«Nu» linker derhen", /href="\/mit\/aftalt"/.test(await tekst(await jar.hent("/mit"))));
+  t("siden bruger kun klasser fra vh.css", ukendteKlasser(side, css).length === 0, ukendteKlasser(side, css).join(", "));
+  t("siden holder paletten", farverUdenforPalet(side, css).ok);
+
+  const uden = await worker.fetch(new Request("http://vendhjem.dk/mit/aftalt"), env, {});
+  t("uden login sender den til døren, ikke til en 404", uden.status === 303, uden.status);
+
+  // Teksten bor ét sted. To steder bliver til to regler.
+  const rod = new URL("../../", import.meta.url);
+  const { existsSync: findes } = await import("node:fs");
+  t("den gamle interne side findes ikke mere", !findes(new URL("internt/natten.html", rod)));
+  t("build.py bygger den ikke længere", !/internt\/natten/.test(readFileSync(new URL("build.py", rod), "utf8")));
+  t("nav-internt.json har ikke et punkt, der peger på ingenting",
+     !/internt\/natten/.test(readFileSync(new URL("nav-internt.json", rod), "utf8")));
+  t("den gamle adresse sender videre i stedet for at dø",
+     /\/internt\/natten \/mit\/aftalt 301/.test(readFileSync(new URL("_redirects", rod), "utf8")));
 }
 
 console.log(`\n${ok} bestået, ${fejl} fejlet\n`);

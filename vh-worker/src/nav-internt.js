@@ -59,10 +59,5 @@ export const PUNKTER = [
   "id": "fund",
   "sti": "internt/fund",
   "label": "Fund"
- },
- {
-  "id": "natten",
-  "sti": "internt/natten",
-  "label": "Natten"
  }
 ];

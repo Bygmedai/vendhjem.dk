@@ -9,6 +9,7 @@ import {
 } from "./db.js";
 import { mitSide, felt, knap, esc, tomTilstand } from "./flade.js";
 import { periodeTekst } from "./ophold-sider.js";
+import { aftaltIndhold } from "./aftalt.js";
 import { TEKST } from "./tekst.js";
 import { sendMagicMail } from "./mail.js";
 import {
@@ -133,6 +134,7 @@ ${maal}
 ${aftaleKort(aftale)}
 
 <p class="mt4"><a class="lnk lnk-accent" href="/mit/skriv">Skriv dagens timer →</a></p>
+<p class="meta mt3"><a href="/mit/aftalt">${esc(TEKST.aftaltLink)}</a></p>
 ${tilbud}
 </section>`;
 }
@@ -669,6 +671,14 @@ export async function mitFetch(request, env) {
       }), { cookies: sc });
     }
 
+    if (person && request.method === "GET" && sti === "/mit/aftalt") {
+      const sc = await sessionCookies(env, person, cookiesUd);
+      return html(sideHtml({
+        titel: TEKST.aftalt, bruger: person, fane: "nu",
+        indhold: aftaltIndhold(),
+      }), { cookies: sc });
+    }
+
     if (person && request.method === "GET" && sti === "/mit/overblik") {
       const sc = await sessionCookies(env, person, cookiesUd);
       const idag = idagIso(env);
@@ -697,7 +707,7 @@ export async function mitFetch(request, env) {
         : timerPost(rk, env, person);
     }
 
-    if (!person && request.method === "GET" && (sti === "/mit/skriv" || sti === "/mit/overblik")) {
+    if (!person && request.method === "GET" && (sti === "/mit/skriv" || sti === "/mit/overblik" || sti === "/mit/aftalt")) {
       await enhedAf(request, cookiesUd);
       return redirect("/mit", cookiesUd);
     }
