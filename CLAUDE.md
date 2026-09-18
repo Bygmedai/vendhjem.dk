@@ -46,8 +46,8 @@ der når ned til den, er en fil.
 
 Workeren ejer i dag: `/sporene`, `/sporene/*`, **`/sporene.html`**, `/mit`,
 `/mit/*`, `/bliv-en-del/skriv`, `/internt/ophold*`, `/internt/breve*`,
-`/internt/fund*`, `/internt/fonde*`, `/internt/korpus*`, `/sundhed/fonde`.
-Resten er statiske filer.
+`/internt/fund*`, `/internt/sikkerhedskopi*`, `/internt/fonde*`,
+`/internt/korpus*`, `/sundhed/fonde`. Resten er statiske filer.
 
 **Fælden i navnet:** `/mit-offline` og `/mit-sw.js` hedder noget med «mit», men
 Workeren fanger dem **ikke** — grenen matcher `/mit` og `/mit/*`, ikke `/mit-*`.
@@ -65,7 +65,7 @@ i adresselinjen.
 
 ```
 python3 build.py                 # skriver siderne + fire genererede JS-moduler
-node vh-worker/test/koer.mjs     # 308 prøver. Kører nu i CI på hver PR — se «Porten»
+node vh-worker/test/koer.mjs     # 358 prøver (#57). Kører i CI på hver PR — se «Porten»
 bash vh-worker/test/flader.sh    # måler den levende flade
 ```
 
@@ -106,7 +106,7 @@ De står, fordi de er blevet brudt. Fjern dem ikke, fordi de ser overflødige ud
 | `workers_dev = false`, `preview_urls = false` | `vh-worker/wrangler.toml` | Uden dem slår wrangler workers.dev til igen, og `/internt` ligger åbent uden om Access. Målt åbent i S592. |
 | `.assetsignore` | roden | `[assets] directory = "../"` uploader **hele repoet**. Uden filen lå `/.git/`, `/vh-worker/src/`, `wrangler.toml` og `build.py` åbent på vendhjem.dk. Målt 17.09.2026 (S594). |
 | Sti-hegnet i `build.py` | `RELATIV` / `_find_relative` | En relativ sti virker på `/fundamentet` og knækker på `/internt/timer`. Bygget i PR #30. **Det tjekker at en sti er absolut — ikke at den peger på noget, der findes.** Jeg lavede præcis den fejl selv i #30; Haruki fandt den. |
-| Overlaps- og kapacitets-triggere | `0007_ophold.sql` | To ophold må ikke dække samme nat, og et ophold må ikke overbookes. Håndhævet i databasen, ikke i app-kode. |
+| Overlaps- og kapacitets-triggere | `0007_ophold.sql` | To ophold må ikke dække samme nat, og et ophold må ikke overbookes. Håndhævet i databasen, ikke i app-kode. **De fyrer også ved en gendannelse** og afviser så den kalender, de beskytter — målt 18.09.2026, første gang nogen læste en kopi tilbage. Derfor gemmer kopien triggerne, og `genskabSql` tager dem ned omkring indsættelsen og sætter dem op igen. Prøve 37 gør det ved hver kørsel. |
 | Access på `/internt` **og** `www.vendhjem.dk/internt` | Cloudflare | www-varianten lå åben i et døgn i september. `udrul.yml` måler begge i sit readback. |
 
 `.assetsignore` er en **deny-liste**. En ny fil i roden er offentlig, indtil nogen
@@ -140,10 +140,22 @@ kører `build.py`, fejler hvis det ændrer en committet fil, og kører derefter
 `koer.mjs`. Det er det eneste sted i CI, der rører `vh-worker/`. Bliver det rødt,
 skal en PR ikke merges — for merge er deploy.
 
-Workeren har også en **cron** (`[triggers] crons = ["0 4 1 * *"]`): den 1. i
-måneden kl. 04:00 UTC skrives hele D1 som almindelig JSON til R2. Se
-`src/sikkerhedskopi.js`. Den kører uden for enhver anmodning — ændrer du skemaet,
-så husk at den også læser det.
+Workeren har også en **cron** (`[triggers] crons = ["0 4 * * *"]`): hver nat
+klokken 04:00 UTC skrives hele D1 som almindelig JSON til R2, inklusive
+trigger-definitionerne. Se `src/sikkerhedskopi.js`. Den kører uden for enhver
+anmodning — ændrer du skemaet, så husk at den også læser det.
+
+Den stod til den 1. i måneden indtil #57. Workeren blev udrullet den 18.,
+så første kopi ville være skrevet 1. oktober; i tretten døgn fandtes
+kalenderen, brevene og timerne kun ét sted. **Knappen på
+`/internt/sikkerhedskopi`** (bag Access, i den interne menu) tager en kopi nu
+og viser, hvornår den nyeste blev skrevet og hvor gammel den er — tal og
+datoer, aldrig indhold. Gendannelsesvejen står på samme side.
+
+Der findes **to formater**: JSON fra cron og knappen (maskinen, hver nat,
+ingen wrangler), og SQL fra `wrangler d1 export` (et menneske, i hånden, før
+noget stort). Begge beholdes. Hvilken der er hvilken, står i
+`docs/SIKKERHEDSKOPI.md`, når #56 er inde.
 
 ---
 

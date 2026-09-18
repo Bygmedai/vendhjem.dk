@@ -2,6 +2,22 @@
 // Ny flade: importer herfra. Skriv ikke en ottende variant.
 
 export const TEKST = {
+  // /internt/sikkerhedskopi
+  kopi: "Sikkerhedskopi",
+  kopiLead: "Hele databasen som en almindelig JSON-fil. Den tages hver nat klokken 04:00, og den kan tages her og nu, hvis du er ved at gøre noget, du helst vil kunne fortryde.",
+  kopiHvad: "Hvad",
+  kopiStatus: "Status",
+  kopiNyeste: "Nyeste kopi",
+  kopiAlder: "Døgn siden",
+  kopiAntal: "Kopier i alt",
+  kopiFrisk: "frisk",
+  kopiGammel: "ældre end et døgn",
+  kopiForGammel: "for gammel — sig det højt",
+  kopiIngen: "der findes ingen",
+  kopiUkendt: "kan ikke måles herfra",
+  kopiTagNu: "Tag en kopi nu",
+  kopiNetopKoert: "Skrevet",
+  kopiGendan: "Sådan læses den tilbage: hent filen fra R2 (bucket vendhjem-fonde-bilag, mappen sikkerhedskopi/), og kør den gennem genskabSql i vh-worker/src/sikkerhedskopi.js. Den giver den SQL, der fylder en tom database op igen. Prøve 37 gør præcis det ved hver eneste kørsel, så vejen er afprøvet og ikke bare beskrevet.",
   tomListe: "Ingen sager endnu.",
   tomAktivitet: "Ingen hændelser.",
   mangler: "mangler",
