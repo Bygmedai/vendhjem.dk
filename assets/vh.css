@@ -297,7 +297,7 @@ button.lnk { background: none; border: 0; border-bottom: 1px solid var(--streg-m
 .tabel tr.sum td { border-top: 1px solid var(--blaek); border-bottom: 0; font-weight: 500; }
 .tabel-wrap { overflow-x: auto; }
 .tabel-wrap .tabel { min-width: 520px; }
-.tabel .m { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--blaek-mat); display: block; margin-top: 3px; }
+.tabel .m, .t .m { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--blaek-mat); display: block; margin-top: 3px; }
 
 /* ─── Fremdrift ─── */
 .frem { height: 9px; border: 1px solid var(--streg-mork); background: linear-gradient(to right, var(--dybde) 0%, var(--dybde) var(--p, 0%), transparent var(--p, 0%)); margin-bottom: 8px; }
@@ -367,6 +367,8 @@ button.lnk { background: none; border: 0; border-bottom: 1px solid var(--streg-m
   color: var(--blaek); cursor: pointer; border-radius: 0; line-height: 1;
 }
 .chip:hover { border-color: var(--blaek); }
+/* Radio og felt i en chip: browserens standardblå hører ikke til paletten. */
+.chip input { accent-color: var(--dybde); margin-right: 2px; }
 .chip.gjort { background: var(--dybde); border-color: var(--dybde); color: var(--papir); }
 .chip.valgt { border-color: var(--accent); border-width: 2px; padding: 8px 10px; color: var(--accent); }
 .chip.gjort.valgt { color: var(--papir); border-color: var(--accent); }

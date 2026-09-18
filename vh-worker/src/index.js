@@ -11,6 +11,7 @@ import { side, fejlTilstand } from "./flade.js";
 import { TEKST } from "./tekst.js";
 import { mitFetch } from "./mit.js";
 import { koerSikkerhedskopi } from "./sikkerhedskopi.js";
+import { erFund, besvarFund } from "./fund.js";
 import { haandterKorpus, ROD_KORPUS } from "./korpus.js";
 import {
   haandterRunde, listerRunder, saetAdgang, saetKlar, arkiverSag, historiskIndsendelse, FONDE,
@@ -130,7 +131,8 @@ export default {
 
     const internOphold = erOphold(sti);
     const internBreve = erBreve(sti);
-    if (!internOphold && !internBreve && !workerSti(url.pathname)) return env.ASSETS.fetch(request);
+    const internFund = erFund(sti);
+    if (!internOphold && !internBreve && !internFund && !workerSti(url.pathname)) return env.ASSETS.fetch(request);
 
     let bruger = await identitet(request);
 
@@ -152,6 +154,7 @@ export default {
 
     if (internOphold) return besvarOphold(request, env, bruger, url);
     if (internBreve) return besvarBreve(request, env, bruger, url);
+    if (internFund) return besvarFund(request, env, bruger, url);
 
     const db = env.FONDE_DB;
     const r2 = env.FONDE_FILER;
