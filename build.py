@@ -426,10 +426,10 @@ pages["internt/index.html"] = head("Internt · Vend Hjem", "Agersø-projektet ba
 </section>
 <section class="stage">
 <div class="g g-3">
-<div><p class="sec">Stedet</p><p class="small soft">Bygningerne som BBR kender dem, plan- og naturforhold, og registreringen 19.–21. september.</p><p class="mt2"><a class="lnk" href="/stedet">Åbn →</a></p></div>
+<div><p class="sec">Stedet</p><p class="small soft">Bygningerne som BBR kender dem, plan- og naturforhold, og registreringen 19.–21. september.</p><p class="mt2"><a class="lnk" href="/internt/stedet">Åbn →</a></p></div>
 <div><p class="sec">Økonomi</p><p class="small soft">Faste udgifter, hvad en gæst koster, og tre scenarier for 2027.</p><p class="mt2"><a class="lnk" href="/internt/oekonomi">Åbn →</a></p></div>
 <div><p class="sec">Anlæg</p><p class="small soft">Bygning for bygning, rum for rum. Registrering, fund og hvad det koster at rette.</p><p class="mt2"><a class="lnk" href="/internt/anlaeg">Åbn →</a></p></div>
-<div class="loeft"><p class="sec">Timer og indskud</p><p class="small soft">Hvem har lagt hvad, hvornår, og hvad blev der aftalt. Den vigtigste tabel på hele stedet.</p><p class="mt2"><a class="lnk" href="/timer">Åbn →</a></p></div>
+<div class="loeft"><p class="sec">Timer og indskud</p><p class="small soft">Hvem har lagt hvad, hvornår, og hvad blev der aftalt. Den vigtigste tabel på hele stedet.</p><p class="mt2"><a class="lnk" href="/internt/timer">Åbn →</a></p></div>
 <div><p class="sec">Beslutninger</p><p class="small soft">Hvem har mandat til hvad, med hvilken ramme, og hvornår det tages op igen.</p><p class="meta mt2">Kommer</p></div>
 <div><p class="sec">Kalender</p><p class="small soft">Hvad der sker i dag, hvad du har meldt dig til, og hvilke uger der er lukkede.</p><p class="meta mt2">Kommer</p></div>
 </div>
@@ -592,7 +592,7 @@ pages["internt/oekonomi.html"] = head("Økonomi · Internt", "Faste udgifter, hv
 </ul>
 <p class="note mt2">El efter Bolius' forbrugstal og gennemsnitsprisen for 2025. Vand efter DANVA's Vand i Tal 2025: 97 liter pr. person i døgnet, 82,23 kr. pr. m³ inkl. afgifter. Varmen er beregnet, ikke målt, og erstattes efter første fyringssæson.</p>
 <p class="sec mt4">Timer og indskud</p>
-<p class="small soft">Når stedet er i drift, står det her: hvem der har lagt hvilke timer, og hvem der har skudt hvilke penge ind - med dato, og med hvad der blev aftalt dengang. <a class="lnk" href="/timer">Tabellen →</a></p>
+<p class="small soft">Når stedet er i drift, står det her: hvem der har lagt hvilke timer, og hvem der har skudt hvilke penge ind - med dato, og med hvad der blev aftalt dengang. <a class="lnk" href="/internt/timer">Tabellen →</a></p>
 </div>
 </div>
 </section>
@@ -665,6 +665,18 @@ pages["internt/anlaeg.html"] = head("Anlæg · Internt", "Registrering, fund og 
 </div>
 </section>
 ''' + foot(intern=True, path="internt/anlaeg.html")
+
+
+# ───────────────────────────── INTERNT / REGISTRERING ─────────────────────────────
+# Feltvaerktoejet gik tabt i september 2026, fordi det kun laa i internt/ (gitignored)
+# og aldrig i repoet. Kilden bor nu i internt-kilder/ og skrives ind her, saa et
+# deploy fra et rent checkout altid har den med.
+def _kilde(navn):
+    with open(os.path.join(ROOT, "internt-kilder", navn), encoding="utf-8") as f:
+        return f.read()
+
+pages["internt/registrering.html"] = head("Registrering · Internt", "Feltregistrering af rum, udearealer og tekniske anlaeg. Virker uden net.", "internt/registrering.html", intern=True, current="registrering") + _kilde("registrering-body.html.in") + foot(intern=True, path="internt/registrering.html")
+pages["internt/registrering-sw.js"] = _kilde("registrering-sw.js")
 
 # ───────────── HVORFOR-ABSOLUTTE-STIER ─────────────
 #

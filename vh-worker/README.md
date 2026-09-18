@@ -114,20 +114,20 @@ Cloudflare-connectoren, før tokenet havde skriveadgang, og er bagefter
 registreret i `d1_migrations`. De køres ikke igen.
 
 `0003`–`0009` ligger alle på main. **Status i produktion, målt 17.09.2026
-kl. ~19:30 med kald mod den levende flade — ikke læst i en fil:**
+kl. ~19:30 og igen kl. 22:15 med kald mod den levende flade — ikke læst i en fil:**
 
 | Migration | Målt | Hvordan |
 |---|---|---|
 | `0003_people` · `0004_mit` | **applied** | `GET /mit` → 200 med magic-link-formularen. Uden `people`, `magic_links` og `passkeys` kan siden ikke rendere; uden `SESSION_NOEGLE` svarer den 500 |
 | `0005_korpus` · `0006_fonde_e2` | **ikke målt herfra** | `/internt/korpus` ligger bag Access (302), `/sundhed/fonde` kræver headeren. Måles med sundhedstjekket, som tæller `korpus_dokumenter` |
 | `0007_ophold` | **applied** | `GET /sporene` serveres fra D1, ikke fra assets: den leverede side skriver «Retreats — vi er værter» med tankestreg, og den findes kun i seed-rækken i `0007`. Den statiske `sporene.html` har bindestreg |
-| `0008_foresporgsel` (PR #27) | **ikke målt herfra** | Tilføjer kolonner til `pladser`. Udefra kan den ikke skelnes fra en tom kalender |
-| `0009_kalender_2027` (PR #28) | **IKKE applied** | `/sporene` siger stadig «Ingen datoer åbne» seks steder og viser ingen 2027-dato. `0009` er ren seed, og C1 er deployet — var den applied, ville datoerne stå der |
+| `0008_foresporgsel` (PR #27) | **applied** 17/9 kl. 22:15 | `wrangler d1 migrations list --remote` viste den som pending før, og `apply` returnerede ✅ for 0008 og 0009 i én kørsel. Udefra kan den stadig ikke skelnes fra en tom kalender — C2's Worker-kode er ikke deployet endnu |
+| `0009_kalender_2027` (PR #28) | **applied** 17/9 kl. 22:15 | `GET /sporene` mod ekstern resolver: «Ingen datoer åbne» gik fra 6 til 3 forekomster; tre mandeweekender (14.–16. maj, 15.–17. okt, 10.–12. dec 2027 à 850 kr.), retreat 20.–25. okt, festival 5.–11. juli og syv lukkede uger står på siden |
 
-**`0009` er den, der betyder noget lige nu.** Den er syv lukkede uger plus et
-minimalt sæt åbne 2027-ophold. Uden den bliver `/sporene` ved med at sige
-«ingen datoer» på den side, der skal sælge året. Det er ét `apply` fra at
-være løst.
+**Det, der mangler nu, er ikke en migration men et deploy:** C2's kode (#27),
+de absolutte stier (#30) og de interne sider bygget af `build.py` er på main
+og ikke i produktion. Tryk «Udrul til Cloudflare» — efter at build-trinnet
+er merget (PR #32), ellers deployes de interne sider ikke.
 
 Afsnittet her stod indtil 17/9 som «`0007_ophold.sql` er **ikke** applied
 remote fra denne PR». Det var sandt da PR'en blev skrevet og forkert

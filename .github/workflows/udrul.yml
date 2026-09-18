@@ -54,6 +54,16 @@ jobs:
         with:
           node-version: 22
 
+      # internt/ er gitignored og bygges af build.py. Uden dette trin deployer
+      # wrangler et checkout UDEN de interne sider, og /internt/* bliver 404
+      # bag Access — readbacket nedenfor ser det ikke (det tjekker kun at
+      # /internt ikke ligger aabent). Maalt 17.09.2026: registreringsvaerktoejet
+      # var allerede vaek af praecis den grund.
+      - name: Byg siderne (internt/ findes ikke i checkout)
+        run: |
+          python3 build.py
+          test -f internt/index.html && test -f internt/registrering.html || { echo "::error::build.py skrev ikke internt/ — deploy stoppet"; exit 1; }
+
       - name: Er tokenet sat?
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

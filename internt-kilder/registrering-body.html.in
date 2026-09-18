@@ -1,0 +1,297 @@
+<!-- Feltregistrering · genskabt S595 (17.09.2026) efter at S591-udgaven gik tabt ved et deploy.
+     Kilden bor her i repoet (internt-kilder/, endelsen .in saa CI's *.html-glob ikke laeser fragmentet som en side) og skrives ind i internt/ af build.py.
+     Telefon-først, virker uden net (service worker + localStorage), eksport CSV/JSON, fletning af to telefoner. -->
+<style>
+.reg-top{position:sticky;top:0;z-index:5;background:var(--papir);border-bottom:1px solid var(--streg-mork);padding:10px 0}
+.reg-top .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.reg-top input{flex:1;min-width:140px}
+.reg-status{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--blaek-mat)}
+.reg-status.off{color:var(--accent)}
+.reg-faner{display:flex;gap:0;border:1px solid var(--streg-mork);margin:14px 0 0;overflow-x:auto}
+.reg-faner button{flex:1;background:none;border:0;border-right:1px solid var(--streg-mork);padding:12px 8px;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--blaek-mat);cursor:pointer;white-space:nowrap}
+.reg-faner button:last-child{border-right:0}
+.reg-faner button[aria-selected=true]{background:var(--blaek);color:var(--papir)}
+.reg-fane{display:none}.reg-fane.aktiv{display:block}
+details.sted{border-top:1px solid var(--streg-svag)}
+details.sted>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:13px 0}
+details.sted>summary::-webkit-details-marker{display:none}
+details.sted>summary .id{font-family:var(--mono);font-size:12px;letter-spacing:.06em;min-width:96px}
+details.sted>summary .navn{flex:1;font-size:15px}
+details.sted>summary .navn.tom{color:var(--blaek-svag);font-style:italic}
+details.sted[open]>summary{border-bottom:1px dashed var(--streg)}
+.felter{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;padding:12px 0 18px}
+.felter .bred{grid-column:1/-1}
+.felter label{display:block}
+.felter .felt-label{margin-bottom:4px}
+.felter input,.felter select,.felter textarea{width:100%;box-sizing:border-box;border:1px solid var(--streg-mork);background:var(--papir);color:var(--blaek);padding:11px 10px;font-size:16px;font-family:var(--serif);border-radius:0;-webkit-appearance:none;appearance:none}
+.felter select{font-family:var(--mono);font-size:14px}
+.felter textarea{min-height:64px;resize:vertical}
+.k-K3,.k-UN{border-color:var(--accent)!important;color:var(--accent)!important}
+.bygning{margin-top:22px}
+.bygning>.sec{display:flex;justify-content:space-between;align-items:baseline}
+.bygning>.sec .m{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--blaek-mat);text-transform:none}
+.fund-liste .post .h{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.fund-liste .post .h .n{font-family:var(--mono);font-size:11px;white-space:nowrap}
+.fund-liste .post .m{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--blaek-mat);margin-top:4px}
+.tal{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.tal>div{border:1px solid var(--streg-mork);padding:12px}
+.tal .stor{font-size:30px;line-height:1}
+.knap.sek{background:none;color:var(--blaek);border-color:var(--streg-mork)}
+.knap.sek:hover{background:var(--papir-loeft);color:var(--blaek)}
+.knapper{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:520px){.felter{grid-template-columns:1fr}.knapper{grid-template-columns:1fr}}
+</style>
+
+<section class="stage reg-top">
+<div class="row">
+<input class="felt-boks" id="reg-hvem" type="text" placeholder="Dit navn (står på hver linje)" autocomplete="off">
+<span class="reg-status" id="reg-status">gemt lokalt</span>
+</div>
+<div class="reg-faner" role="tablist">
+<button type="button" role="tab" data-fane="rum" aria-selected="true">Rum <span id="tal-rum"></span></button>
+<button type="button" role="tab" data-fane="ude" aria-selected="false">Ude <span id="tal-ude"></span></button>
+<button type="button" role="tab" data-fane="tek" aria-selected="false">Teknik <span id="tal-tek"></span></button>
+<button type="button" role="tab" data-fane="fund" aria-selected="false">Fund <span id="tal-fund"></span></button>
+<button type="button" role="tab" data-fane="oversigt" aria-selected="false">Oversigt</button>
+<button type="button" role="tab" data-fane="data" aria-selected="false">Data</button>
+</div>
+</section>
+
+<section class="stage blok">
+<p class="sec">Internt · registrering 19.–21. september</p>
+<h1 style="font-size:clamp(24px,3.2vw,32px)">Foto først, note bagefter.</h1>
+<p class="small soft maxw mt2">Kun det, der skal fanges i rummet: mål, tilstand, fugt, fotonumre. Beskriv det sete uden at gætte årsagen. Refleksionsfelterne (JEG/DET/VI/DET HELE, ønsket brug) hører til ved bordet bagefter — med fotoet foran sig. Alt gemmes på telefonen med det samme og virker uden net.</p>
+<p class="xs soft mt1">K0 kosmetisk · K1 mindre alvorlig · K2 alvorlig, bør udbedres · K3 kritisk, inden for 2 år · UN bør undersøges. Fugt: 0 ingen · 1 lugt · 2 pletter · 3 synlig skimmel.</p>
+</section>
+
+<section class="stage reg-fane aktiv" id="fane-rum"></section>
+<section class="stage reg-fane" id="fane-ude"></section>
+<section class="stage reg-fane" id="fane-tek"></section>
+
+<section class="stage reg-fane" id="fane-fund">
+<p class="sec">Nyt fund</p>
+<p class="small soft">Noget, der skal undersøges, repareres eller afklares. Et fund er en observation, ikke en diagnose.</p>
+<div class="felter" style="padding-top:12px">
+<label><span class="felt-label">Sted-ID</span><input type="text" id="fund-sted" list="sted-liste" placeholder="B02-ST-R03, U08, T05 …"></label>
+<datalist id="sted-liste"></datalist>
+<label><span class="felt-label">Tilstand</span><select id="fund-k"><option value="">—</option><option>K0</option><option>K1</option><option>K2</option><option>K3</option><option>UN</option></select></label>
+<label><span class="felt-label">Haster</span><select id="fund-haster"><option value="">—</option><option value="nu">nu</option><option value="1-2 år">1–2 år</option><option value="senere">senere</option></select></label>
+<label><span class="felt-label">Fotonumre</span><input type="text" id="fund-foto" placeholder="IMG_4021, 4022"></label>
+<label class="bred"><span class="felt-label">Hvad blev observeret</span><textarea id="fund-hvad" placeholder="Det sete — uden at gætte årsagen"></textarea></label>
+<div class="bred"><button class="knap" type="button" id="fund-gem">Gem fund</button></div>
+</div>
+<p class="sec mt4">Fund</p>
+<div class="fund-liste" id="fund-liste"></div>
+</section>
+
+<section class="stage reg-fane" id="fane-oversigt">
+<p class="sec">Hvor langt er vi</p>
+<div class="tal" id="ov-tal"></div>
+<p class="sec mt4">Tilstand K — fordeling</p>
+<div class="tal" id="ov-k"></div>
+<p class="sec mt4">Fugt 2–3</p>
+<div id="ov-fugt" class="small"></div>
+<p class="sec mt4">Fund der haster</p>
+<div id="ov-haster" class="small"></div>
+<p class="sec mt4">Datamangel — steder uden tilstand</p>
+<div id="ov-mangel" class="small soft"></div>
+<p class="note mt3">Ingen samlet score. Tallene tælles hver for sig og lægges ikke sammen til ét.</p>
+</section>
+
+<section class="stage reg-fane" id="fane-data">
+<p class="sec">Eksport</p>
+<p class="small soft">CSV åbner direkte i Excel (semikolon, dansk tegnsæt). JSON er hele tilstanden, til fletning eller sikkerhedskopi.</p>
+<div class="knapper mt2">
+<button class="knap sek" type="button" data-csv="rum">CSV · rum</button>
+<button class="knap sek" type="button" data-csv="ude">CSV · udearealer</button>
+<button class="knap sek" type="button" data-csv="tek">CSV · teknik</button>
+<button class="knap sek" type="button" data-csv="fund">CSV · fund</button>
+<button class="knap" type="button" id="json-ud">JSON · alt</button>
+</div>
+<p class="sec mt4">Flet fra en anden telefon</p>
+<p class="small soft">Eksportér JSON på den anden telefon, send den hertil (AirDrop, mail, hvad som helst) og vælg den her. Felter, der er tomme her, fyldes ud derfra. Er et sted rettet begge steder, vinder den nyeste rettelse felt for felt — intet slettes.</p>
+<input class="felt-boks mt2" type="file" id="json-ind" accept="application/json,.json" style="width:100%;box-sizing:border-box">
+<p class="small mt2" id="flet-svar"></p>
+<p class="sec mt4">Nulstil</p>
+<p class="small soft">Sletter alt på denne telefon. Eksportér først.</p>
+<button class="knap sek mt2" type="button" id="nulstil">Slet alt på denne telefon</button>
+</section>
+
+<script>
+(function(){
+"use strict";
+var NØGLE = "vh-registrering-v2";
+var K = ["","K0","K1","K2","K3","UN"];
+var RUM = {
+  B01:{navn:"Bygning 1 · 1920 · 83 m² · stuehus",rum:["ST-R01","ST-R02","ST-R03","ST-R04","ST-R05","1S-R01","1S-R02","1S-R03"]},
+  B02:{navn:"Bygning 2 · 1920/1994 · 100 m² · fibercement-tag",rum:["ST-R01","ST-R02","ST-R03","ST-R04","ST-R05","ST-R06","ST-R07","ST-R08"]},
+  B03:{navn:"Bygning 3 · 1920/1999 · 171 m² · fibercement-tag",rum:["ST-R01","ST-R02","ST-R03","ST-R04","ST-R05","ST-R06","ST-R07","ST-R08","1S-R01","1S-R02","1S-R03","1S-R04"]},
+  B04:{navn:"Bygning 4 · findes ikke i BBR",rum:["ST-R01","ST-R02","ST-R03","ST-R04"]},
+  B05:{navn:"Bygning 5 · 1920 · 25 m² · fibercement-tag",rum:["ST-R01","ST-R02"]},
+  B06:{navn:"Bygning 6 · 1955 · 150 m² · metal",rum:["ST-R01","ST-R02","ST-R03","ST-R04","ST-R05","ST-R06"]},
+  B07:{navn:"Bygning 7 · drivhus · 7 m²",rum:["ST-R01"]}
+};
+var UDE = [["U01","Indkørsel og parkering"],["U02","Gårdsplads"],["U03","Campingareal"],["U04","Have og køkkenhave"],["U05","Sauna og bad ude"],["U06","Bålplads"],["U07","Mark / eng"],["U08","Diget (BD.056.813)"],["U09","Skurvognsplads"],["U10","Affald og teknik"]];
+var TEK = [["T01","El-hovedtavle"],["T02","El-måler"],["T03","Vandmåler"],["T04","Stophane"],["T05","Varmekilde 1"],["T06","Varmekilde 2"],["T07","Varmtvandsbeholder"],["T08","Spildevand/septik"],["T09","Brændefyret sauna"],["T10","Storkøkken: komfur/ovn"],["T11","Ventilation"],["T12","Internet/router"]];
+var FUND_ARK = [
+  ["F001","B02/B03/B05","Afklar om fibercementtagene indeholder asbest — fotografér prægningen på undersiden","UN","nu"],
+  ["F002","B04","Find ud af hvad bygning 4 er, og om den er registreret","UN","nu"],
+  ["F003","Alle","Kontrollér BBR-arealer mod opmåling","UN","1-2 år"],
+  ["F004","Ejendom","Bring anvendelseskoden i overensstemmelse med faktisk drift","UN","nu"],
+  ["F005","U08","Find det beskyttede dige på kortet og markér det fysisk før der graves","UN","nu"],
+  ["F006","Ejendom","Bekræft Natura 2000-udstrækning og strandbeskyttelseslinje visuelt","UN","nu"]
+];
+// Felter pr. type: [nøgle, etiket, kontrol, valg?]
+var FELTER = {
+  rum:[["rumnavn","Rumnavn","text"],["maal","Mål: opmålt/skøn","select",["","opmålt","skøn"]],["l","Længde m","num"],["b","Bredde m","num"],["h","Loftshøjde m","num"],
+       ["gulvK","Gulv K","k"],["vaeggeK","Vægge K","k"],["loftK","Loft K","k"],["fugt","Fugt 0–3","select",["","0","1","2","3"]],["K","TILSTAND K","k"],
+       ["foto","Fotonumre","text"],["note","Note — det sete, uden årsag","area"]],
+  ude:[["underlag","Underlag","text"],["vand","Vandansamlinger","text"],["anlaeg","Eksisterende anlæg","text"],["elvand","El/vand udendørs","text"],
+       ["hensyn","Hensyn: dige, Natura 2000, strand","text"],["K","TILSTAND K","k"],["foto","Fotonumre","text"],["note","Note","area"]],
+  tek:[["fabrikat","Fabrikat og model","text"],["serie","Serienummer","text"],["aargang","Årgang","text"],["maaler","Måler-nr","text"],["aflaesning","Sidste aflæsning + dato","text"],
+       ["fejl","Kendte fejl","text"],["K","TILSTAND K","k"],["foto","Foto af mærkeplade (nr.)","text"],["note","Note","area"]]
+};
+var STEDER = [];
+Object.keys(RUM).forEach(function(b){ RUM[b].rum.forEach(function(r){ STEDER.push({id:b+"-"+r,type:"rum",byg:b,navn:""}); }); });
+UDE.forEach(function(u){ STEDER.push({id:u[0],type:"ude",navn:u[1]}); });
+TEK.forEach(function(t){ STEDER.push({id:t[0],type:"tek",navn:t[1]}); });
+
+var S = laes();
+function laes(){ try{ var s=JSON.parse(localStorage.getItem(NØGLE)||"null"); if(s&&s.steder) return s; }catch(e){} return {hvem:"",steder:{},fund:[]}; }
+var gemTimer=null;
+function gem(straks){
+  clearTimeout(gemTimer);
+  var f=function(){ try{ localStorage.setItem(NØGLE, JSON.stringify(S)); status("gemt lokalt "+klokken()); }catch(e){ status("KUNNE IKKE GEMME — eksportér nu", true); } opdaterTal(); };
+  if(straks) f(); else gemTimer=setTimeout(f,400);
+}
+function klokken(){ var d=new Date(); return ("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2); }
+function status(t,fejl){ var e=document.getElementById("reg-status"); e.textContent=(navigator.onLine?"":"offline · ")+t; e.className="reg-status"+((fejl||!navigator.onLine)?" off":""); }
+window.addEventListener("online",function(){status("gemt lokalt");}); window.addEventListener("offline",function(){status("gemt lokalt");});
+
+function sted(id){ if(!S.steder[id]) S.steder[id]={felter:{},opdateret:0,af:""}; return S.steder[id]; }
+function saet(id,felt,v){ var s=sted(id); s.felter[felt]=v; s.opdateret=Date.now(); s.af=S.hvem||""; gem(); if(felt==="K"||felt==="rumnavn") opdaterSummary(id); }
+function harData(id){ var s=S.steder[id]; if(!s) return false; return Object.keys(s.felter).some(function(k){ return String(s.felter[k]||"").trim()!==""; }); }
+function kAf(id){ var s=S.steder[id]; return s&&s.felter.K||""; }
+
+function esc(t){ return String(t==null?"":t).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
+
+function kontrol(id,felt){
+  var nøgle=felt[0], etiket=felt[1], art=felt[2], valg=felt[3]; var v=(S.steder[id]&&S.steder[id].felter[nøgle])||"";
+  var attr=' data-id="'+id+'" data-felt="'+nøgle+'"';
+  var inner;
+  if(art==="k"||art==="select"){
+    var liste=art==="k"?K:valg;
+    inner='<select'+attr+' class="k-'+esc(v)+'">'+liste.map(function(o){return '<option value="'+esc(o)+'"'+(o===v?' selected':'')+'>'+(o===""?"—":esc(o))+'</option>';}).join("")+'</select>';
+  } else if(art==="area"){ inner='<textarea'+attr+'>'+esc(v)+'</textarea>'; }
+  else if(art==="num"){ inner='<input'+attr+' type="text" inputmode="decimal" value="'+esc(v)+'">'; }
+  else { inner='<input'+attr+' type="text" value="'+esc(v)+'" autocomplete="off">'; }
+  return '<label class="'+(art==="area"?"bred":"")+'"><span class="felt-label">'+esc(etiket)+'</span>'+inner+'</label>';
+}
+function stedHtml(st){
+  return '<details class="sted" id="sted-'+st.id+'"><summary>'+summaryHtml(st)+'</summary><div class="felter">'+FELTER[st.type].map(function(f){return kontrol(st.id,f);}).join("")+'</div></details>';
+}
+function summaryHtml(st){
+  var s=S.steder[st.id]||{felter:{}}; var navn=st.type==="rum"?(s.felter.rumnavn||""):st.navn; var k=s.felter.K||"";
+  var tag=k?'<span class="tag'+((k==="K3"||k==="UN")?" tag-accent":"")+'">'+esc(k)+'</span>':(harData(st.id)?'<span class="tag">påbegyndt</span>':'');
+  return '<span class="id">'+esc(st.id)+'</span><span class="navn'+(navn?"":" tom")+'">'+esc(navn||"uden navn endnu")+'</span>'+tag;
+}
+function opdaterSummary(id){ var st=STEDER.filter(function(x){return x.id===id;})[0]; var el=document.querySelector("#sted-"+CSS.escape(id)+">summary"); if(st&&el) el.innerHTML=summaryHtml(st); }
+
+function tegn(){
+  var rum=document.getElementById("fane-rum"); var h="";
+  Object.keys(RUM).forEach(function(b){
+    var ids=RUM[b].rum.map(function(r){return b+"-"+r;}); var n=ids.filter(function(i){return kAf(i);}).length;
+    h+='<div class="bygning"><p class="sec">'+esc(RUM[b].navn)+'<span class="m">'+n+' / '+ids.length+' med K</span></p>'+STEDER.filter(function(s){return s.byg===b;}).map(stedHtml).join("")+'</div>';
+  });
+  rum.innerHTML=h;
+  document.getElementById("fane-ude").innerHTML='<p class="sec">Udearealer</p>'+STEDER.filter(function(s){return s.type==="ude";}).map(stedHtml).join("");
+  document.getElementById("fane-tek").innerHTML='<p class="sec">Tekniske anlæg</p><p class="xs soft">Fotografér mærkeplader. Åbn ikke installationer og ret ikke indstillinger.</p>'+STEDER.filter(function(s){return s.type==="tek";}).map(stedHtml).join("");
+  document.getElementById("sted-liste").innerHTML=STEDER.map(function(s){return '<option value="'+esc(s.id)+'">';}).join("");
+  tegnFund(); opdaterTal();
+}
+document.addEventListener("input",function(e){
+  var t=e.target; if(!t.dataset||!t.dataset.felt) return;
+  saet(t.dataset.id,t.dataset.felt,t.value); if(t.tagName==="SELECT") t.className="k-"+t.value;
+});
+document.addEventListener("change",function(e){ var t=e.target; if(t.dataset&&t.dataset.felt) gem(true); });
+
+// Faner
+document.querySelectorAll(".reg-faner button").forEach(function(b){ b.addEventListener("click",function(){
+  document.querySelectorAll(".reg-faner button").forEach(function(x){x.setAttribute("aria-selected","false");}); b.setAttribute("aria-selected","true");
+  document.querySelectorAll(".reg-fane").forEach(function(x){x.classList.remove("aktiv");}); document.getElementById("fane-"+b.dataset.fane).classList.add("aktiv");
+  if(b.dataset.fane==="oversigt") tegnOversigt(); window.scrollTo(0,0);
+});});
+
+// Hvem
+var hvem=document.getElementById("reg-hvem"); hvem.value=S.hvem||""; hvem.addEventListener("input",function(){ S.hvem=hvem.value.trim(); gem(); });
+
+// Fund
+function alleFund(){
+  var ark=FUND_ARK.map(function(f){return {id:f[0],sted:f[1],hvad:f[2],k:f[3],haster:f[4],foto:"",ts:0,af:"feltark 15/9",ark:true};});
+  return ark.concat(S.fund||[]);
+}
+function tegnFund(){
+  var l=alleFund().slice().sort(function(a,b){return (b.ts||0)-(a.ts||0);});
+  document.getElementById("fund-liste").innerHTML=l.map(function(f){
+    return '<div class="post"><div class="h"><span>'+esc(f.hvad)+'</span><span class="n">'+esc(f.id)+'</span></div><p class="m">'+esc(f.sted)+(f.k?' · '+esc(f.k):'')+(f.haster?' · '+esc(f.haster):'')+(f.foto?' · foto '+esc(f.foto):'')+' · '+esc(f.af||"")+(f.ts?' · '+new Date(f.ts).toLocaleString("da-DK",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):'')+'</p></div>';
+  }).join("")||'<p class="small soft">Ingen fund endnu.</p>';
+}
+document.getElementById("fund-gem").addEventListener("click",function(){
+  var hvad=document.getElementById("fund-hvad").value.trim(); if(!hvad){ document.getElementById("fund-hvad").focus(); return; }
+  var ts=Date.now(); var id="F"+ts.toString(36).toUpperCase().slice(-6);
+  S.fund=S.fund||[]; S.fund.push({id:id,sted:document.getElementById("fund-sted").value.trim(),hvad:hvad,k:document.getElementById("fund-k").value,haster:document.getElementById("fund-haster").value,foto:document.getElementById("fund-foto").value.trim(),ts:ts,af:S.hvem||""});
+  ["fund-sted","fund-hvad","fund-foto"].forEach(function(i){document.getElementById(i).value="";}); document.getElementById("fund-k").value=""; document.getElementById("fund-haster").value="";
+  gem(true); tegnFund();
+});
+
+// Tal og oversigt
+function opdaterTal(){
+  ["rum","ude","tek"].forEach(function(t){ var ids=STEDER.filter(function(s){return s.type===t;}); var n=ids.filter(function(s){return kAf(s.id);}).length; document.getElementById("tal-"+t).textContent=n+"/"+ids.length; });
+  document.getElementById("tal-fund").textContent=String(alleFund().length);
+}
+function tegnOversigt(){
+  var medK=STEDER.filter(function(s){return kAf(s.id);}).length, paab=STEDER.filter(function(s){return harData(s.id)&&!kAf(s.id);}).length;
+  document.getElementById("ov-tal").innerHTML='<div><p class="stor">'+medK+'</p><p class="meta-s mt1">af '+STEDER.length+' med tilstand</p></div><div><p class="stor">'+paab+'</p><p class="meta-s mt1">påbegyndt uden K</p></div><div><p class="stor">'+alleFund().length+'</p><p class="meta-s mt1">fund i alt</p></div>';
+  var kd={}; K.slice(1).forEach(function(k){kd[k]=0;}); STEDER.forEach(function(s){var k=kAf(s.id); if(k) kd[k]++;});
+  document.getElementById("ov-k").innerHTML=K.slice(1).map(function(k){return '<div><p class="stor'+((k==="K3"||k==="UN")&&kd[k]?'" style="color:var(--accent)':'')+'">'+kd[k]+'</p><p class="meta-s mt1">'+k+'</p></div>';}).join("");
+  var fugt=STEDER.filter(function(s){var f=S.steder[s.id]&&S.steder[s.id].felter.fugt; return f==="2"||f==="3";});
+  document.getElementById("ov-fugt").innerHTML=fugt.length?fugt.map(function(s){return '<div class="post">'+esc(s.id)+' · fugt '+esc(S.steder[s.id].felter.fugt)+(S.steder[s.id].felter.rumnavn?' · '+esc(S.steder[s.id].felter.rumnavn):'')+'</div>';}).join(""):'<span class="soft">Ingen registreret.</span>';
+  var haster=alleFund().filter(function(f){return f.haster==="nu";});
+  document.getElementById("ov-haster").innerHTML=haster.length?haster.map(function(f){return '<div class="post">'+esc(f.id)+' · '+esc(f.sted)+' · '+esc(f.hvad)+'</div>';}).join(""):'<span class="soft">Ingen.</span>';
+  var mangel=STEDER.filter(function(s){return !kAf(s.id);});
+  document.getElementById("ov-mangel").innerHTML=mangel.length+' steder: '+mangel.map(function(s){return esc(s.id);}).join(", ");
+}
+
+// Eksport
+function dl(navn,indhold,type){ var a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([indhold],{type:type})); a.download=navn; document.body.appendChild(a); a.click(); setTimeout(function(){URL.revokeObjectURL(a.href); a.remove();},500); }
+function csvCelle(v){ v=String(v==null?"":v); return '"'+v.replace(/"/g,'""')+'"'; }
+function dato(){ var d=new Date(); return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2); }
+function csv(type){
+  var linjer=[];
+  if(type==="fund"){ linjer.push(["ID","Sted-ID","Hvad blev observeret","K","Hastegrad","Foto","Hvem","Tidspunkt"]); alleFund().forEach(function(f){ linjer.push([f.id,f.sted,f.hvad,f.k,f.haster,f.foto,f.af,f.ts?new Date(f.ts).toISOString():""]); }); }
+  else { var felter=FELTER[type]; linjer.push(["ID"].concat(type!=="rum"?["Navn"]:[]).concat(felter.map(function(f){return f[1];})).concat(["Hvem","Opdateret"]));
+    STEDER.filter(function(s){return s.type===type;}).forEach(function(s){ var d=S.steder[s.id]||{felter:{}}; linjer.push([s.id].concat(type!=="rum"?[s.navn]:[]).concat(felter.map(function(f){return d.felter[f[0]]||"";})).concat([d.af||"",d.opdateret?new Date(d.opdateret).toISOString():""])); }); }
+  dl("agersoe-registrering-"+type+"-"+dato()+".csv","﻿"+linjer.map(function(r){return r.map(csvCelle).join(";");}).join("\r\n"),"text/csv;charset=utf-8");
+}
+document.querySelectorAll("[data-csv]").forEach(function(b){ b.addEventListener("click",function(){ csv(b.dataset.csv); }); });
+document.getElementById("json-ud").addEventListener("click",function(){ dl("agersoe-registrering-"+(S.hvem||"telefon").replace(/[^a-zA-Z0-9æøåÆØÅ]/g,"")+"-"+dato()+".json", JSON.stringify(S,null,1), "application/json"); });
+
+// Fletning
+document.getElementById("json-ind").addEventListener("change",function(e){
+  var fil=e.target.files[0]; if(!fil) return; var r=new FileReader();
+  r.onload=function(){ try{ var ind=JSON.parse(r.result); if(!ind||!ind.steder) throw new Error("ikke en registreringsfil");
+    var nyeFelter=0, nyeFund=0;
+    Object.keys(ind.steder).forEach(function(id){ var a=sted(id), b=ind.steder[id]; var bNyere=(b.opdateret||0)>(a.opdateret||0);
+      Object.keys(b.felter||{}).forEach(function(k){ var bv=String(b.felter[k]||"").trim(); var av=String(a.felter[k]||"").trim(); if(!bv) return; if(!av||bNyere){ if(av!==bv) nyeFelter++; a.felter[k]=b.felter[k]; } });
+      if(bNyere){ a.opdateret=b.opdateret; a.af=b.af||a.af; } });
+    var har={}; (S.fund||[]).forEach(function(f){har[f.id+"|"+f.ts]=1;}); (ind.fund||[]).forEach(function(f){ if(!har[f.id+"|"+f.ts]){ S.fund.push(f); nyeFund++; } });
+    gem(true); tegn(); document.getElementById("flet-svar").textContent="Flettet: "+nyeFelter+" felter og "+nyeFund+" fund taget ind fra "+(ind.hvem||"den anden telefon")+".";
+  }catch(err){ document.getElementById("flet-svar").textContent="Kunne ikke læse filen: "+err.message; } e.target.value=""; };
+  r.readAsText(fil);
+});
+document.getElementById("nulstil").addEventListener("click",function(){ if(!confirm("Slet alt på denne telefon? Har du eksporteret?")) return; S={hvem:"",steder:{},fund:[]}; gem(true); hvem.value=""; tegn(); });
+
+tegn(); status("gemt lokalt");
+if("serviceWorker" in navigator){ navigator.serviceWorker.register("/internt/registrering-sw.js",{scope:"/internt/"}).catch(function(){}); }
+})();
+</script>
