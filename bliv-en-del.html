@@ -9,6 +9,7 @@
 <meta name="theme-color" content="#e9e7e0">
 <link rel="preload" href="/assets/fonts/lora-var.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/assets/fonts/jetbrains-mono-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/vh.css">
 </head>
 <body>
@@ -29,7 +30,15 @@
 <div class="maxw">
 <p class="sec">Forløbet</p>
 <h1 style="font-size:clamp(26px,3.4vw,34px)">Der er en dør ind, og der er en dør ud - og den sidste skal du kende, før du går ind ad den første.</h1>
-<p class="lead mt2">Det har vi ikke været gode til før. Derfor står slutdatoen i aftalen fra dag ét, og derfor siger alle ja til mediation, inden der er noget at mediere om. Det er ikke til forhandling - og vi lytter altid.</p>
+<p class="lead mt2">Du og vi aftaler fra begyndelsen, hvornår forløbet slutter, hvordan du kan stoppe undervejs, og hvordan en mægler kommer ind, hvis vi bliver uenige.</p>
+<figure class="foto mt3">
+<picture>
+<source type="image/avif" srcset="/images/sted/udefra-s.avif 480w, /images/sted/udefra.avif 894w" sizes="(max-width: 760px) 100vw, 700px">
+<source type="image/webp" srcset="/images/sted/udefra-s.webp 480w, /images/sted/udefra.webp 894w" sizes="(max-width: 760px) 100vw, 700px">
+<img src="/images/sted/udefra.webp" width="894" height="669" alt="Sti gennem hæk og buske op mod det hvide hus med rødt tag." loading="lazy" decoding="async">
+</picture>
+<figcaption class="meta">Vejen op til huset</figcaption>
+</figure>
 </div>
 </section>
 
@@ -37,7 +46,7 @@
 <div class="g g-4">
 <div class="trin"><p class="nr">01</p><p class="t">Du skriver</p><p class="b">Et brev. Ikke en formular med felter til "interesseområde".</p><p class="m">Svar inden 7 dage</p></div>
 <div class="trin"><p class="nr">02</p><p class="t">To samtaler</p><p class="b">Én om hvad du vil. Én om hvad du har svært ved. Den anden er den vigtige.</p><p class="m">3–6 uger</p></div>
-<div class="trin loeft"><p class="nr a">03</p><p class="t">Prøveaftale</p><p class="b">Du bor og arbejder her. Der er en slutdato, og den er ikke en trussel.</p><p class="m">6 måneder · skriftlig</p></div>
+<div class="trin loeft"><p class="nr a">03</p><p class="t">Prøveaftale</p><p class="b">Du bor og arbejder her. Slutdatoen står i aftalen fra begyndelsen.</p><p class="m">6 måneder · skriftlig</p></div>
 <div class="trin"><p class="nr">04</p><p class="t">Medlem</p><p class="b">Begge siger ja igen. Timer, indskud og mandat skrives ned, som de er aftalt.</p><p class="m">Tages op hvert år</p></div>
 </div>
 </section>
@@ -52,7 +61,7 @@
 <li><span>Dine timer opgøres på det grundlag, de blev aftalt på. Ikke på hvad nogen husker.</span></li>
 <li><span>Går det i hårdknude, kommer der en tredje part ind. Aftalt på forhånd.</span></li>
 </ul>
-<p class="xs soft mt3">Vi lover ikke en bolig, en ejerandel eller en permanent plads. Et prøveforløb er et forsøg - for dig og for os - og det er sagt højt, fordi det modsatte har kostet dyrt før.</p>
+<p class="xs soft mt3">Prøveaftalen beskriver dit ophold, dine opgaver og den periode, vi sammen har aftalt. Den giver dig ikke en ejerandel eller tilsagn om en bolig eller en varig plads i fællesskabet.</p>
 </div>
 <div>
 <p class="sec">Skriv</p>
@@ -77,7 +86,7 @@
     e.preventDefault();
     var n=f.navn.value.trim(), m=f.mail.value.trim(), b=f.brevet.value.trim();
     var body='Fra: '+n+' <'+m+'>\n\n'+b;
-    location.href='mailto:kontakt@vendhjem.dk?subject='+encodeURIComponent('Brev til Vend Hjem fra '+n)+'&body='+encodeURIComponent(body);
+    location.href='mailto:laiydeh@gmail.com?subject='+encodeURIComponent('Brev til Vend Hjem fra '+n)+'&body='+encodeURIComponent(body);
   });
 })();
 </script>
@@ -86,6 +95,7 @@
 <div class="stage row">
 <p>Vend Hjem · Agersø · Slagelse Kommune</p>
 <p>Udkast · 15. september 2026 · Lederudvikling og foredrag ligger på <a href="https://www.humandirection.dk/">humandirection.dk</a></p>
+<p><a href="/privatlivspolitik">Privatlivspolitik</a> · <a href="/cookies">Cookies</a></p>
 </div>
 </footer>
 </body>

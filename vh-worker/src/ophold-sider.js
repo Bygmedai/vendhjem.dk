@@ -229,7 +229,7 @@ ${link ? `<p class="mt2"><a class="lnk" href="${esc(link.href)}">${esc(link.labe
 <section class="stage blok">
 <p class="sec">Sporene</p>
 <h1>Det, der sker på stedet.</h1>
-<p class="lead maxw mt2">To mennesker med hver sit felt og et sted, der kan bære begge. Stevens ti år i mandearbejde og rites of passage. Lais integrale praksis og skuespilmetode.</p>
+<p class="lead maxw mt2">Mandegrupperne og rites of passage har ti års arbejde bag sig. Lai står for den integrale praksis og skuespilmetoden. Resten laver vi sammen med dem, der er her.</p>
 ${kalenderLead}
 </section>
 
