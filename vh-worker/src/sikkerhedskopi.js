@@ -131,6 +131,23 @@ export async function koerSikkerhedskopi(env, dato = new Date()) {
  * bliver den stående. Vil du have præcis kopiens tilstand og intet andet, skal
  * du køre den ind i en FRISK database. Det er den ene ting, scriptet ikke kan
  * gøre for dig, og derfor står det her frem for i et hoved.
+ *
+ * PRAGMA foreign_keys = OFF STÅR FØR BEGIN — OG DET SKAL DEN BLIVE VED MED.
+ *
+ * SQLite ignorerer `PRAGMA foreign_keys` INDE i en transaktion. Stille. Ingen
+ * fejl, ingen advarsel — værdien bliver bare ved med at være 1. Målt
+ * 18.09.2026 mod node:sqlite, hvor fremmednøgler er slået til som standard:
+ *
+ *   default                              1
+ *   OFF uden for transaktion             0
+ *   OFF inde i transaktion               1   <- ignoreret
+ *
+ * Flytter man linjen ind efter BEGIN, fordi det ser ryddeligere ud, dør
+ * gendannelsen på den første række, der peger på en tabel, der endnu ikke er
+ * fyldt — og en sund kopi ligner en ødelagt. Det er spejlbilledet af den
+ * fælde, Haruki ramte i #56: `PRAGMA defer_foreign_keys` virker KUN inde i
+ * en transaktion. De to pragmaer har hver sin side af BEGIN, og de er ikke
+ * til at bytte om.
  */
 export function genskabSql(kopi) {
   const v = (x) => {
