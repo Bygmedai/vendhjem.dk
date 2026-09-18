@@ -1267,63 +1267,6 @@ def _kilde(navn):
     with open(os.path.join(ROOT, "internt-kilder", navn), encoding="utf-8") as f:
         return f.read()
 
-# ───────────────────────────── INTERNT / NATTEN (BYG-577) ─────────────────────────────
-# Intern for nu — Stevens beslutning 18.09.2026. Reglerne for burns, raves og
-# fester skrives, før den første holdes. Stoffer og alkohol aftales pr.
-# arrangement og siges ikke offentligt. Naboer varsles kun ved højtalere ude.
-pages["internt/natten.html"] = head("Natten · Internt", "Det, vi har aftalt om nætterne: én der er vågen, samtykke, aftalen for aftenen, naboerne og hvad vi gør, når noget går galt.", "internt/natten.html", intern=True, current="natten") + '''
-<section class="stage blok">
-<p class="sec">Internt · natten</p>
-<h1 style="font-size:clamp(26px,3.4vw,34px)">Det, vi har aftalt om nætterne.</h1>
-<p class="lead maxw mt2">Festivaler, burns og raves er en del af stedet, og vi vil gerne have, at de kan være vilde uden at nogen kommer til skade. Derfor står det her, skrevet ned før den første, så vi kan finde det igen, når det er tre om natten og nogen har brug for det.</p>
-<p class="meta mt3">Aftalt 18. september 2026 · tages op efter hver fest med gæster udefra</p>
-</section>
-
-<section class="stage">
-<div class="g g-2">
-<div class="loeft">
-<p class="sec">Én, der er vågen</p>
-<p class="small">Når vi er flere end 20 om natten, er der én af os, der hverken drikker eller tager noget, og som kan findes hele natten. Navnet står ved døren, og alle får det at vide, når de kommer. Det er en rolle, man tager på skift, og den er en gave til de andre, ikke en straf.</p>
-<p class="meta mt2">Over 20 gæster · navn ved døren</p>
-</div>
-<div>
-<p class="sec">Samtykke</p>
-<p class="small">Et nej er et nej, også klokken tre, også når det er sagt lavt. Den, der er vågen, kan bede hvem som helst om at gå hjem, uden at der skal diskuteres. Og der er et rum med en dør, man kan lukke, hvis man har brug for at være alene eller for at være to i fred.</p>
-<p class="meta mt2">Et rum med en dør · hele natten</p>
-</div>
-<div>
-<p class="sec">Aftalen for aftenen</p>
-<p class="small">Hvad der gælder for alkohol og andet, aftaler vi fra arrangement til arrangement, mellem dem, der holder det, og den, der er vågen. Aftalen skrives ned, før gæsterne kommer, og den, der er vågen, kender den. Vi skriver den ikke på den offentlige side.</p>
-<p class="meta mt2">Pr. arrangement · skrevet ned før</p>
-</div>
-<div>
-<p class="sec">Naboerne</p>
-<p class="small">Stedet ligger for sig selv, og det, der sker inde i salen, generer ingen. Står der højtalere udenfor, får naboerne besked i god tid, med dato og et telefonnummer til en, der tager den, når den ringer.</p>
-<p class="meta mt2">Kun ved højtalere ude · dato og nummer</p>
-</div>
-</div>
-</section>
-
-<section class="stage sektion">
-<div class="g g-2 nb">
-<div>
-<p class="sec">Når noget går galt</p>
-<ul class="tjek">
-<li><span>Ring 112 ved fare for liv. Lægevagten i Region Sjælland: 1818. Adressen er Egholmvej 23, Agersø, 4230 Skælskør.</span></li>
-<li><span>Færgen har sidste afgang om aftenen, og planen for dagen hænger ved døren. Ved akut behov er det 112, der sørger for, at hjælpen når øen.</span></li>
-<li><span>Forbindskassen har én fast plads, som den, der er vågen, kender. Hvor, står her, når den er hængt op.</span></li>
-<li><span>Den, der er vågen, skriver ned, hvad der skete, samme nat, mens det er klart. Ikke for at placere skyld, men for at vi kan gøre det bedre næste gang.</span></li>
-</ul>
-</div>
-<div>
-<p class="sec">Det, der stadig mangler</p>
-<p class="small soft">Hvor forbindskassen faktisk hænger, og hvilket telefonnummer naboerne skal have, sætter Lai ind, når stedet er registreret. Indtil da står det her som det, vi har besluttet, og ikke som det, der er hængt op.</p>
-<p class="meta mt2">Udestår · Lai</p>
-</div>
-</div>
-</section>
-''' + foot(intern=True, path="internt/natten.html")
-
 pages["internt/registrering.html"] = head("Registrering · Internt", "Feltregistrering af rum, udearealer og tekniske anlaeg. Virker uden net.", "internt/registrering.html", intern=True, current="registrering") + _kilde("registrering-body.html.in") + foot(intern=True, path="internt/registrering.html")
 pages["internt/registrering-sw.js"] = _kilde("registrering-sw.js")
 

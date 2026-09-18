@@ -12,7 +12,6 @@
     { "id": "fonde",        "sti": "internt/fonde/",       "label": "Fonde" },
     { "id": "registrering", "sti": "internt/registrering", "label": "Registrering" },
     { "id": "breve",        "sti": "internt/breve",        "label": "Breve" },
-    { "id": "fund",         "sti": "internt/fund",         "label": "Fund" },
-    { "id": "natten",       "sti": "internt/natten",       "label": "Natten" }
+    { "id": "fund",         "sti": "internt/fund",         "label": "Fund" }
   ]
 }
