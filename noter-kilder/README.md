@@ -17,4 +17,5 @@ Første afsnit. Afsnit adskilles af en tom linje.
 ```
 
 `foto:` er valgfri og skal være en slug fra `images/sted/_manifest.json`.
+Mappen hedder `noter-kilder`, ikke `noter`: en mappe ved navn `noter` ville skygge for siden `/noter`.
 `python3 build.py` bygger `/noter` og `/noter.xml` (RSS). Ingen tags, ingen kommentarer.

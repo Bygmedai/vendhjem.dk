@@ -843,7 +843,8 @@ pages["cookies.html"] = head("Cookies · Vend Hjem", "Sitet sætter ingen cookie
 ''' + foot()
 
 # ───────────────────────────── NOTER (BYG-578) ─────────────────────────────
-# Én side, der vokser mellem toppene. Kilden er noter/*.md — én fil pr. note,
+# Én side, der vokser mellem toppene. Kilden er noter-kilder/*.md (ikke noter/:
+# en mappe med det navn ville skygge for /noter hos enhver statisk server) — én fil pr. note,
 # navngivet ÅÅÅÅ-MM-DD-slug.md, med to linjer øverst:
 #   titel: Registreringen, første weekend
 #   foto: udeplads            (valgfri — en slug fra images/sted)
@@ -851,7 +852,7 @@ pages["cookies.html"] = head("Cookies · Vend Hjem", "Sitet sætter ingen cookie
 # «## Overskrift» bliver en mellemrubrik; *kursiv*, **fed** og [tekst](url)
 # virker. Ikke mere markdown end det. Nyeste øverst. Ingen tags, ingen
 # kommentarer, intet nyhedsbrev — RSS på /noter.xml er nok til at følge med.
-NOTER_DIR = os.path.join(ROOT, "noter")
+NOTER_DIR = os.path.join(ROOT, "noter-kilder")
 
 def _inline(t):
     t = t.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
