@@ -12,6 +12,10 @@ vh-worker
 app
 build.py
 nav-internt.json
+stigen.json
+images/sted/_manifest.json
+images/permakultur/_manifest.json
+noter-kilder
 package.json
 package-lock.json
 playwright.config.js
