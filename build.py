@@ -422,7 +422,7 @@ pages["bliv-en-del.html"] = head("Bliv en del · Vend Hjem", "Forløbet fra brev
 
 <section class="stage">
 <div class="g g-4">
-<div class="trin"><p class="nr">01</p><p class="t">Du skriver</p><p class="b">Et brev. Ikke en formular med felter til "interesseområde".</p><p class="m">Svar inden 7 dage</p></div>
+<div class="trin"><p class="nr">01</p><p class="t">Du skriver</p><p class="b">Et brev. Ikke en formular med felter til "interesseområde".</p><p class="m">Lai svarer inden 7 dage</p></div>
 <div class="trin"><p class="nr">02</p><p class="t">To samtaler</p><p class="b">Én om hvad du vil. Én om hvad du har svært ved. Den anden er den vigtige.</p><p class="m">3–6 uger</p></div>
 <div class="trin loeft"><p class="nr a">03</p><p class="t">Prøveaftale</p><p class="b">Du bor og arbejder her. Slutdatoen står i aftalen fra begyndelsen.</p><p class="m">6 måneder · skriftlig</p></div>
 <div class="trin"><p class="nr">04</p><p class="t">Medlem</p><p class="b">Begge siger ja igen. Timer, indskud og mandat skrives ned, som de er aftalt.</p><p class="m">Tages op hvert år</p></div>
@@ -454,7 +454,7 @@ pages["bliv-en-del.html"] = head("Bliv en del · Vend Hjem", "Forløbet fra brev
 <div style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden" aria-hidden="true"><label for="website">Website</label><input id="website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
 <input type="hidden" name="t" value="">
 <button class="lnk" type="submit">Send →</button>
-<p class="note mt2">Brevet gemmes hos os og går til den, der svarer. Du får en kvittering på mail. Vi svarer inden 7 dage.</p>
+<p class="note mt2">Brevet gemmes hos os og går til Lai. Du får en kvittering på mail. Lai svarer inden 7 dage.</p>
 </form>
 </div>
 </div>
