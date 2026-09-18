@@ -103,6 +103,8 @@ export const TEKST = {
   mitFaellesH: "Stedet i år",
   mitFaellesTom: "Ingen har skrevet timer ind i år endnu. Den første linje er din.",
   mitIngenRangliste: "Der står ikke, hvem der har lagt hvad. Det gør der heller ikke senere.",
+  aftalt: "Det, vi har aftalt",
+  aftaltLink: "Det, vi har aftalt om nætterne →",
 
   antagelse: "antagelse",
   adgangskrav: "Adgangskrav",
