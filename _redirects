@@ -15,7 +15,7 @@
 # -niveauer, -tilstande, -typer — 404 i begge former. Kortet var tegnet efter
 # en aeldre navngivning end sitets egen.
 #
-# Proeve 35 i vh-worker/test/koer.mjs holder de to ting i skak: hver kilde her
+# Proeve 36 i vh-worker/test/koer.mjs holder de to ting i skak: hver kilde her
 # skal pege paa en fil der findes, og hver foraeldreloes side skal have en
 # adresse i begge former.
 

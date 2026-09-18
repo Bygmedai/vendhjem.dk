@@ -1673,7 +1673,7 @@ console.log("\n34 · Natten flyttede derhen, hvor den kan læses");
      /\/internt\/natten \/mit\/aftalt 301/.test(readFileSync(new URL("_redirects", rod), "utf8")));
 }
 
-console.log("\n35 · Ingen gammel adresse peger ud i ingenting");
+console.log("\n36 · Ingen gammel adresse peger ud i ingenting");
 {
   // HVORFOR DEN HER PROEVE FINDES
   //
