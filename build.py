@@ -25,6 +25,56 @@ def _senest():
     return f"{d.day}. {_MDR[d.month - 1]} {d.year}"
 FOOT_DATE = _senest()
 
+NOTER_DIR = os.path.join(ROOT, "noter-kilder")
+
+def _inline(t):
+    t = t.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    t = re.sub(r"\[([^\]]+)\]\((https?://[^)\s]+|/[^)\s]*)\)", r'<a href="\2">\1</a>', t)
+    t = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", t)
+    t = re.sub(r"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", r"<em>\1</em>", t)
+    return t
+
+def _note_html(body):
+    ud = []
+    for blok in re.split(r"\n\s*\n", body.strip()):
+        blok = blok.strip()
+        if not blok:
+            continue
+        if blok.startswith("## "):
+            ud.append(f'<p class="sec mt3">{_inline(blok[3:].strip())}</p>')
+        else:
+            ud.append(f'<p class="small">{_inline(" ".join(l.strip() for l in blok.splitlines()))}</p>')
+    return "\n".join(ud)
+
+def laes_noter():
+    noter = []
+    if not os.path.isdir(NOTER_DIR):
+        return noter
+    for fn in sorted(os.listdir(NOTER_DIR), reverse=True):
+        m = re.match(r"^(\d{4}-\d{2}-\d{2})-([a-z0-9-]+)\.md$", fn)
+        if not m:
+            continue
+        raw = open(os.path.join(NOTER_DIR, fn), encoding="utf-8").read()
+        hoved, _, body = raw.partition("\n\n")
+        felter = dict(l.split(":", 1) for l in hoved.splitlines() if ":" in l)
+        felter = {k.strip(): v.strip() for k, v in felter.items()}
+        d = _dt.date.fromisoformat(m.group(1))
+        noter.append({
+            "dato": d, "dato_dk": f"{d.day}. {_MDR[d.month - 1]} {d.year}",
+            "slug": m.group(2), "titel": felter.get("titel", m.group(2)),
+            "foto": felter.get("foto", ""), "body": body, "html": _note_html(body),
+        })
+    return noter
+
+NOTER = laes_noter()
+
+# Sitet lover ikke noget, der ikke er der. Uden en eneste note findes linket
+# ikke, siden er noindex, og den står ikke i sitemap. Første note tænder det
+# hele af sig selv. Målt 18.09.2026: /noter lå i foden paa hver side og i
+# sitemap, og var tom.
+NOTER_LINK = ('<p class="meta mt3"><a href="/noter">Noter fra stedet →</a></p>'
+              if NOTER else "")
+
 def fod_offentlig():
     """Foden paa alle offentlige sider — ogsaa dem Workeren bygger.
     Skrives til vh-worker/src/fod.js nederst, saa der er én fod, ikke to."""
@@ -32,7 +82,7 @@ def fod_offentlig():
 <div class="stage row">
 <p>Vend Hjem · Agersø · Slagelse Kommune</p>
 <p>Senest ændret {FOOT_DATE} · Lederudvikling og foredrag ligger på <a href="https://www.humandirection.dk/">humandirection.dk</a></p>
-<p><a href="/noter">Noter</a> · <a href="/privatlivspolitik">Privatlivspolitik</a> · <a href="/cookies">Cookies</a></p>
+<p><a href="/privatlivspolitik">Privatlivspolitik</a> · <a href="/cookies">Cookies</a></p>
 </div>
 </footer>'''
 
@@ -72,10 +122,12 @@ def nav_internt(depth, current):
 # workers.dev er bevidst lukket (workers_dev = false) og maa ikke vaere maalet.
 INTERN_BASE = "https://vendhjem.dk"
 
-def head(title, desc, path, intern=False, current=None):
+def head(title, desc, path, intern=False, current=None, noindex=False):
     # Alle stier er absolutte. Se HVORFOR-ABSOLUTTE-STIER nederst i filen.
     depth = "/"
-    robots = '<meta name="robots" content="noindex, nofollow">\n' if intern else ""
+    # noindex uden intern: en offentlig side, der endnu ikke har noget indhold,
+    # skal ikke indekseres — men den skal stadig have den offentlige menu.
+    robots = '<meta name="robots" content="noindex, nofollow">\n' if (intern or noindex) else ""
     canon = "" if intern else f'<link rel="canonical" href="https://vendhjem.dk/{path.replace("index.html","").replace(".html","")}">\n'
     if intern:
         nav = f'''<nav class="nav" aria-label="Internt">
@@ -291,7 +343,7 @@ pages["index.html"] = head("Vend Hjem · Agersø", "Vi laver en gammel campingpl
 
 <section class="stage sektion">
 <p class="lead maxw" style="color:var(--blaek)">Der står ét langt bord. Det er dér, vi spiser sammen, og dér dagen samler sig — efter arbejdet, når nogen kommer, når nogen skal videre.</p>
-<p class="meta mt3"><a href="/noter">Noter fra stedet →</a></p>
+''' + (NOTER_LINK) + '''
 </section>
 ''' + foot()
 
@@ -852,48 +904,6 @@ pages["cookies.html"] = head("Cookies · Vend Hjem", "Sitet sætter ingen cookie
 # «## Overskrift» bliver en mellemrubrik; *kursiv*, **fed** og [tekst](url)
 # virker. Ikke mere markdown end det. Nyeste øverst. Ingen tags, ingen
 # kommentarer, intet nyhedsbrev — RSS på /noter.xml er nok til at følge med.
-NOTER_DIR = os.path.join(ROOT, "noter-kilder")
-
-def _inline(t):
-    t = t.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-    t = re.sub(r"\[([^\]]+)\]\((https?://[^)\s]+|/[^)\s]*)\)", r'<a href="\2">\1</a>', t)
-    t = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", t)
-    t = re.sub(r"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", r"<em>\1</em>", t)
-    return t
-
-def _note_html(body):
-    ud = []
-    for blok in re.split(r"\n\s*\n", body.strip()):
-        blok = blok.strip()
-        if not blok:
-            continue
-        if blok.startswith("## "):
-            ud.append(f'<p class="sec mt3">{_inline(blok[3:].strip())}</p>')
-        else:
-            ud.append(f'<p class="small">{_inline(" ".join(l.strip() for l in blok.splitlines()))}</p>')
-    return "\n".join(ud)
-
-def laes_noter():
-    noter = []
-    if not os.path.isdir(NOTER_DIR):
-        return noter
-    for fn in sorted(os.listdir(NOTER_DIR), reverse=True):
-        m = re.match(r"^(\d{4}-\d{2}-\d{2})-([a-z0-9-]+)\.md$", fn)
-        if not m:
-            continue
-        raw = open(os.path.join(NOTER_DIR, fn), encoding="utf-8").read()
-        hoved, _, body = raw.partition("\n\n")
-        felter = dict(l.split(":", 1) for l in hoved.splitlines() if ":" in l)
-        felter = {k.strip(): v.strip() for k, v in felter.items()}
-        d = _dt.date.fromisoformat(m.group(1))
-        noter.append({
-            "dato": d, "dato_dk": f"{d.day}. {_MDR[d.month - 1]} {d.year}",
-            "slug": m.group(2), "titel": felter.get("titel", m.group(2)),
-            "foto": felter.get("foto", ""), "body": body, "html": _note_html(body),
-        })
-    return noter
-
-NOTER = laes_noter()
 
 def _note_blok(n):
     f = ("\n" + foto(n["foto"], "", sizes="(max-width: 760px) 100vw, 700px", cls="mt3")) if n["foto"] and n["foto"] in FOTO_MAN else ""
@@ -913,7 +923,7 @@ _noter_tom = '''<section class="stage blok blok-top">
 </div>
 </section>'''
 
-pages["noter.html"] = head("Noter · Vend Hjem", "Små noter fra stedet, mellem de store dage: hvad der blev gjort, fundet og målt, og hvad der venter.", "noter.html", current=None) + '''
+pages["noter.html"] = head("Noter · Vend Hjem", "Små noter fra stedet, mellem de store dage: hvad der blev gjort, fundet og målt, og hvad der venter.", "noter.html", current=None, noindex=not NOTER) + '''
 <section class="stage blok">
 <div class="maxw">
 <p class="sec">Noter</p>
@@ -944,6 +954,15 @@ def _rss():
             + "\n".join(items) + '\n</channel>\n</rss>\n')
 
 pages["noter.xml"] = _rss()
+
+# Sitemap genereres her, saa den ikke er en fil, nogen skal huske at rette.
+# /noter staar kun i den, naar der er noget at laese.
+_SITEMAP = ["", "fundamentet", "sporene", "permakultur", "maend", "bliv-en-del"] \
+    + (["noter"] if NOTER else []) + ["privatlivspolitik", "cookies"]
+pages["sitemap.xml"] = ('<?xml version="1.0" encoding="UTF-8"?>\n'
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    + "\n".join(f"<url><loc>https://vendhjem.dk/{sti}</loc></url>" for sti in _SITEMAP)
+    + "\n</urlset>\n")
 pages["noter.html"] = pages["noter.html"].replace(
     "</head>", '<link rel="alternate" type="application/rss+xml" title="Vend Hjem · Noter" href="/noter.xml">\n</head>', 1)
 

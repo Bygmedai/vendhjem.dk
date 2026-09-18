@@ -1587,5 +1587,39 @@ console.log("\n32 · «Noget jeg så» — samme skærm som timerne");
      sorteret.map((x) => `${x.id}:${x.status}`).join(", "));
 }
 
+console.log("\n33 · Sitet lover ikke en side, der ikke er der");
+{
+  // Maalt 18.09.2026: /noter laa i foden paa hver eneste side, i sitemap og
+  // paa forsiden — og der var ikke en eneste note paa den. Reglen herfra:
+  // linket, sitemap-linjen og indekseringen foelger, om der faktisk er noget
+  // at laese. Proeven laeser kilden og de byggede filer og sammenligner.
+  const rod = new URL("../../", import.meta.url);
+  const l = (f) => readFileSync(new URL(f, rod), "utf8");
+  const { readdirSync } = await import("node:fs");
+  const noter = readdirSync(new URL("noter-kilder", rod))
+    .filter((f) => /^\d{4}-\d{2}-\d{2}-[a-z0-9-]+\.md$/.test(f));
+  const harNoter = noter.length > 0;
+
+  const forside = l("index.html");
+  const noterSide = l("noter.html");
+  const sitemap = l("sitemap.xml");
+  const rss = l("noter.xml");
+
+  t("foden nævner ikke Noter — foden er stedet med det småt",
+     !/<footer[\s\S]*?href="\/noter"[\s\S]*?<\/footer>/.test(forside));
+  t(`forsiden linker til /noter kun når der ER noter (${noter.length} noter)`,
+     /href="\/noter"/.test(forside) === harNoter);
+  t("en tom /noter bliver ikke indekseret", /noindex/.test(noterSide) === !harNoter);
+  t("men den beholder den offentlige menu, ikke den interne",
+     /aria-label="Hovedmenu"/.test(noterSide) && !/aria-label="Internt"/.test(noterSide));
+  t("/noter står i sitemap kun når der er noget at læse",
+     /vendhjem\.dk\/noter</.test(sitemap) === harNoter);
+  t("RSS har lige så mange poster, som der er noter",
+     (rss.match(/<item>/g) || []).length === noter.length);
+  t("sitemap er genereret, ikke håndholdt — alle offentlige sider står i den",
+     ["", "fundamentet", "sporene", "permakultur", "maend", "bliv-en-del", "privatlivspolitik", "cookies"]
+       .every((sti) => sitemap.includes(`https://vendhjem.dk/${sti}<`)));
+}
+
 console.log(`\n${ok} bestået, ${fejl} fejlet\n`);
 process.exit(fejl ? 1 : 0);
