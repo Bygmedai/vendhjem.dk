@@ -431,3 +431,31 @@ export async function mitNaesteOphold(db, person_id, idag = nu().slice(0, 10)) {
       ORDER BY o.start_dato LIMIT 1`
   ).bind(person_id, idag).first();
 }
+
+// ── Login-forsøg (18.09.2026) ────────────────────────────────────────────────
+//
+// /mit svarer det samme til kendte og ukendte mails, så ingen kan gætte sig
+// til medlemslisten. Prisen var, at et rigtigt menneske kunne banke på uden
+// at nogen opdagede det. Her står, hvad der faktisk skete.
+
+const FORSOEG_DAGE = 90;
+
+export async function logLoginForsoeg(db, { mail, resultat, person_id = null, detalje = null }) {
+  const graense = new Date(Date.now() - FORSOEG_DAGE * 86400000).toISOString();
+  await db.batch([
+    db.prepare(
+      `INSERT INTO login_forsoeg (id, mail, resultat, person_id, detalje, oprettet)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6)`
+    ).bind(id(), String(mail).slice(0, 200), resultat, person_id, detalje, nu()),
+    db.prepare(`DELETE FROM login_forsoeg WHERE oprettet < ?1`).bind(graense),
+  ]);
+}
+
+/** Kun de forsøg, der IKKE lykkedes. De vellykkede er ikke nyheder. */
+export async function loginForsoegUdenAdgang(db, graense = 25) {
+  const { results } = await db.prepare(
+    `SELECT * FROM login_forsoeg WHERE resultat != 'sendt'
+      ORDER BY oprettet DESC LIMIT ?1`
+  ).bind(graense).all();
+  return results;
+}

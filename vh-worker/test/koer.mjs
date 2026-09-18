@@ -24,8 +24,9 @@ const foresporgSql = readFileSync(new URL("../migrations/0008_foresporgsel.sql",
 const kalenderSql = readFileSync(new URL("../migrations/0009_kalender_2027.sql", import.meta.url), "utf8");
 const breveSql = readFileSync(new URL("../migrations/0011_breve.sql", import.meta.url), "utf8");
 const timerSql = readFileSync(new URL("../migrations/0012_timer.sql", import.meta.url), "utf8");
+const loginSql = readFileSync(new URL("../migrations/0013_login_forsoeg.sql", import.meta.url), "utf8");
 const SKELET = [init, seed, peopleSql, mitSql, korpusSql, fondeE2, opholdSql, foresporgSql];
-const MIGRATIONER = [...SKELET, kalenderSql, breveSql, timerSql];
+const MIGRATIONER = [...SKELET, kalenderSql, breveSql, timerSql, loginSql];
 
 let ok = 0, fejl = 0;
 const t = (navn, betingelse, ekstra = "") => {
@@ -1419,6 +1420,83 @@ console.log("\n30 · Månedlig sikkerhedskopi af D1 til R2");
   const gemt = await env.FONDE_FILER.get("sikkerhedskopi/2027-01-01.json");
   const igen = JSON.parse(await gemt.text());
   t("filen kan læses igen som almindelig JSON", igen.database === "vendhjem-fonde" && igen.data.people.length >= 3);
+}
+
+console.log("\n31 · Et mislykket login er ikke længere usynligt (målt 18.09.2026)");
+{
+  const db = env.FONDE_DB;
+  const SVAR = "Hvis adressen hører til nogen her, ligger der en mail nu.";
+  // Baggrunden: Steven havde to personposter — én med rolle, én uden, oprettet
+  // af brevformularen. Han skrev den uden rolle på telefonen, og siden svarede
+  // «Tjek din mail» uden at der var nogen mail.
+  await db.prepare(
+    `INSERT INTO people (id, navn, mail, status, oprettet) VALUES ('p-dublet', 'Uden Rolle', 'udenrolle@example.com', 'aktiv', ?1)`
+  ).bind(new Date().toISOString()).run();
+
+  mails.length = 0;
+  const jarU = new Jar();
+  await jarU.hent("/mit");
+  const svarUdenRolle = await tekst(await jarU.hent("/mit/login", {
+    method: "POST", body: new URLSearchParams({ mail: "udenrolle@example.com" }),
+  }));
+  const jarF = new Jar();
+  await jarF.hent("/mit");
+  const svarUkendt = await tekst(await jarF.hent("/mit/login", {
+    method: "POST", body: new URLSearchParams({ mail: "findes-slet-ikke@example.com" }),
+  }));
+
+  t("fladen siger stadig det samme til begge — medlemslisten kan ikke gættes",
+     svarUdenRolle.includes(SVAR) && svarUkendt.includes(SVAR));
+  t("og der blev ikke sendt en eneste mail", mails.length === 0, mails.length);
+
+  const { results: log } = await db.prepare(
+    `SELECT mail, resultat, person_id FROM login_forsoeg ORDER BY oprettet DESC`
+  ).all();
+  t("men loggen kender forskel på kendt uden rolle og ukendt",
+     log.some((r) => r.mail === "udenrolle@example.com" && r.resultat === "uden_rolle" && r.person_id === "p-dublet") &&
+     log.some((r) => r.mail === "findes-slet-ikke@example.com" && r.resultat === "ukendt_mail" && r.person_id === null),
+     JSON.stringify(log.slice(0, 3)));
+
+  mails.length = 0;
+  const jarOk = new Jar();
+  await jarOk.hent("/mit");
+  await jarOk.hent("/mit/login", { method: "POST", body: new URLSearchParams({ mail: "laiydeh@gmail.com" }) });
+  const { results: efter } = await db.prepare(
+    `SELECT resultat FROM login_forsoeg ORDER BY oprettet DESC LIMIT 1`
+  ).all();
+  t("et vellykket forsøg logges som sendt", efter[0].resultat === "sendt", JSON.stringify(efter));
+
+  const liste = await tekst(await hent("/internt/breve"));
+  t("/internt/breve viser dem, der ikke kom ind",
+     /udenrolle@example\.com/.test(liste) && /Kendt person uden gyldig rolle/.test(liste));
+  t("de vellykkede fylder ikke listen", !/laiydeh@gmail\.com[\s\S]{0,200}Ukendt adresse/.test(liste));
+  const kontraktLogin = (await import("../src/kontrakt.js")).ukendteKlasser(liste,
+     readFileSync(new URL("../../assets/vh.css", import.meta.url), "utf8"));
+  t("afsnittet bruger kun klasser fra vh.css", kontraktLogin.length === 0, kontraktLogin.join(", "));
+
+  // «Forkert browser» skal sige hvad man gør, ikke kun hvad der gik galt.
+  mails.length = 0;
+  const jarA2 = new Jar();
+  await jarA2.hent("/mit");
+  await jarA2.hent("/mit/login", { method: "POST", body: new URLSearchParams({ mail: "laiydeh@gmail.com" }) });
+  const u2 = linkIMail(mails[0]);
+  const jarB2 = new Jar();
+  await jarB2.hent("/mit");
+  const forkert = await tekst(await jarB2.hent(u2 ? stiFraUrl(u2) : "/mit/link/x"));
+  t("forkert browser fortæller hvad man gør i stedet", /Bed om et nyt link herfra/.test(forkert), forkert.slice(0, 300));
+
+  // Mail uden nøgle må ikke melde ok.
+  const { sendMail } = await import("../src/mail.js");
+  const svar = await sendMail({}, { to: "a@b.dk", subject: "x", text: "y" });
+  t("sendMail melder IKKE ok, når der ingen nøgle er", svar.ok === false && svar.via === "ingen-noegle", JSON.stringify(svar));
+
+  // Loggen er et driftsværktøj, ikke et arkiv.
+  await db.prepare(
+    `INSERT INTO login_forsoeg (id, mail, resultat, oprettet) VALUES ('gammel', 'for@gammel.dk', 'ukendt_mail', ?1)`
+  ).bind(new Date(Date.now() - 100 * 86400000).toISOString()).run();
+  await jarF.hent("/mit/login", { method: "POST", body: new URLSearchParams({ mail: "endnu-en@example.com" }) });
+  const gammel = await db.prepare(`SELECT 1 FROM login_forsoeg WHERE id = 'gammel'`).first();
+  t("forsøg ældre end 90 dage ryddes ved næste skrivning", !gammel);
 }
 
 console.log(`\n${ok} bestået, ${fejl} fejlet\n`);
