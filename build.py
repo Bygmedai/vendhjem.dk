@@ -119,6 +119,17 @@ FOTO_ALT = {
  "faellesspisning": "Mange mennesker spiser sammen ved langborde udenfor.",
 }
 
+# Hvor motivet ligger, naar et staaende foto beskaeres til et liggende felt.
+# Uden det tager object-fit: cover midten, og et portraetfoto af mennesker ved
+# et langbord bliver til et billede af himmel og et tag. Kun de fotos der
+# behoever det staar her; resten centreres.
+FOTO_FOKUS = {
+ "faellesspisning": "center 78%",
+ "udeplads": "center 88%",
+ "cafe": "center 62%",
+ "bordet-i-marken": "center 62%",
+}
+
 def _srcset(slug, d, ext):
     w = FOTO_MAN[slug]["w"]
     parts = []
@@ -133,7 +144,9 @@ def _pic(slug, d, sizes):
             f'<source type="image/avif" srcset="{_srcset(slug, d, "avif")}" sizes="{sizes}">\n'
             f'<source type="image/webp" srcset="{_srcset(slug, d, "webp")}" sizes="{sizes}">\n'
             f'<img src="{d}images/sted/{slug}.webp" width="{m["w"]}" height="{m["h"]}" '
-            f'alt="{FOTO_ALT[slug]}" loading="lazy" decoding="async">\n'
+            f'alt="{FOTO_ALT[slug]}" loading="lazy" decoding="async"'
+            + (f' style="object-position:{FOTO_FOKUS[slug]}"' if slug in FOTO_FOKUS else "")
+            + '>\n'
             f'</picture>')
 
 def foto(slug, cap, path="", sizes="(max-width: 760px) 100vw, 700px", cls=""):
@@ -143,12 +156,30 @@ def foto(slug, cap, path="", sizes="(max-width: 760px) 100vw, 700px", cls=""):
     return (f'<figure class="foto{k}">\n' + _pic(slug, d, sizes) +
             f'\n<figcaption class="meta">{cap}</figcaption>\n</figure>')
 
-def foto_i_horisont(slug, cap, path="", cls="h-side"):
-    """Foto der udfylder en horisont-figur (designsystemets .horizon > img)."""
+def foto_i_horisont(slug, cap, path="", cls="h-side", stil="", sizes=None):
+    """Foto der udfylder en horisont-figur (designsystemets .horizon > img).
+
+    stil: inline min-height naar cellen er bred (to-spalters baand), saa
+    udsnittet ikke bliver en kikkertspalte. Kilderne er 4:3, saa en celle
+    paa 589 px skal have ca. 300 px hoejde for at beholde motivet."""
     d = "/"  # alle stier absolutte, se HVORFOR-ABSOLUTTE-STIER
-    sizes = "(max-width: 860px) 100vw, 420px"
-    return (f'<div class="horizon {cls}">\n' + _pic(slug, d, sizes) +
-            f'\n<p class="cap">{cap}</p>\n</div>')
+    sizes = sizes or "(max-width: 860px) 100vw, 420px"
+    st = f' style="{stil}"' if stil else ""
+    tekst = f'\n<p class="cap">{cap}</p>' if cap else ""
+    return (f'<div class="horizon {cls}"{st}>\n' + _pic(slug, d, sizes) + tekst + '\n</div>')
+
+
+def foto_baand(items, sizes="(max-width: 600px) 100vw, (max-width: 860px) 50vw, 390px", stil="min-height:300px"):
+    """Baand af fotos i gitteret: hver celle er fyldt ud, teksten ligger i
+    hjoernet i mono. Samme greb som salen paa /maend, bare flere ved siden
+    af hinanden. Ingen ny klasse, ingen ny farve."""
+    n = len(items)
+    kol = {2: "g-2", 3: "g-3", 4: "g-4"}[n]
+    celler = "\n".join(
+        f'<div class="media">' + foto_i_horisont(slug, "", stil=stil, sizes=sizes) + '</div>'
+        for slug in items)
+    return f'<div class="g {kol} nb">\n{celler}\n</div>'
+
 
 
 
@@ -203,7 +234,16 @@ pages["index.html"] = head("Vend Hjem · Agersø", "Vi laver en gammel campingpl
 ''' + foto("oppefra", "Stedet fra luften · 6 hektar · Storebælt mod vest", sizes="(max-width: 1180px) 100vw, 1100px", cls="foto-bred") + '''
 </section>
 
-<section class="stage">
+<section class="stage sektion">
+<p class="sec">Det, der står på stedet</p>
+<p class="lead maxw mt2">Syv bygninger, de ældste fra 1920. Det meste virker, noget skal rives ned, og resten bygger vi om sammen med dem, der kommer.</p>
+</section>
+
+<section class="stage mt4">
+''' + foto_baand(["salen-2", "koekken", "sovesal"]) + '''
+</section>
+
+<section class="stage sektion">
 <div class="g g-4 nb">
 <div><p class="sec">Sporene</p><p class="small soft">Mandeweekender, retreats, byg-med-uger, festivaler, burns, raves og stille uger. <a class="lnk" href="/sporene">Se →</a></p></div>
 <div><p class="sec">Permakultur</p><p class="small soft">Jorden som styrende princip: vandhul, læhegn, overdrev og et driftsår, vi gør sammen. <a class="lnk" href="/permakultur">Læs →</a></p></div>
@@ -260,11 +300,13 @@ pages["fundamentet.html"] = head("Fundamentet · Vend Hjem", "Det, stedet hviler
 </section>
 
 <section class="stage">
-<div class="g nb" style="grid-template-columns:1fr">
+<div class="g g-54 nb">
 <div><div class="maxw">
 <p class="sec">Største drøm og største frygt</p>
 <p class="small">Før du skriver under på en aftale, taler vi om din største drøm for at være med og det, du frygter mest. Samtalen hjælper os med at få dine ønsker og forbehold med i det, vi aftaler.</p>
+<p class="xs soft mt3">Den samtale tages to ad gangen, i et rum med en dør. Ikke på et møde.</p>
 </div></div>
+<div class="media">''' + foto_i_horisont("vaerelse", "", stil="min-height:300px") + '''</div>
 </div>
 </section>
 
@@ -503,10 +545,15 @@ pages["permakultur.html"] = head("Permakultur · Vend Hjem", "Jorden på Agersø
 </div>
 </section>
 
-<section class="stage blok">
+<section class="stage sektion">
+<div class="g g-54 nb">
+<div>
 <p class="sec">Vil du grave med</p>
-<p class="lead maxw">Byg-med-ugerne er også jord. Hegn, vandhul, stendiger og såning af enge er noget, man kan komme og være med til.</p>
+<p class="lead maxw mt2">Byg-med-ugerne er også jord. Hegn, vandhul, stendiger og såning af enge er noget, man kan komme og være med til.</p>
 <p class="mt3"><a class="lnk" href="/sporene">Se datoerne →</a> &nbsp;&nbsp; <a class="lnk" href="/bliv-en-del">Skriv til Lai →</a></p>
+</div>
+<div class="media">''' + foto_i_horisont("udeplads", "", stil="min-height:300px") + '''</div>
+</div>
 </section>
 ''' + foot()
 
@@ -559,6 +606,15 @@ pages["sporene.html"] = head("Sporene · Vend Hjem", "Det, der sker på stedet: 
 </div>
 </div>
 </section>
+
+<section class="stage sektion">
+<p class="sec">Fra stedet</p>
+</section>
+
+<section class="stage mt3">
+''' + foto_baand(["faellesspisning", "cafe"], sizes="(max-width: 600px) 100vw, 589px", stil="min-height:320px") + '''
+<p class="xs soft mt3 maxw">Billederne er fra stedet, som det er blevet brugt indtil nu. Det meste af det herover er ikke sket endnu.</p>
+</section>
 ''' + foot()
 
 # ───────────────────────────── MÆND (1e) ─────────────────────────────
@@ -575,7 +631,7 @@ pages["maend.html"] = head("Mandegrupper · Vend Hjem", "Femten mænd, en weeken
 <p class="mt3">Værten har været i det danske mandegruppemiljø i ti år — begyndte hos Tomas Friis og var partner i og medskaber af Tribal Vibe.</p>
 <p class="soft">Om dagen arbejder vi på stedet. Om aftenen dykker vi dybt og bygger bro mellem dem vi var og dem vi gerne vil være, omringet af andre mænd der lytter og spejler os.</p>
 </div>
-<div class="media">''' + foto_i_horisont("salen", "Salen · hvor aftenrunden holdes") + '''</div>
+<div class="media">''' + foto_i_horisont("salen", "") + '''</div>
 </div>
 </section>
 
@@ -589,7 +645,11 @@ pages["maend.html"] = head("Mandegrupper · Vend Hjem", "Femten mænd, en weeken
 </div>
 </section>
 
-<section class="stage">
+<section class="stage mt4">
+''' + foto_baand(["spisestue", "solnedgang"], sizes="(max-width: 600px) 100vw, 589px", stil="min-height:320px") + '''
+</section>
+
+<section class="stage sektion">
 <div class="g g-3 nb">
 <div><p class="meta-s">Praktisk</p><p class="small mt1">15 pladser · 850 kr. · seng og al mad indgår · sauna · færgen og sovepose selv</p></div>
 <div><p class="meta-s">Næste</p><p class="small mt1">Datoer for 2027 kommer, når stedet er registreret og kalenderen ligger fast.</p></div>
@@ -633,7 +693,11 @@ pages["bliv-en-del.html"] = head("Bliv en del · Vend Hjem", "Forløbet fra brev
 </div>
 </section>
 
-<section class="stage">
+<section class="stage mt4">
+''' + foto_baand(["vaerelse-dobbelt", "hyggekrog"], sizes="(max-width: 600px) 100vw, 589px", stil="min-height:320px") + '''
+</section>
+
+<section class="stage sektion">
 <div class="g g-2 nb">
 <div>
 <p class="sec">Døren ud - sådan ser den ud</p>
