@@ -5,6 +5,7 @@
 import {
   personMedGyldigRolle, sætSidstSet, sætPasskeyTilbud, id, nu,
   gaeldendeAftale, opretTime, mineTimer, mineTimerSum, stedetsTimer, mitNaesteOphold,
+  logLoginForsoeg, hentPerson,
 } from "./db.js";
 import { mitSide, felt, knap, esc, tomTilstand } from "./flade.js";
 import { periodeTekst } from "./ophold-sider.js";
@@ -322,13 +323,14 @@ function passkeyTilbud(person) {
 </div>`;
 }
 
-function beskedSide(titel, broed, bruger = null) {
+function beskedSide(titel, broed, bruger = null, hjaelp = "") {
   return sideHtml({
     titel, bruger,
     indhold: `<section class="stage sektion">
 <p class="sec">Mit</p>
 <h1 class="stor maxw">${esc(titel)}</h1>
 <p class="lead maxw mt3">${esc(broed)}</p>
+${hjaelp ? `<p class="small soft maxw mt3">${esc(hjaelp)}</p>` : ""}
 <p class="mt3"><a class="lnk" href="/mit">Bed om et nyt link</a></p>
 </section>`,
   });
@@ -364,6 +366,17 @@ async function loginPost(request, env, cookiesUd, start) {
 
   const enhed = await enhedAf(request, cookiesUd);
   const person = mail ? await personMedGyldigRolle(env.FONDE_DB, mail) : null;
+
+  // Fladen svarer det samme til alle. Loggen gør ikke. Se migration 0013:
+  // uden den kan et rigtigt menneske banke på, uden at nogen opdager det.
+  if (mail) {
+    const kendt = await hentPerson(env.FONDE_DB, mail);
+    const resultat = person ? "sendt" : (kendt ? "uden_rolle" : "ukendt_mail");
+    await logLoginForsoeg(env.FONDE_DB, {
+      mail, resultat, person_id: kendt?.id ?? null,
+    }).catch(() => {});
+  }
+
   if (person) {
     const token = hex(tilfældigeBytes(32));
     const token_hash = await sha256Hex(token);
@@ -409,7 +422,7 @@ async function brugLink(request, env, token, cookiesUd) {
   const enhed = enhedFraRequest(request);
   const enhed_hash = enhed ? await sha256Hex(enhed) : "";
   if (!enhed || enhed_hash !== row.enhed_hash) {
-    return html(beskedSide("Forkert browser", TEKST.mitLinkAndenBrowser), { status: 400, cookies: cookiesUd });
+    return html(beskedSide("Forkert browser", TEKST.mitLinkAndenBrowser, null, TEKST.mitLinkAndenBrowserHjaelp), { status: 400, cookies: cookiesUd });
   }
   const person = await env.FONDE_DB.prepare(`SELECT * FROM people WHERE id = ?1`).bind(row.person_id).first();
   const gyldig = person ? await personMedGyldigRolle(env.FONDE_DB, person.mail) : null;

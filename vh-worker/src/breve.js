@@ -6,7 +6,8 @@
 // Før lå der en mailto: i formularen. På telefon og i browsere uden mail-
 // program skete der ingenting, når man trykkede Send. Målt 18.09.2026.
 
-import { findEllerOpretPerson, opretBrev, saetBrevMailFejl, saetBrevStatus, breveListe } from "./db.js";
+import { findEllerOpretPerson, opretBrev, saetBrevMailFejl, saetBrevStatus, breveListe,
+         loginForsoegUdenAdgang } from "./db.js";
 import { offentligSkal } from "./ophold-sider.js";
 import { side, esc, tabel, knap, tomTilstand, fejlTilstand } from "./flade.js";
 import { TEKST, brevTilOs, brevKvittering } from "./tekst.js";
@@ -124,7 +125,29 @@ function statusTekst(b) {
   return d >= VENTER_DAGE ? TEKST.brevVenter(d) : TEKST.brevNyt;
 }
 
-function breveSide({ bruger, breve, advarsel }) {
+const FORSOEG_TEKST = {
+  uden_rolle: TEKST.loginUdenRolle,
+  ukendt_mail: TEKST.loginUkendt,
+  mail_fejlede: TEKST.loginMailFejl,
+};
+
+/** Dem, der bankede på uden at komme ind. Se migration 0013 om hvorfor. */
+function forsoegAfsnit(forsoeg) {
+  const raekker = forsoeg.map((f) => `<tr>
+<td>${esc(dato(f.oprettet))}</td>
+<td>${esc(f.mail)}</td>
+<td>${esc(FORSOEG_TEKST[f.resultat] || f.resultat)}</td>
+</tr>`);
+  return `<section class="stage blok blok-top">
+<p class="sec">${esc(TEKST.loginForsoeg)}</p>
+<p class="small maxw mt2">${esc(TEKST.loginForsoegLead)}</p>
+<div class="mt3">
+${tabel({ hoved: ["Hvornår", "Adresse", "Hvorfor ikke"], raekker, tom: TEKST.loginTom })}
+</div>
+</section>`;
+}
+
+function breveSide({ bruger, breve, forsoeg = [], advarsel }) {
   const raekker = breve.map((b) => {
     const nyt = b.status === "nyt";
     return `<tr>
@@ -146,7 +169,8 @@ ${advarsel ? `<p class="small mt2">${esc(advarsel)}</p>` : ""}
 <div class="mt4">
 ${tabel({ hoved: ["Modtaget", "Fra", "Brevet", "Status", ""], raekker, tom: TEKST.tomBreve })}
 </div>
-</section>`,
+</section>
+${forsoegAfsnit(forsoeg)}`,
   });
 }
 
@@ -156,7 +180,8 @@ export async function besvarBreve(request, env, bruger, url) {
   const sti = url.pathname.replace(/\/+$/, "") || ROD_BREVE;
   try {
     if (request.method === "GET" && sti === ROD_BREVE) {
-      return html(breveSide({ bruger, breve: await breveListe(db), advarsel: url.searchParams.get("m") }));
+      const [breve, forsoeg] = await Promise.all([breveListe(db), loginForsoegUdenAdgang(db)]);
+      return html(breveSide({ bruger, breve, forsoeg, advarsel: url.searchParams.get("m") }));
     }
     const m = sti.match(new RegExp(`^${ROD_BREVE}/([A-Za-z0-9_-]{4,64})/status$`));
     if (request.method === "POST" && m) {

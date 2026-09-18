@@ -147,10 +147,15 @@ export function tabel({ hoved, raekker, tom = TEKST.tomListe, colspan, klasse = 
   const krop = raekker.length
     ? raekker.join("")
     : `<tr><td colspan="${span}">${tomTilstand(tom)}</td></tr>`;
-  return `<table class="t${klasse ? " " + klasse : ""}">
+  // Indpakket, så en bred tabel ruller i sig selv i stedet for at skubbe hele
+  // siden vandret. Målt 18.09.2026: /internt/breve var 505 px bred i et
+  // 390 px vindue, og en telefon kunne svinge hele layoutet ud til siden.
+  return `<div class="tabel-wrap">
+<table class="t${klasse ? " " + klasse : ""}">
 <thead><tr>${hoved.map((h) => `<th>${esc(h)}</th>`).join("")}</tr></thead>
 <tbody>${krop}</tbody>
-</table>`;
+</table>
+</div>`;
 }
 
 export function felt({ label, name, type = "text", value = "", placeholder, options, required, klasse = "" }) {

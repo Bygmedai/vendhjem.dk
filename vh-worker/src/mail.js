@@ -27,8 +27,11 @@ export async function sendMail(env, { to, subject, text, ...rest }) {
     return { ok: true, via: "resend" };
   }
 
-  console.log(`[mail] ingen RESEND_API_KEY — mail ikke sendt.\n${subject}\n${text}`);
-  return { ok: true, via: "log" };
+  // Uden nøgle bliver der ikke sendt noget. Det skal svaret sige. En funktion,
+  // der returnerer ok for en mail, den ikke har sendt, gør fejlen usynlig hele
+  // vejen op — præcis den slags, der bliver fundet af en, der venter forgæves.
+  console.log(`[mail] ingen RESEND_API_KEY — mail IKKE sendt.\n${subject}\n${text}`);
+  return { ok: false, via: "ingen-noegle", grund: "RESEND_API_KEY mangler" };
 }
 
 export async function sendMagicMail(env, { to, url }) {
