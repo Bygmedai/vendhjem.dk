@@ -173,8 +173,8 @@ def foto(slug, cap, path="", sizes="(max-width: 760px) 100vw, 700px", cls=""):
     """Foto som figur i spalten: billede, 1px streg, mono-tekst. Ingen ramme, ingen skygge."""
     d = "/"  # alle stier absolutte, se HVORFOR-ABSOLUTTE-STIER
     k = (" " + cls) if cls else ""
-    return (f'<figure class="foto{k}">\n' + _pic(slug, d, sizes) +
-            f'\n<figcaption class="meta">{cap}</figcaption>\n</figure>')
+    tekst = f'\n<figcaption class="meta">{cap}</figcaption>' if cap else ""
+    return (f'<figure class="foto{k}">\n' + _pic(slug, d, sizes) + tekst + '\n</figure>')
 
 def foto_i_horisont(slug, cap, path="", cls="h-side", stil="", sizes=None):
     """Foto der udfylder en horisont-figur (designsystemets .horizon > img).
@@ -812,6 +812,110 @@ pages["cookies.html"] = head("Cookies · Vend Hjem", "Sitet sætter ingen cookie
 <p class="meta mt4"><a href="/privatlivspolitik">Privatlivspolitik →</a></p>
 </section>
 ''' + foot()
+
+# ───────────────────────────── NOTER (BYG-578) ─────────────────────────────
+# Én side, der vokser mellem toppene. Kilden er noter/*.md — én fil pr. note,
+# navngivet ÅÅÅÅ-MM-DD-slug.md, med to linjer øverst:
+#   titel: Registreringen, første weekend
+#   foto: udeplads            (valgfri — en slug fra images/sted)
+# derefter en tom linje og teksten. Afsnit adskilles af tomme linjer;
+# «## Overskrift» bliver en mellemrubrik; *kursiv*, **fed** og [tekst](url)
+# virker. Ikke mere markdown end det. Nyeste øverst. Ingen tags, ingen
+# kommentarer, intet nyhedsbrev — RSS på /noter.xml er nok til at følge med.
+NOTER_DIR = os.path.join(ROOT, "noter")
+
+def _inline(t):
+    t = t.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    t = re.sub(r"\[([^\]]+)\]\((https?://[^)\s]+|/[^)\s]*)\)", r'<a href="\2">\1</a>', t)
+    t = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", t)
+    t = re.sub(r"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", r"<em>\1</em>", t)
+    return t
+
+def _note_html(body):
+    ud = []
+    for blok in re.split(r"\n\s*\n", body.strip()):
+        blok = blok.strip()
+        if not blok:
+            continue
+        if blok.startswith("## "):
+            ud.append(f'<p class="sec mt3">{_inline(blok[3:].strip())}</p>')
+        else:
+            ud.append(f'<p class="small">{_inline(" ".join(l.strip() for l in blok.splitlines()))}</p>')
+    return "\n".join(ud)
+
+def laes_noter():
+    noter = []
+    if not os.path.isdir(NOTER_DIR):
+        return noter
+    for fn in sorted(os.listdir(NOTER_DIR), reverse=True):
+        m = re.match(r"^(\d{4}-\d{2}-\d{2})-([a-z0-9-]+)\.md$", fn)
+        if not m:
+            continue
+        raw = open(os.path.join(NOTER_DIR, fn), encoding="utf-8").read()
+        hoved, _, body = raw.partition("\n\n")
+        felter = dict(l.split(":", 1) for l in hoved.splitlines() if ":" in l)
+        felter = {k.strip(): v.strip() for k, v in felter.items()}
+        d = _dt.date.fromisoformat(m.group(1))
+        noter.append({
+            "dato": d, "dato_dk": f"{d.day}. {_MDR[d.month - 1]} {d.year}",
+            "slug": m.group(2), "titel": felter.get("titel", m.group(2)),
+            "foto": felter.get("foto", ""), "body": body, "html": _note_html(body),
+        })
+    return noter
+
+NOTER = laes_noter()
+
+def _note_blok(n):
+    f = ("\n" + foto(n["foto"], "", sizes="(max-width: 760px) 100vw, 700px", cls="mt3")) if n["foto"] and n["foto"] in FOTO_MAN else ""
+    return f'''<section class="stage blok blok-top" id="{n["slug"]}">
+<div class="maxw">
+<p class="meta">{n["dato_dk"]}</p>
+<h2 class="mt1">{_inline(n["titel"])}</h2>
+<div class="stak mt3">
+{n["html"]}
+</div>{f}
+</div>
+</section>'''
+
+_noter_tom = '''<section class="stage blok blok-top">
+<div class="maxw">
+<p class="small soft">Den første note kommer efter registreringsweekenden 19.–21. september 2026: hvad der blev fundet, og hvad det betyder for det, vi bygger om først.</p>
+</div>
+</section>'''
+
+pages["noter.html"] = head("Noter · Vend Hjem", "Små noter fra stedet, mellem de store dage: hvad der blev gjort, fundet og målt, og hvad der venter.", "noter.html", current=None) + '''
+<section class="stage blok">
+<div class="maxw">
+<p class="sec">Noter</p>
+<h1 style="font-size:clamp(26px,3.4vw,34px)">Det, der sker mellem de store dage.</h1>
+<p class="lead mt2">Små noter fra stedet: hvad der blev gjort, fundet og målt, og hvad der venter. Nyeste øverst.</p>
+<p class="meta mt3"><a href="/noter.xml">Følg med i din læser (RSS) →</a></p>
+</div>
+</section>
+''' + ("\n".join(_note_blok(n) for n in NOTER) if NOTER else _noter_tom) + '''
+''' + foot()
+
+def _rss():
+    def x(t): return t.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    items = []
+    for n in NOTER:
+        pub = _dt.datetime.combine(n["dato"], _dt.time(8, 0), tzinfo=_dt.timezone(_dt.timedelta(hours=2))).strftime("%a, %d %b %Y %H:%M:%S %z")
+        items.append(f'''<item>
+<title>{x(n["titel"])}</title>
+<link>https://vendhjem.dk/noter#{n["slug"]}</link>
+<guid isPermaLink="true">https://vendhjem.dk/noter#{n["slug"]}</guid>
+<pubDate>{pub}</pubDate>
+<description>{x(n["html"])}</description>
+</item>''')
+    return ('<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">\n<channel>\n'
+            '<title>Vend Hjem · Noter</title>\n<link>https://vendhjem.dk/noter</link>\n'
+            '<description>Små noter fra stedet på Agersø, mellem de store dage.</description>\n<language>da</language>\n'
+            '<atom:link href="https://vendhjem.dk/noter.xml" rel="self" type="application/rss+xml"/>\n'
+            + "\n".join(items) + '\n</channel>\n</rss>\n')
+
+pages["noter.xml"] = _rss()
+pages["noter.html"] = pages["noter.html"].replace(
+    "</head>", '<link rel="alternate" type="application/rss+xml" title="Vend Hjem · Noter" href="/noter.xml">\n</head>', 1)
 
 # ───────────────────────────── 404 ─────────────────────────────
 # Et tomt 404-svar er en blind vej. Siden giver vej tilbage.
