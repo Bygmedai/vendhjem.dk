@@ -1,9 +1,17 @@
 # CLAUDE.md — vendhjem.dk
 
-**Status:** gældende. Skrevet af Vilde 18.09.2026 efter QA på `fb1fe61`, merged af
-Steven, og gennemgået af Haruki samme dag på `977ee30`. Alt herunder er målt, ikke
-husket. Hvor det ikke er målt, står det. Rettelser fra gennemgangen er markeret
-**[målt 18.09, Haruki]** — de erstatter det, der stod før, og ikke andet.
+**Status:** ratificeret 18.09.2026 (#46). Sidst målt på `29cf955`, samme dag.
+Alt herunder er målt, ikke husket. Hvor jeg ikke har målt, står det.
+
+Filen blev forældet under en time efter den blev merget — #45, #47, #48 og #49
+landede imens. Det er ikke en undskyldning, det er et arbejdsvilkår: **ændrer du
+en sti, en migration eller antallet af prøver, så ret den her fil i samme PR.**
+
+**[Haruki, 18.09 — gennemgang]** Jeg har efterprøvet Vildes målinger i stedet for
+at tage dem for pålydende. Han havde ret i det vigtigste, og det er nu lukket i
+kode, ikke kun beskrevet. Tre påstande holdt ikke; de er rettet, hver med sin
+måling. Mine tilføjelser er markeret **[Haruki]** — de erstatter det, der stod,
+og ikke andet.
 
 ---
 
@@ -31,18 +39,21 @@ Retter du copy i `build.py` og ser den på den statiske fil, kan den levende sid
 stadig sige noget andet. Det er sket (PR #42: fotoene lå på den statiske side og
 manglede på den levende).
 
-**Sådan afgør du hvilken der gælder:** `vh-worker/src/index.js` linje ~122.
-Fanger Workeren stien, ejer Workeren siden. Ellers er det `env.ASSETS.fetch`, og
-så er det filen.
+**Sådan afgør du hvilken der gælder:** find `env.ASSETS.fetch` i
+`vh-worker/src/index.js` (linje 135 på `29cf955` — den flytter sig, så søg efter
+udtrykket, ikke efter linjen). Alt, der returnerer før den, ejer Workeren. Alt,
+der når ned til den, er en fil.
 
 Workeren ejer i dag: `/sporene`, `/sporene/*`, **`/sporene.html`**, `/mit`,
 `/mit/*`, `/bliv-en-del/skriv`, `/internt/ophold*`, `/internt/breve*`,
 `/internt/fund*`, `/internt/fonde*`, `/internt/korpus*`, `/sundhed/fonde`.
 Resten er statiske filer.
 
-**[målt 18.09, Haruki]** `/internt/fund*` kom til i #48 og manglede i listen.
-Den her liste forældes, hver gang nogen tilføjer en rute — læs `index.js`, hvis
-det står på spil. Listen er en hjælp, ikke en kilde.
+**Fælden i navnet:** `/mit-offline` og `/mit-sw.js` hedder noget med «mit», men
+Workeren fanger dem **ikke** — grenen matcher `/mit` og `/mit/*`, ikke `/mit-*`.
+De er almindelige filer i roden (`mit-offline.html`, `mit-sw.js`,
+`assets/mit.webmanifest`), og de skal blive ved med at være det: en service worker,
+der bliver bygget af den Worker, den skal kunne overleve, er ikke offline-sikker.
 
 Bemærk `/sporene.html`: Workeren fanger også filnavnet, så selv den direkte vej
 til filen giver den levende side. Du kan altså ikke omgå den ved at skrive `.html`
@@ -54,7 +65,7 @@ i adresselinjen.
 
 ```
 python3 build.py                 # skriver siderne + fire genererede JS-moduler
-node vh-worker/test/koer.mjs     # 308 prøver (977ee30). Kører nu i CI på hver PR
+node vh-worker/test/koer.mjs     # 308 prøver. Kører nu i CI på hver PR — se «Porten»
 bash vh-worker/test/flader.sh    # måler den levende flade
 ```
 
@@ -73,16 +84,16 @@ bash vh-worker/test/flader.sh    # måler den levende flade
 `build.py` og commit begge dele. Glemmer du det, driver kilden og koden fra
 hinanden.
 
-**[målt 18.09, Haruki]** Det fanges nu af CI, ikke af en enkelt prøve: portneren
+**[Haruki 18.09]** Det fanges nu i porten, ikke af en enkelt prøve: jobbet
 `Worker-prøver` kører `build.py` og fejler, hvis et committet resultat ændrer sig.
 Det dækker alle fire moduler og de byggede sider på én gang.
 
-Til gengæld var beskrivelsen af prøverne ikke rigtig. Prøve 28 sammenligner
+Beskrivelsen af prøverne var til gengæld for optimistisk. Prøve 28 sammenligner
 `stigen.json` med `stigen.js` — den er en ægte kilde-mod-genereret-prøve. Prøve 27
 gør **ikke** det samme for `fotos.js`; den tjekker kun, at modulet er internt
 konsistent (hvert foto har mål og alt-tekst). Prøve 11 sammenligner de to
-navigationer med hinanden, ikke med `nav-internt.json` — er begge forældede, består
-den. Portneren ovenfor er det, der dækker hullet.
+navigationer med **hinanden**, ikke med `nav-internt.json` — er begge forældede,
+består den. Porten er det, der dækker hullet.
 
 ---
 
@@ -120,6 +131,16 @@ den side, der skal sælge året, sagde «ingen datoer».
 **Kun readbacket må hævde at noget er udrullet.** En kommando, der kom tilbage
 uden fejl, er en påstand. Et kald er en måling.
 
+**Porten [Haruki 18.09].** `test.yml` har nu fem jobs. Det første, **`Worker-prøver`**,
+kører `build.py`, fejler hvis det ændrer en committet fil, og kører derefter
+`koer.mjs`. Det er det eneste sted i CI, der rører `vh-worker/`. Bliver det rødt,
+skal en PR ikke merges — for merge er deploy.
+
+Workeren har også en **cron** (`[triggers] crons = ["0 4 1 * *"]`): den 1. i
+måneden kl. 04:00 UTC skrives hele D1 som almindelig JSON til R2. Se
+`src/sikkerhedskopi.js`. Den kører uden for enhver anmodning — ændrer du skemaet,
+så husk at den også læser det.
+
 ---
 
 ## Hårde regler
@@ -136,7 +157,7 @@ uden fejl, er en påstand. Et kald er en måling.
   under hånden.
 - **Copy på klientfladen er Lais.** Han har veto. Retter du en formulering, fordi
   den læser skævt, så sig det højt i PR'en — omskriv den ikke bare.
-- **[målt 18.09, Haruki — RETTET]** Der stod: «Ingen ejer nævnes ved navn på den
+- **[Haruki 18.09 — RETTET]** Der stod: «Ingen ejer nævnes ved navn på den
   offentlige flade før udkøbet. Afgjort i #33.» Den regel gælder ikke som skrevet.
   Målt på den levende flade samme dag: `/bliv-en-del` siger «Lai svarer inden 7
   dage» og «brevet går til Lai», og `/privatlivspolitik` siger «Vend Hjem drives af
@@ -146,11 +167,11 @@ uden fejl, er en påstand. Et kald er en måling.
 
   Det, der gælder: **Lai står som vært og som den, man skriver til. Ejerforholdet
   og en fremtidig medejerkreds omtales ikke offentligt før udkøbet.** Hvis #33
-  besluttede noget andet, er det overhalet af Steven selv.
+  besluttede noget andet, er det overhalet af principalen.
 
-  En fremtidig session, der læser den gamle formulering som lov, ville fjerne Lais
-  navn og dermed rulle en beslutning tilbage, principalen havde truffet. Det er
-  grunden til, at det her afsnit fylder så meget.
+  En fremtidig session, der læste den gamle formulering som lov, ville fjerne Lais
+  navn og dermed rulle en beslutning tilbage, Steven selv havde truffet. Det er
+  grunden til, at afsnittet fylder så meget.
 
 ---
 
@@ -180,18 +201,20 @@ den kode, der står i dag.
 
 ## Kendte huller i porten
 
-Målt 18.09.2026 på `fb1fe61`. De står her, fordi et hul, ingen har skrevet ned,
+Målt 18.09.2026 på `29cf955`. De står her, fordi et hul, ingen har skrevet ned,
 bliver til en overraskelse.
 
-1. ~~**De 234 Worker-prøver kører ikke i CI.**~~ **LUKKET 18.09.2026.** Vilde
-   havde ret: `koer.mjs` stod ingen steder i nogen workflow, og merge udruller.
-   Portneren `Worker-prøver` i `test.yml` kører dem nu på hver PR og hver push.
-2. ~~**`build.py` kører ikke i Quality Gate.**~~ **LUKKET samme sted.** Portneren
-   kører `build.py` først — både fordi de interne sider er gitignored og skal
-   findes, før prøve 11 kan læse dem, og fordi sti-hegnet dermed fyrer *før*
-   merge i stedet for efter. Den fejler også, hvis `build.py` ændrer en committet
-   fil: så er kilde og bygget resultat drevet fra hinanden, og det er præcis den
-   fejl, der ellers valideres i én tekst og udrulles i en anden.
+1. ~~**De 306 Worker-prøver kører ikke i CI.**~~ **LUKKET 18.09.2026 [Haruki].**
+   Vilde havde ret: `koer.mjs` stod ingen steder i nogen workflow, og merge
+   udruller. Porten har nu et job, **`Worker-prøver`**, på hver PR og hver push.
+2. ~~**`build.py` kører ikke i Quality Gate.**~~ **LUKKET samme sted [Haruki].**
+   Jobbet kører `build.py` først — både fordi de interne sider er gitignored og
+   skal findes, før prøve 11 kan læse dem, og fordi sti-hegnet dermed fyrer
+   *før* merge i stedet for efter. Og det **fejler, hvis `build.py` ændrer en
+   committet fil**: så er kilde og bygget resultat drevet fra hinanden, og det
+   er præcis den fejl, hvor én tekst valideres og en anden udrulles. Det trin
+   dækker alle fire genererede moduler på én gang — ikke kun `stigen.js`, som
+   var det eneste med en ægte kilde-mod-genereret-prøve.
 3. **Ingen prøve rammer `.assetsignore`.** Hegnet, der lukkede `/.git/`, er
    ubevist.
 4. **GitHub Pages kører stadig** og bygger repoet på hver merge. `.assetsignore`
@@ -201,26 +224,26 @@ bliver til en overraskelse.
    dem ikke, ingen side linker til dem, og de står ikke i sitemap. Men porten
    validerer dem, og de bærer copy, ingen har godkendt.
 
-   **[målt 18.09, Haruki]** «404 på fladen» er ikke rigtigt, og forskellen er
-   værd at kende. De er på `.assetsignore`, så de serveres ikke — men ti af dem
-   fanges af `_redirects` og svarer **301** til en nulevende side
-   (`/agersoe.html` → `/sporene`, `/blog.html` → `/`, `/finddinvej.html` →
-   humandirection.dk). De fem `integral-*.html` (kvadranter, linjer, niveauer,
-   tilstande, typer) har **ingen** redirect og svarer 404. Hvis de fem adresser
-   har været delt et sted, er det fem døde links, der kunne have været 301.
+   **[Haruki 18.09]** «404 på fladen» er ikke rigtigt, og forskellen er værd at
+   kende. De er på `.assetsignore`, så de serveres ikke — men ti af dem fanges af
+   `_redirects` og svarer **301** til en nulevende side (`/agersoe.html` →
+   `/sporene`, `/blog.html` → `/`, `/finddinvej.html` → humandirection.dk). De fem
+   `integral-*.html` (kvadranter, linjer, niveauer, tilstande, typer) har **ingen**
+   redirect og svarer 404. Har de fem adresser været delt et sted, er det fem døde
+   links, der kunne have været 301.
 
-6. **[målt 18.09, Haruki]** `.assetsignore` er en deny-liste, og hvert nyt hold
-   filer skal skrives på. `/stigen.json` og `/images/sted/_manifest.json` svarede
-   200. Indholdet er harmløst — det er kilden til sider, der i forvejen er
-   offentlige — men mekanikken er ikke. Begge er tilføjet, sammen med
-   `noter-kilder` og permakultur-manifestet. **Reglen er ikke «tjek listen», men
-   «en ny fil i roden er offentlig, indtil nogen skriver den på listen».**
+6. **[Haruki 18.09] `.assetsignore` er en deny-liste, og det er mekanikken, der
+   betyder noget.** `/stigen.json` og `/images/sted/_manifest.json` svarede 200.
+   Indholdet er harmløst — det er kilden til sider, der i forvejen er offentlige —
+   men reglen er ikke «tjek listen»; den er **«en ny fil i roden er offentlig,
+   indtil nogen skriver den på listen»**. Begge er tilføjet, sammen med
+   `noter-kilder` og permakultur-manifestet.
 
 ---
 
 ## Hvad det her dokument er — og ikke er
 
-**[målt 18.09, Haruki]** Målingerne herover er efterprøvbare: de har en dato, en
+**[Haruki 18.09]** Målingerne herover er efterprøvbare: de har en dato, en
 kommando og et svar, og du kan køre dem igen. Vurderingerne — hvad der er en god
 idé, hvad der bør gøres først — er vurderinger. De kan overrules, og Steven er den,
 der gør det.
