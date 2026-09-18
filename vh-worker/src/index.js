@@ -15,6 +15,7 @@ import {
   haandterRunde, listerRunder, saetAdgang, saetKlar, arkiverSag, historiskIndsendelse, FONDE,
 } from "./runde.js";
 import { erSporene, erOphold, besvarSporene, besvarOphold } from "./ophold.js";
+import { erSkriv, erBreve, besvarSkriv, besvarBreve } from "./breve.js";
 
 const ROD = FONDE;
 
@@ -105,8 +106,20 @@ export default {
     // Offentlig kalender. Ingen Access — det er det, sitet sælger.
     if (erSporene(sti, url.pathname)) return besvarSporene(request, env);
 
+    // Brevet fra /bliv-en-del. Ingen Access — det er en offentlig formular.
+    if (erSkriv(sti)) {
+      try { return await besvarSkriv(request, env); }
+      catch (e) {
+        return html(side({
+          titel: TEKST.fejl, aktiv: "breve", bruger: null,
+          indhold: fejlTilstand({ detalje: String(e.message || e) }),
+        }), 500);
+      }
+    }
+
     const internOphold = erOphold(sti);
-    if (!internOphold && !workerSti(url.pathname)) return env.ASSETS.fetch(request);
+    const internBreve = erBreve(sti);
+    if (!internOphold && !internBreve && !workerSti(url.pathname)) return env.ASSETS.fetch(request);
 
     let bruger = await identitet(request);
 
@@ -127,6 +140,7 @@ export default {
     }
 
     if (internOphold) return besvarOphold(request, env, bruger, url);
+    if (internBreve) return besvarBreve(request, env, bruger, url);
 
     const db = env.FONDE_DB;
     const r2 = env.FONDE_FILER;

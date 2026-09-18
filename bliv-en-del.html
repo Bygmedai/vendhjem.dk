@@ -65,16 +65,18 @@
 </div>
 <div>
 <p class="sec">Skriv</p>
-<form class="ramme ramme-loeft" id="brev" style="padding:18px 20px">
-<p class="small soft">Skriv hvad du hedder, hvor du er i dit liv, og hvad du er bange for at det her bliver.</p>
+<form class="ramme ramme-loeft" id="brev" method="post" action="/bliv-en-del/skriv" style="padding:18px 20px">
+<p class="small soft">Skriv, hvem du er, og hvorfor du skriver. Det behøver ikke være langt.</p>
 <label class="felt-label" for="navn">Navn</label>
-<input class="felt" id="navn" name="navn" type="text" autocomplete="name" required>
+<input class="felt" id="navn" name="navn" type="text" autocomplete="name" maxlength="200" required>
 <label class="felt-label" for="mail">Mail</label>
-<input class="felt" id="mail" name="mail" type="email" autocomplete="email" required>
+<input class="felt" id="mail" name="mail" type="email" autocomplete="email" maxlength="200" required>
 <label class="felt-label" for="brevet">Brevet</label>
-<textarea class="felt" id="brevet" name="brevet" required></textarea>
+<textarea class="felt" id="brevet" name="brevet" minlength="20" maxlength="20000" required></textarea>
+<div style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden" aria-hidden="true"><label for="website">Website</label><input id="website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
+<input type="hidden" name="t" value="">
 <button class="lnk" type="submit">Send →</button>
-<p class="note mt2">Brevet åbner i dit eget mailprogram. Vi svarer inden 7 dage.</p>
+<p class="note mt2">Brevet gemmes hos os og går til den, der svarer. Du får en kvittering på mail. Vi svarer inden 7 dage.</p>
 </form>
 </div>
 </div>
@@ -82,12 +84,7 @@
 <script>
 (function(){
   var f=document.getElementById('brev'); if(!f) return;
-  f.addEventListener('submit',function(e){
-    e.preventDefault();
-    var n=f.navn.value.trim(), m=f.mail.value.trim(), b=f.brevet.value.trim();
-    var body='Fra: '+n+' <'+m+'>\n\n'+b;
-    location.href='mailto:laiydeh@gmail.com?subject='+encodeURIComponent('Brev til Vend Hjem fra '+n)+'&body='+encodeURIComponent(body);
-  });
+  var t=f.querySelector('input[name="t"]'); if(t) t.value=String(Date.now());
 })();
 </script>
 </main>

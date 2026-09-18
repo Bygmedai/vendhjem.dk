@@ -49,5 +49,10 @@ export const PUNKTER = [
   "id": "registrering",
   "sti": "internt/registrering",
   "label": "Registrering"
+ },
+ {
+  "id": "breve",
+  "sti": "internt/breve",
+  "label": "Breve"
  }
 ];

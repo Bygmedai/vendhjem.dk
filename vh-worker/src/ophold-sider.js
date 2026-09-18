@@ -248,7 +248,10 @@ ${lukketHtml}
   });
 }
 
-function sporeneSkal({ titel, canonical, description, indhold }) {
+// Offentligt skelet. Samme hoved og fod som build.py; aktiv = det menupunkt
+// der er markeret. Bruges af /sporene og af brevet på /bliv-en-del/skriv.
+export function offentligSkal({ titel, canonical, description, indhold, aktiv = "sporene" }) {
+  const cur = (id) => (id === aktiv ? ' aria-current="page"' : "");
   return `<!DOCTYPE html>
 <html lang="da">
 <head>
@@ -267,9 +270,9 @@ function sporeneSkal({ titel, canonical, description, indhold }) {
 <div class="stage row">
 <a class="brand" href="/">Vend <em>Hjem</em></a>
 <nav class="nav" aria-label="Hovedmenu">
-<a href="/fundamentet">Fundamentet</a>
-<a href="/sporene" aria-current="page">Sporene</a>
-<a href="/bliv-en-del">Bliv en del</a>
+<a href="/fundamentet"${cur("fundamentet")}>Fundamentet</a>
+<a href="/sporene"${cur("sporene")}>Sporene</a>
+<a href="/bliv-en-del"${cur("bliv-en-del")}>Bliv en del</a>
 <a href="https://vendhjem.dk/internt/">Log ind →</a>
 </nav>
 </div>
@@ -286,6 +289,8 @@ ${indhold}
 </body>
 </html>`;
 }
+
+function sporeneSkal(args) { return offentligSkal({ ...args, aktiv: "sporene" }); }
 
 export function sporeneForesporgSide({ o, person, advarsel }) {
   const kendt = Boolean(person?.navn && person?.mail);
