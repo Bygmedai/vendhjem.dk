@@ -289,7 +289,7 @@ pages["sporene.html"] = head("Sporene · Vend Hjem", "Det, der sker på stedet: 
 <h1>Det, der sker på stedet.</h1>
 <div class="g g-54 nb mt3" style="background:transparent;border:0;gap:32px">
 <div style="padding:0">
-<p class="lead">Mandegrupperne og rites of passage har ti års arbejde bag sig. Lai står for den integrale praksis og skuespilmetoden. Resten laver vi sammen med dem, der er her.</p>
+<p class="lead">Seks spor på ét sted. Noget laver vi selv, noget lægger vi plads til, og det meste bliver til sammen med dem, der er her.</p>
 </div>
 <div style="padding:0">''' + foto("bordet-i-marken", "Bordet i marken · sommer", sizes="(max-width: 600px) 100vw, 380px") + '''</div>
 </div>
