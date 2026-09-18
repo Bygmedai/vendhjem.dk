@@ -274,8 +274,33 @@ pages["fundamentet.html"] = head("Fundamentet · Vend Hjem", "Det, stedet hviler
 </div>
 <div>
 <p class="sec">Det integrale landkort</p>
-<p class="small">Kvadranter, niveauer, linjer, tilstande og typer. Lais grundlag. Det er ikke skrevet ud her endnu.</p>
+<p class="small">Lais grundlag er Ken Wilbers integrale kort: fem måder at se det samme på, som ikke udelukker hinanden. Ingen tilgang har hele sandheden, og de fleste konflikter opstår, fordi man graver sig ned i ét perspektiv og afviser resten. Kortet er et sprog til at forstå sig selv, hinanden og stedet.</p>
 <p class="meta mt2">Landkortet og manifestet · dateret version · kommer</p>
+</div>
+</div>
+</section>
+
+<section class="stage">
+<div class="g g-3 nb">
+<div>
+<p class="sec">Kvadranter</p>
+<p class="small">Alt, der er stort nok, ses gennem fire vinduer: det indre i den enkelte — hvad det gør ved mig; det ydre i den enkelte — hvad der konkret bliver gjort; det indre i fællesskabet — hvordan vi taler sammen om det; og det ydre i fællesskabet — økonomi, drift, øen. Ægte forandring kræver arbejde i alle fire. Ændrer man kun strukturen, dør det stille hen.</p>
+</div>
+<div>
+<p class="sec">Niveauer</p>
+<p class="small">Vi vokser ikke kun udad, men opad, og hvert niveau rummer de foregående som russiske dukker. Intet niveau er bedre end et andet; hvert løser noget, det forrige ikke kunne. Det, vi øver os på her, er at kunne rumme alle perspektiver og stadig handle klart.</p>
+</div>
+<div>
+<p class="sec">Linjer</p>
+<p class="small">Man udvikler sig ikke jævnt. Skarp i hovedet og tonedøv i følelserne er ikke en fejl, det er linjer: kognitiv, emotionel, moralsk, interpersonel, somatisk, æstetisk, åndelig. Det handler ikke om at være længst fremme på én, men om at kende sine blinde pletter.</p>
+</div>
+<div>
+<p class="sec">Tilstande</p>
+<p class="small">Flow, nærvær, dyb ro er midlertidige og demokratiske: alle har adgang, uanset hvor langt de er nået. Scenekunst er i sin kerne en praksis i at skifte tilstand bevidst i stedet for at vente på, at den dukker op. Det er den praksis, stedet bygger på.</p>
+</div>
+<div>
+<p class="sec">Typer</p>
+<p class="small">De mønstre, man bærer med sig overalt: præferencer, tendenser, maskulin og feminin energi uafhængigt af køn. Ikke bokse. Type er det, du starter med; niveau er det, du vokser til. At kende begge dele er at kende sig selv uden at reducere sig selv.</p>
 </div>
 </div>
 </section>
@@ -289,7 +314,7 @@ pages["sporene.html"] = head("Sporene · Vend Hjem", "Det, der sker på stedet: 
 <h1>Det, der sker på stedet.</h1>
 <div class="g g-54 nb mt3" style="background:transparent;border:0;gap:32px">
 <div style="padding:0">
-<p class="lead">Mandegrupperne og rites of passage har ti års arbejde bag sig. Lai står for den integrale praksis og skuespilmetoden. Resten laver vi sammen med dem, der er her.</p>
+<p class="lead">Seks spor på ét sted. Noget laver vi selv, noget lægger vi plads til, og det meste bliver til sammen med dem, der er her.</p>
 </div>
 <div style="padding:0">''' + foto("bordet-i-marken", "Bordet i marken · sommer", sizes="(max-width: 600px) 100vw, 380px") + '''</div>
 </div>
