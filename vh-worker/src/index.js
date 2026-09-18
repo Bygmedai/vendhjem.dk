@@ -10,7 +10,7 @@ import { oversigt, sagside } from "./sider.js";
 import { side, fejlTilstand } from "./flade.js";
 import { TEKST } from "./tekst.js";
 import { mitFetch } from "./mit.js";
-import { koerSikkerhedskopi } from "./sikkerhedskopi.js";
+import { koerSikkerhedskopi, sidsteKopi } from "./sikkerhedskopi.js";
 import { erFund, besvarFund } from "./fund.js";
 import { haandterKorpus, ROD_KORPUS } from "./korpus.js";
 import {
@@ -106,6 +106,55 @@ export default {
         status: sundt ? 200 : 503,
         headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
       });
+    }
+
+    // Sikkerhedskopien, maskinlaesbart. Samme doer som /sundhed/fonde og samme
+    // noegle — ikke en ny hemmelighed at passe paa.
+    //
+    // HVORFOR DEN FINDES VED SIDEN AF /internt/sikkerhedskopi
+    //
+    // Siden bag Access er til et menneske, der spoerger. Det her er til noget,
+    // der spoerger uden at nogen beder om det. Den sidste af de tre ting, der
+    // manglede, var netop: ingen siger til, hvis den natlige koersel fejler.
+    // Et menneske, der skal huske at aabne en side for at opdage det, er ikke
+    // en alarm — det er et haab.
+    //
+    //   GET   hvor gammel er den nyeste kopi. 503, hvis den er over to doegn
+    //         gammel eller slet ikke findes, saa en overvaagning kan rejse sig
+    //         paa statuskoden alene og ikke skal laese JSON for at forstaa.
+    //   POST  tag en nu. Til lige foer en migration eller en risikabel aendring,
+    //         hvor man ikke vil vente paa klokken fire.
+    //
+    // Tal og datoer, aldrig indhold. Samme regel som resten af /sundhed.
+    if (url.pathname === "/sundhed/sikkerhedskopi") {
+      if (!env.SUNDHED_NOEGLE || request.headers.get("X-VH-Sundhed") !== env.SUNDHED_NOEGLE)
+        return new Response("Findes ikke.", { status: 404 });
+
+      const svarMed = (krop, status) => new Response(JSON.stringify(krop, null, 1), {
+        status,
+        headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
+      });
+
+      if (request.method === "POST") {
+        try {
+          const r = await koerSikkerhedskopi(env);
+          return svarMed({ tid: new Date().toISOString(), ...r }, r.ok ? 200 : 503);
+        } catch (e) {
+          return svarMed({ tid: new Date().toISOString(), ok: false, fejl: String(e && e.message || e) }, 503);
+        }
+      }
+      if (request.method !== "GET") return new Response("Ikke tilladt.", { status: 405 });
+
+      let k;
+      try {
+        k = await sidsteKopi(env);
+      } catch (e) {
+        return svarMed({ tid: new Date().toISOString(), ok: false, fejl: String(e && e.message || e) }, 503);
+      }
+      // To doegn, ikke ét: koerslen er klokken fire UTC, og en alarm, der gaar
+      // ved den mindste forsinkelse, bliver slaaet fra af den, der bliver vaekket.
+      const frisk = k.ok && k.findes && typeof k.alder_doegn === "number" && k.alder_doegn <= 2;
+      return svarMed({ tid: new Date().toISOString(), frisk, ...k }, frisk ? 200 : 503);
     }
 
     // /mit er fællesskabets login. UDEN for Access — Access' 50-bruger-loft
