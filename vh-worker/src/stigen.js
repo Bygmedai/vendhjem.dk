@@ -1,0 +1,33 @@
+// GENERERET af build.py fra stigen.json. Ret ikke her.
+export const LAG = [
+ {
+  "id": "gaest",
+  "navn": "Gæst",
+  "timer": "0 timer",
+  "timer_note": "ingen aftale ud over opholdet",
+  "hvem": "Du kommer til et ophold, en weekend eller en uge, og rejser hjem igen med det, du fik med.",
+  "giver": "Prisen for opholdet, og dig selv, mens du er her.",
+  "faar": "Det, opholdet lover: seng, mad, sal, sauna og havet. Og et bord, hvor der er plads til dig.",
+  "vej": "Forespørg på et ophold under Sporene, eller skriv."
+ },
+ {
+  "id": "med",
+  "navn": "Med",
+  "timer": "omkring 100 timer",
+  "timer_note": "om året, aftalt på forhånd",
+  "hvem": "Du bor her i perioder og arbejder med. Du kender stedet, og stedet kender dig.",
+  "giver": "Dine hænder og din tid, i det omfang vi har aftalt det.",
+  "faar": "Seng og mad, når du er her. Plads ved bordet. En stemme i det, der berører dig. Og en skriftlig aftale med en slutdato, som vi begge kender.",
+  "vej": "Et brev, to samtaler og en prøveaftale. Trin 1 til 3 ovenfor."
+ },
+ {
+  "id": "baerer",
+  "navn": "Bærer",
+  "timer": "200 timer eller mere",
+  "timer_note": "om året, eller et indskud",
+  "hvem": "Du bærer et område, som køkkenet, jorden eller en bygning, og andre kan regne med dig dér.",
+  "giver": "Timer eller indskud, skrevet ned som det er aftalt, og ansvaret for dit område.",
+  "faar": "Det samme som Med, og et mandat: inden for dit område bestemmer du hvordan. Dine timer og dit indskud står i regnskabet på det grundlag, de blev aftalt på.",
+  "vej": "Mindst et år som Med. Så siger vi begge ja igen. Trin 4."
+ }
+];

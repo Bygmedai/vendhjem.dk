@@ -42,6 +42,23 @@ def fod_offentlig():
 # hukommelse er et løfte, hukommelsen ikke kan holde.
 NAV_INTERNT = _json.load(open(os.path.join(ROOT, "nav-internt.json"), encoding="utf-8"))["punkter"]
 
+# Stigen paa /bliv-en-del har én kilde: stigen.json. Se BYG-576.
+STIGEN = _json.load(open(os.path.join(ROOT, "stigen.json"), encoding="utf-8"))["lag"]
+
+def stigen_html():
+    celler = []
+    for i, l in enumerate(STIGEN):
+        k = ' class="loeft"' if l["id"] == "med" else ""
+        celler.append(f'''<div{k}>
+<p class="sec">{l["navn"]}</p>
+<p class="meta">{l["timer"]} · {l["timer_note"]}</p>
+<p class="small mt2">{l["hvem"]}</p>
+<p class="meta-s mt3">Du giver</p><p class="small mt1">{l["giver"]}</p>
+<p class="meta-s mt2">Du får</p><p class="small mt1">{l["faar"]}</p>
+<p class="meta-s mt2">Vejen ind</p><p class="small mt1">{l["vej"]}</p>
+</div>''')
+    return '<div class="g g-3">\n' + "\n".join(celler) + '\n</div>'
+
 def nav_internt(depth, current):
     ud = []
     for pkt in NAV_INTERNT:
@@ -717,6 +734,18 @@ pages["bliv-en-del.html"] = head("Bliv en del · Vend Hjem", "Forløbet fra brev
 </div>
 </section>
 
+<section class="stage sektion">
+<div class="maxw">
+<p class="sec">Tre måder at være her på</p>
+<h2 style="font-size:clamp(22px,2.8vw,28px)">Man kan være her som gæst, som en der er med, eller som en der bærer.</h2>
+<p class="lead mt2">Forskellen er, hvor meget tid du lægger, og hvad du får for den. Det står her, så ingen behøver gætte.</p>
+</div>
+</section>
+
+<section class="stage mt3">
+''' + stigen_html() + '''
+</section>
+
 <section class="stage mt4">
 ''' + foto_baand(["vaerelse-dobbelt", "hyggekrog"], sizes="(max-width: 600px) 100vw, 589px", stil="min-height:320px") + '''
 </section>
@@ -1339,3 +1368,11 @@ if os.path.isdir(os.path.dirname(_fodjs)):
         f.write("export const SENEST = " + _json.dumps(FOOT_DATE, ensure_ascii=False) + ";\n")
         f.write("export const FOD = " + _json.dumps(fod_offentlig(), ensure_ascii=False) + ";\n")
     print("genererede vh-worker/src/fod.js")
+
+# Generér Workerens stige fra stigen.json. Redigér ALDRIG vh-worker/src/stigen.js.
+_stigejs = os.path.join(ROOT, "vh-worker", "src", "stigen.js")
+if os.path.isdir(os.path.dirname(_stigejs)):
+    with open(_stigejs, "w", encoding="utf-8") as f:
+        f.write("// GENERERET af build.py fra stigen.json. Ret ikke her.\n")
+        f.write("export const LAG = " + _json.dumps(STIGEN, ensure_ascii=False, indent=1) + ";\n")
+    print("genererede vh-worker/src/stigen.js")
