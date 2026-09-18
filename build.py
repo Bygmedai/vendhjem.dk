@@ -320,10 +320,18 @@ pages["permakultur.html"] = head("Permakultur · Vend Hjem", "Jorden på Agersø
 </section>
 
 <section class="stage blok">
+<div class="g g-32 nb">
+<div>
 <p class="sec">Naturen som styrende princip</p>
 <h1 class="stor maxw">Jorden er ikke en byggegrund. Den er det, vi bygger med.</h1>
 <p class="lead maxw mt3">Seks hektar gammel campingplads. Vi lægger ikke stedet ud som en byggemodning, hvor naturen er det, der bliver tilbage mellem tingene. Landskabet bestemmer, hvor tingene kommer til at ligge. Biodiversitet og naturnær drift er med fra starten - ikke for at undgå at skade, men for at hæve naturkvaliteten på stedet og bidrage til øens økosystemer.</p>
 <p class="small maxw mt3">Permakultur er for os tre ting, som hænger sammen: jorden skal have det bedre af, at vi er her. Menneskene også. Og det, der bliver til overs, deles. Det er samme tanke som <a href="/fundamentet">fundamentets</a> fjerde perspektiv - hvad koster det, hvad slider det på øen, og holder det om tre år - bare stillet til jorden.</p>
+</div>
+<div class="media" style="display:flex;align-items:center;justify-content:center;padding:24px">
+<img src="/images/permakultur/tre-lag.webp" width="900" height="1250" alt="Tre lag oven på hinanden: nederst vandet og den beskyttede natur, så veje og stier, øverst jordlodderne." loading="lazy" style="width:100%;max-width:420px;height:auto;">
+</div>
+</div>
+<p class="xs soft mt2">Tegninger på siden: fra Lais og Eriks landskabsoplæg for stedet, maj 2021.</p>
 </section>
 
 <section class="stage">
@@ -339,11 +347,11 @@ pages["permakultur.html"] = head("Permakultur · Vend Hjem", "Jorden på Agersø
 <p class="sec">Fem landskabsprincipper</p>
 <div class="g g-3 nb mt4">
 <div class="loeft"><p class="lead">Devisen er, at menneskelige fællesskaber kan være lige så positive bidragydere til verdens økosystemer, som vi i dag er ødelæggende.</p><p class="small soft mt2">De fem principper er, hvordan vi vil vise det på seks hektar.</p></div>
-<div><p class="sec">Naturlig terrænformation</p><p class="small">Der genskabes naturlige terrænformer - lavninger, grøfter, små bakker - så arealet kobler sig på øens habitatforbindelser i stedet for at ligge som en flad plæne mellem dem.</p></div>
-<div><p class="sec">Godt mikroklima</p><p class="small">Læ, skygge og vand, hvor mennesker, dyr og insekter har brug for det. Læhegn og lunde tager de stærke vestenvinde, binder jorden og holder på vandet ved skybrud.</p></div>
-<div><p class="sec">Naturlige anlæg</p><p class="small">Veje, stier og de faste elementer skal indgå i landskabet og selv være habitat: makadam, der gror til i kanterne, stendiger til firben, insekthoteller, fugle- og flagermushuse.</p></div>
-<div><p class="sec">Lokale naturtyper</p><p class="small">Overdrev, eng, krat, hegn og vådområde som de findes på Agersø, med arter herfra. Formålet er at bevare og øge den lokale artsrigdom - og fortælle øens kulturhistorie gennem det, der gror.</p></div>
-<div><p class="sec">Naturnær drift</p><p class="small">En langsigtet driftsstrategi, hvor naturpleje er en del af fællesskabet og af oplevelsen af stedet. Le-slåning, afbrænding, bekæmpelse af invasive arter og overvågning - gjort af dem, der er her.</p></div>
+<div><img src="/images/permakultur/princip-terraen.webp" width="640" height="443" alt="Gravemaskine former lavninger, der samler vand." loading="lazy" style="width:auto;max-width:100%;height:170px;object-fit:contain;object-position:left bottom;margin-bottom:12px"><p class="sec">Naturlig terrænformation</p><p class="small">Der genskabes naturlige terrænformer - lavninger, grøfter, små bakker - så arealet kobler sig på øens habitatforbindelser i stedet for at ligge som en flad plæne mellem dem.</p></div>
+<div><img src="/images/permakultur/princip-mikroklima.webp" width="640" height="548" alt="Et træ tager vinden, og der er læ og vand bag det." loading="lazy" style="width:auto;max-width:100%;height:170px;object-fit:contain;object-position:left bottom;margin-bottom:12px"><p class="sec">Godt mikroklima</p><p class="small">Læ, skygge og vand, hvor mennesker, dyr og insekter har brug for det. Læhegn og lunde tager de stærke vestenvinde, binder jorden og holder på vandet ved skybrud.</p></div>
+<div><img src="/images/permakultur/princip-anlaeg.webp" width="640" height="510" alt="Stendynge og grusvej, der er levested." loading="lazy" style="width:auto;max-width:100%;height:170px;object-fit:contain;object-position:left bottom;margin-bottom:12px"><p class="sec">Naturlige anlæg</p><p class="small">Veje, stier og de faste elementer skal indgå i landskabet og selv være habitat: makadam, der gror til i kanterne, stendiger til firben, insekthoteller, fugle- og flagermushuse.</p></div>
+<div><img src="/images/permakultur/princip-naturtyper.webp" width="640" height="598" alt="Træ og urter med rødder i lokal jord." loading="lazy" style="width:auto;max-width:100%;height:170px;object-fit:contain;object-position:left bottom;margin-bottom:12px"><p class="sec">Lokale naturtyper</p><p class="small">Overdrev, eng, krat, hegn og vådområde som de findes på Agersø, med arter herfra. Formålet er at bevare og øge den lokale artsrigdom - og fortælle øens kulturhistorie gennem det, der gror.</p></div>
+<div><img src="/images/permakultur/princip-drift.webp" width="640" height="429" alt="Et menneske slår eng med le." loading="lazy" style="width:auto;max-width:100%;height:170px;object-fit:contain;object-position:left bottom;margin-bottom:12px"><p class="sec">Naturnær drift</p><p class="small">En langsigtet driftsstrategi, hvor naturpleje er en del af fællesskabet og af oplevelsen af stedet. Le-slåning, afbrænding, bekæmpelse af invasive arter og overvågning - gjort af dem, der er her.</p></div>
 </div>
 </section>
 
@@ -360,6 +368,7 @@ pages["permakultur.html"] = head("Permakultur · Vend Hjem", "Jorden på Agersø
 <p class="small mt1">Brandvej, hovedvej og forbindelser ud i naturen anlægges i makadam: knust granit eller strandsten med grus og sand i mellemrummene, som med tiden gror til i græs og urter. Vejen bærer tunge køretøjer og forsvinder alligevel i landskabet. Forløbene er smalle og snoede som gaderne i Agersø by.</p>
 </div>
 <div>
+<img src="/images/permakultur/brik-3.webp" width="800" height="573" alt="En jordlod som puslespilsbrik: træer, krat, eng og en sti gennem den." loading="lazy" style="width:100%;max-width:300px;height:auto;margin-bottom:12px">
 <p class="meta-s" style="color:var(--accent);font-weight:500">3 · JORDLODDER</p>
 <p class="small mt1">Arealet deles i mindre lodder som puslespilsbrikker. Hver brik rummer to til fire beplantningstyper og de faste landskabselementer: stendiger, insekthoteller, fuglehuse, hus til flagermus. Størrelse og form afgøres af praktiske, landskabelige og økologiske hensyn - ikke af en lineal.</p>
 </div>
@@ -394,6 +403,7 @@ pages["permakultur.html"] = head("Permakultur · Vend Hjem", "Jorden på Agersø
 <p class="lead maxw mt2">Alle med arter fra øen. Træernes samlede kronedække må højst fylde 10 % af arealet - Agersø er et åbent landskab, og det skal det blive ved med at være.</p>
 <div class="g g-3 nb mt4">
 <div>
+<img src="/images/permakultur/bep-laehegn.webp" width="640" height="616" alt="Læhegn: to træer og en busk, vinden bøjer af over dem." loading="lazy" style="width:auto;max-width:100%;height:190px;object-fit:contain;object-position:left bottom;margin-bottom:12px">
 <p class="sec">Læhegn</p>
 <p class="small">Gammel landbrugstradition: binder jorden, giver læ, suger store vandmængder. Lagt i små sektioner på udvalgte lodder bliver de spiselige, artsrige heller for mennesker, dyr og insekter.</p>
 <ul class="liste mt2">
@@ -405,6 +415,7 @@ pages["permakultur.html"] = head("Permakultur · Vend Hjem", "Jorden på Agersø
 </ul>
 </div>
 <div>
+<img src="/images/permakultur/bep-baerkrat.webp" width="612" height="599" alt="Bærkrat med en kurv bær og en solsort." loading="lazy" style="width:auto;max-width:100%;height:190px;object-fit:contain;object-position:left bottom;margin-bottom:12px">
 <p class="sec">Bærkrat</p>
 <p class="small">Føde og levesteder. Hindbær, tjørn, hyld og brombær kan plukkes af dem, der er her. Den vilde kaprifolie dufter om aftenen og trækker natsværmere til.</p>
 <ul class="liste mt2">
@@ -416,6 +427,7 @@ pages["permakultur.html"] = head("Permakultur · Vend Hjem", "Jorden på Agersø
 </ul>
 </div>
 <div>
+<img src="/images/permakultur/bep-karaktertrae.webp" width="640" height="742" alt="Et enkelt frugttræ med et egern ved roden." loading="lazy" style="width:auto;max-width:100%;height:190px;object-fit:contain;object-position:left bottom;margin-bottom:12px">
 <p class="sec">Karaktertræ</p>
 <p class="small">Spiselige træer med nødder og frugt, plantet enkeltvis som reference til de gamle frugtlunde. Ét træ, der kan ses på afstand, ikke en plantage.</p>
 <ul class="liste mt2">
@@ -427,6 +439,7 @@ pages["permakultur.html"] = head("Permakultur · Vend Hjem", "Jorden på Agersø
 </ul>
 </div>
 <div>
+<img src="/images/permakultur/bep-overdrev.webp" width="640" height="675" alt="Overdrev med blomster og et stendige." loading="lazy" style="width:auto;max-width:100%;height:190px;object-fit:contain;object-position:left bottom;margin-bottom:12px">
 <p class="sec">Overdrev og stendiger</p>
 <p class="small">Tørre, stenede jorde, som aldrig egnede sig til plov, blev til græsning. Her bliver de blomsterrige enge for insekter og bestøvere. Stendigerne er varmesteder for firben og reference til øens gamle haver.</p>
 <ul class="liste mt2">
@@ -438,6 +451,7 @@ pages["permakultur.html"] = head("Permakultur · Vend Hjem", "Jorden på Agersø
 </ul>
 </div>
 <div>
+<img src="/images/permakultur/bep-eng.webp" width="640" height="644" alt="Eng med et vandhul, en frø og guldsmede." loading="lazy" style="width:auto;max-width:100%;height:190px;object-fit:contain;object-position:left bottom;margin-bottom:12px">
 <p class="sec">Eng og vådområder</p>
 <p class="small">Lavninger og grøfter, der samler regnvand og danner et netværk af små vådområder. Vandstanden følger regnen. Midlertidige yngle- og fødesteder for padder og vandinsekter.</p>
 <ul class="liste mt2">
@@ -449,6 +463,7 @@ pages["permakultur.html"] = head("Permakultur · Vend Hjem", "Jorden på Agersø
 </ul>
 </div>
 <div>
+<img src="/images/permakultur/bep-relikt.webp" width="640" height="560" alt="Fingerbøl, kamille og en kurv urter." loading="lazy" style="width:auto;max-width:100%;height:190px;object-fit:contain;object-position:left bottom;margin-bottom:12px">
 <p class="sec">Reliktplanter</p>
 <p class="small">Øens forvildede lægeplanter og troldomsurter fra dengang, de hørte til husholdningen. Nektarrige, med form og farve. De får plads ved bygningerne, i hegn og i krat.</p>
 <ul class="liste mt2">
