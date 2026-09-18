@@ -25,8 +25,9 @@ const kalenderSql = readFileSync(new URL("../migrations/0009_kalender_2027.sql",
 const breveSql = readFileSync(new URL("../migrations/0011_breve.sql", import.meta.url), "utf8");
 const timerSql = readFileSync(new URL("../migrations/0012_timer.sql", import.meta.url), "utf8");
 const loginSql = readFileSync(new URL("../migrations/0013_login_forsoeg.sql", import.meta.url), "utf8");
+const fundSql = readFileSync(new URL("../migrations/0014_fund.sql", import.meta.url), "utf8");
 const SKELET = [init, seed, peopleSql, mitSql, korpusSql, fondeE2, opholdSql, foresporgSql];
-const MIGRATIONER = [...SKELET, kalenderSql, breveSql, timerSql, loginSql];
+const MIGRATIONER = [...SKELET, kalenderSql, breveSql, timerSql, loginSql, fundSql];
 
 let ok = 0, fejl = 0;
 const t = (navn, betingelse, ekstra = "") => {
@@ -338,7 +339,7 @@ console.log("\n13 · Fladekontrakt (BYG-565 G1)");
   t("fondsfladen indfører ingen farve uden for paletten",
      farver.ok, JSON.stringify(farver));
 
-  const kilder = ["flade.js", "sider.js", "views.js", "index.js", "tekst.js", "mit.js", "session.js", "mail.js", "webauthn.js", "krypto.js", "korpus.js", "runde.js", "ophold.js", "ophold-sider.js", "breve.js", "fotos.js", "fod.js", "stigen.js", "sikkerhedskopi.js"]
+  const kilder = ["flade.js", "sider.js", "views.js", "index.js", "tekst.js", "mit.js", "session.js", "mail.js", "webauthn.js", "krypto.js", "korpus.js", "runde.js", "ophold.js", "ophold-sider.js", "breve.js", "fotos.js", "fod.js", "stigen.js", "sikkerhedskopi.js", "fund.js"]
     .map((f) => readFileSync(new URL(`../src/${f}`, import.meta.url), "utf8")).join("\n");
   const kildeFarver = farverUdenforPalet(kilder, css);
   t("flade-kilden indfører ingen farve uden for paletten",
@@ -1497,6 +1498,93 @@ console.log("\n31 · Et mislykket login er ikke længere usynligt (målt 18.09.2
   await jarF.hent("/mit/login", { method: "POST", body: new URLSearchParams({ mail: "endnu-en@example.com" }) });
   const gammel = await db.prepare(`SELECT 1 FROM login_forsoeg WHERE id = 'gammel'`).first();
   t("forsøg ældre end 90 dage ryddes ved næste skrivning", !gammel);
+}
+
+console.log("\n32 · «Noget jeg så» — samme skærm som timerne");
+{
+  const db = env.FONDE_DB;
+  const css = readFileSync(new URL("../../assets/vh.css", import.meta.url), "utf8");
+  const { ukendteKlasser } = await import("../src/kontrakt.js");
+
+  mails.length = 0;
+  const jar = new Jar();
+  await jar.hent("/mit");
+  await jar.hent("/mit/login", { method: "POST", body: new URLSearchParams({ mail: "steven@bygmedai.dk" }) });
+  const lenke = linkIMail(mails[0]);
+  await jar.hent(lenke ? stiFraUrl(lenke) : "/mit/link/x");
+
+  const skriv = await tekst(await jar.hent("/mit/skriv"));
+  t("Skriv tilbyder begge slags", /value="timer"/.test(skriv) && /value="fund"/.test(skriv));
+  t("begge felt-sæt står i HTML, så formularen virker uden JavaScript",
+     /name="hvad_timer"/.test(skriv) && /name="hvad_fund"/.test(skriv) && /name="hvor"/.test(skriv));
+  t("Skriv bruger kun klasser fra vh.css", ukendteKlasser(skriv, css).length === 0, ukendteKlasser(skriv, css).join(", "));
+
+  const igaar = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const r = await jar.hent("/mit/skriv", {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ slags: "fund", hvad: "Taget drypper over sovesalen, en spand står under", hvor: "Hovedhuset, østenden", haster: 1, dato: igaar }),
+  });
+  const j = await r.json();
+  t("et fund kan skrives ind", r.status === 200 && j.ok === true, JSON.stringify(j));
+  const f = await db.prepare(`SELECT * FROM fund WHERE id = ?1`).bind(j.id).first();
+  t("fundet står med sted, hastegrad og status nyt",
+     f.hvor === "Hovedhuset, østenden" && f.haster === 1 && f.status === "nyt" && f.dato === igaar,
+     JSON.stringify(f));
+
+  // Samme dør: timer uden slags går stadig til timerne.
+  const rt = await jar.hent("/mit/skriv", {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ slags: "timer", hvad: "Bar spande og gamle brædder ud af laden", timer: "3", dato: igaar }),
+  });
+  t("timer går stadig igennem den samme dør", (await rt.json()).ok === true, rt.status);
+  const rGammel = await jar.hent("/mit/timer", {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ hvad: "En linje fra en gammel kø på en telefon", timer: "2", dato: igaar }),
+  });
+  t("en linje fra den gamle kø kan stadig sendes", (await rGammel.json()).ok === true, rGammel.status);
+
+  const tomtFund = await jar.hent("/mit/skriv", {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ slags: "fund", hvad: "  ", dato: igaar }),
+  });
+  t("et tomt fund afvises", tomtFund.status === 400, tomtFund.status);
+  const fremFund = await jar.hent("/mit/skriv", {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ slags: "fund", hvad: "Noget jeg ser i morgen", dato: new Date(Date.now() + 86400000).toISOString().slice(0, 10) }),
+  });
+  t("et fund i fremtiden afvises", fremFund.status === 400, fremFund.status);
+
+  const ov = await tekst(await jar.hent("/mit/overblik"));
+  t("Overblik viser dine egne fund", /Taget drypper over sovesalen/.test(ov) && /Hovedhuset, østenden/.test(ov));
+  t("et hastende fund er mærket som sådan", /Haster/.test(ov));
+
+  // Den interne liste.
+  const liste = await tekst(await hent("/internt/fund"));
+  t("/internt/fund viser fundet med hvem der så det", /Taget drypper/.test(liste) && /Steven Wensley/.test(liste));
+  t("listen har Fund i navigationen", /href="\/internt\/fund"[^>]*aria-current="page"/.test(liste));
+  const kontraktFund = ukendteKlasser(liste, css);
+  t("/internt/fund bruger kun klasser fra vh.css", kontraktFund.length === 0, kontraktFund.join(", "));
+
+  const udenLogin = await worker.fetch(new Request("http://vendhjem.dk/internt/fund"), { ...env, LOKAL_TEST: "0" }, {});
+  t("/internt/fund uden identitet er 401", udenLogin.status === 401, udenLogin.status);
+
+  // Status: nyt → set → klaret, og én vej tilbage.
+  await hent(`/internt/fund/${j.id}/status`, { method: "POST", body: new URLSearchParams({ status: "set" }) });
+  t("markér set virker", (await db.prepare(`SELECT status FROM fund WHERE id=?1`).bind(j.id).first()).status === "set");
+  await hent(`/internt/fund/${j.id}/status`, { method: "POST", body: new URLSearchParams({ status: "klaret" }) });
+  t("markér klaret virker", (await db.prepare(`SELECT status FROM fund WHERE id=?1`).bind(j.id).first()).status === "klaret");
+  await hent(`/internt/fund/${j.id}/status`, { method: "POST", body: new URLSearchParams({ status: "noget-andet" }) });
+  t("en ukendt status bliver ikke skrevet i databasen",
+     (await db.prepare(`SELECT status FROM fund WHERE id=?1`).bind(j.id).first()).status === "nyt");
+
+  // Rækkefølgen er listens pointe.
+  const { fundListe } = await import("../src/db.js");
+  await db.prepare(`INSERT INTO fund (id,person_id,dato,hvad,hvor,haster,status,oprettet) VALUES ('f-haster','p-lai',?1,'Stikkontakt hænger løs i køkkenet',NULL,1,'nyt',?2)`).bind(igaar, new Date().toISOString()).run();
+  await db.prepare(`INSERT INTO fund (id,person_id,dato,hvad,hvor,haster,status,oprettet) VALUES ('f-klaret','p-lai',?1,'Pære skiftet i gangen',NULL,0,'klaret',?2)`).bind(igaar, new Date().toISOString()).run();
+  const sorteret = await fundListe(db);
+  t("det, der haster, ligger øverst og det klarede nederst",
+     sorteret[0].id === "f-haster" && sorteret[sorteret.length - 1].status === "klaret",
+     sorteret.map((x) => `${x.id}:${x.status}`).join(", "));
 }
 
 console.log(`\n${ok} bestået, ${fejl} fejlet\n`);

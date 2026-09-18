@@ -459,3 +459,49 @@ export async function loginForsoegUdenAdgang(db, graense = 25) {
   ).bind(graense).all();
   return results;
 }
+
+// ── Fund: «noget jeg så» (BYG-569, anden runde) ──────────────────────────────
+
+export async function opretFund(db, { person_id, dato, hvad, hvor = null, haster = false }) {
+  const fid = id();
+  await db.prepare(
+    `INSERT INTO fund (id, person_id, dato, hvad, hvor, haster, status, oprettet)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'nyt', ?7)`
+  ).bind(fid, person_id, dato, hvad, hvor, haster ? 1 : 0, nu()).run();
+  return db.prepare(`SELECT * FROM fund WHERE id = ?1`).bind(fid).first();
+}
+
+/** Mine egne fund, nyeste først. */
+export async function mineFund(db, person_id, { graense = 12 } = {}) {
+  const { results } = await db.prepare(
+    `SELECT * FROM fund WHERE person_id = ?1 ORDER BY dato DESC, oprettet DESC LIMIT ?2`
+  ).bind(person_id, graense).all();
+  return results;
+}
+
+/** Alle fund til den interne liste: det, der haster, øverst; klarede nederst. */
+export async function fundListe(db, { graense = 200 } = {}) {
+  const { results } = await db.prepare(
+    `SELECT f.*, p.navn AS hvem FROM fund f JOIN people p ON p.id = f.person_id
+      ORDER BY CASE f.status WHEN 'klaret' THEN 1 ELSE 0 END,
+               f.haster DESC, f.dato DESC, f.oprettet DESC
+      LIMIT ?1`
+  ).bind(graense).all();
+  return results;
+}
+
+export async function saetFundStatus(db, fundId, status) {
+  await db.prepare(`UPDATE fund SET status = ?2 WHERE id = ?1`).bind(fundId, status).run();
+  return db.prepare(`SELECT * FROM fund WHERE id = ?1`).bind(fundId).first();
+}
+
+/** Tal til oversigten: hvor meget venter, og hvor meget haster. */
+export async function fundTal(db) {
+  const r = await db.prepare(
+    `SELECT COUNT(*) AS i_alt,
+            SUM(CASE WHEN status != 'klaret' THEN 1 ELSE 0 END) AS aabne,
+            SUM(CASE WHEN status != 'klaret' AND haster = 1 THEN 1 ELSE 0 END) AS haster
+       FROM fund`
+  ).first();
+  return { i_alt: r?.i_alt || 0, aabne: r?.aabne || 0, haster: r?.haster || 0 };
+}
