@@ -259,10 +259,10 @@ pages["fundamentet.html"] = head("Fundamentet · Vend Hjem", "Det, stedet hviler
 
 <section class="stage">
 <div class="g nb" style="grid-template-columns:1fr">
-<div class="maxw">
+<div><div class="maxw">
 <p class="sec">Største drøm og største frygt</p>
 <p class="small">Før du skriver under på en aftale, taler vi om din største drøm for at være med og det, du frygter mest. Samtalen hjælper os med at få dine ønsker og forbehold med i det, vi aftaler.</p>
-</div>
+</div></div>
 </div>
 </section>
 
