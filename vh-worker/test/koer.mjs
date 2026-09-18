@@ -1945,5 +1945,110 @@ console.log("\n37 · Sikkerhedskopien kan udloeses, ses — og laeses tilbage");
   t("og NULL bliver ved med at vaere NULL, ikke tom streng", hentet && hentet.mail === null);
 }
 
+console.log("\n38 · Alarmen: noget kan spoerge, uden at et menneske husker det");
+{
+  // HVORFOR DEN HER DOER FINDES VED SIDEN AF /internt/sikkerhedskopi
+  //
+  // Af de tre ting, der manglede efter #57, var den sidste: ingen siger til,
+  // hvis den natlige koersel fejler. Siden bag Access svarer et menneske, der
+  // spoerger. Den her svarer noget, der spoerger af sig selv.
+  //
+  // Et menneske, der skal huske at aabne en side for at opdage, at kopien er
+  // holdt op med at blive taget, er ikke en alarm. Det er et haab.
+  //
+  // Statuskoden baerer svaret alene — 200 frisk, 503 gammel eller vaek — saa en
+  // overvaagning kan rejse sig uden at forstaa JSON.
+
+  const noegle = "test-sundhed-noegle";
+  const dor = "http://vendhjem.dk/sundhed/sikkerhedskopi";
+  const medNoegle = (init2 = {}) => new Request(dor, {
+    ...init2, headers: { ...(init2.headers || {}), "X-VH-Sundhed": noegle },
+  });
+
+  // --- Uden noegle findes doeren ikke. Heller ikke med en forkert. ---
+  const enUdenNoegle = await worker.fetch(new Request(dor), { ...env, SUNDHED_NOEGLE: noegle }, {});
+  t("uden noegle svarer den 404 og roeber ikke at den findes", enUdenNoegle.status === 404, String(enUdenNoegle.status));
+
+  const enForkert = await worker.fetch(
+    new Request(dor, { headers: { "X-VH-Sundhed": "noget-andet" } }),
+    { ...env, SUNDHED_NOEGLE: noegle }, {});
+  t("en forkert noegle faar samme svar som ingen noegle", enForkert.status === 404, String(enForkert.status));
+
+  const udenOpsat = await worker.fetch(medNoegle(), { ...env, SUNDHED_NOEGLE: undefined }, {});
+  t("er noeglen ikke sat paa Workeren, er doeren heller ikke der", udenOpsat.status === 404, String(udenOpsat.status));
+
+  // --- Ingen kopi overhovedet: det skal larme, ikke svare paent. ---
+  const tomR2 = { ...env, FONDE_FILER: lavR2(), SUNDHED_NOEGLE: noegle };
+  const ingen = await worker.fetch(medNoegle(), tomR2, {});
+  const ingenKrop = await ingen.json();
+  t("findes der ingen kopi, svarer den 503", ingen.status === 503, String(ingen.status));
+  t("og siger det rent ud, ikke som en tom liste", ingenKrop.frisk === false && ingenKrop.findes === false,
+     JSON.stringify(ingenKrop));
+
+  // --- POST tager en nu. Til lige foer en migration. ---
+  const tag = await worker.fetch(medNoegle({ method: "POST" }), tomR2, {});
+  const tagKrop = await tag.json();
+  t("POST tager en kopi med det samme", tag.status === 200 && tagKrop.ok === true, JSON.stringify(tagKrop));
+  t("og fortaeller hvad der blev skrevet, saa svaret kan efterproeves",
+     typeof tagKrop.navn === "string" && tagKrop.navn.startsWith("sikkerhedskopi/") && tagKrop.raekker > 0,
+     JSON.stringify(tagKrop));
+
+  // --- Og bagefter er den frisk. ---
+  const efter = await worker.fetch(medNoegle(), tomR2, {});
+  const efterKrop = await efter.json();
+  t("umiddelbart efter er svaret 200 og frisk", efter.status === 200 && efterKrop.frisk === true,
+     JSON.stringify(efterKrop));
+  t("den siger hvor gammel den er, ikke bare at den findes", efterKrop.alder_doegn === 0,
+     JSON.stringify(efterKrop));
+
+  // --- En gammel kopi er det, alarmen er til for. ---
+  // Negativt vidne: der ER en kopi. Den er bare fra i forgaars-forgaars.
+  const gammelR2 = lavR2();
+  await gammelR2.put("sikkerhedskopi/2026-09-10.json", JSON.stringify({ tabeller: [], antal: {}, data: {} }));
+  const gammel = await worker.fetch(medNoegle(), { ...env, FONDE_FILER: gammelR2, SUNDHED_NOEGLE: noegle }, {});
+  const gammelKrop = await gammel.json();
+  t("en kopi, der er holdt op med at blive fornyet, svarer 503", gammel.status === 503, String(gammel.status));
+  t("selv om den findes — det er alderen, der larmer", gammelKrop.findes === true && gammelKrop.frisk === false,
+     JSON.stringify(gammelKrop));
+
+  // --- Ingenting laekker. Samme regel som resten af /sundhed. ---
+  const raat = JSON.stringify(gammelKrop) + JSON.stringify(efterKrop);
+  t("svaret baerer tal og datoer, aldrig indhold", !/@/.test(raat) && !/navn"\s*:\s*"[A-ZÆØÅ]/.test(raat), raat.slice(0, 200));
+
+  // --- Alt andet end GET og POST er en fejl, ikke en gaet. ---
+  const slet = await worker.fetch(medNoegle({ method: "DELETE" }), tomR2, {});
+  t("DELETE er ikke en maade at tage en kopi paa", slet.status === 405, String(slet.status));
+}
+
+console.log("\n39 · Readback-vaerktoejet til SQL-eksporten");
+{
+  // SQL-eksporten fra `wrangler d1 export` er den anden vej tilbage — den, et
+  // menneske koerer i haanden den dag, databasen er vaek. Proeve 37 daekker
+  // JSON-vejen; det her daekker, at vaerktoejet til den anden vej findes og
+  // maaler det rigtige.
+  //
+  // Den vigtigste paastand: vaerktoejet skal hente sine forventede triggere fra
+  // MIGRATIONERNE, ikke fra den fil, det undersoeger. Foerste udgave taelte
+  // triggere i filen og triggere i databasen og sammenlignede de to — den var
+  // groen, ogsaa da alle syv var klippet ud af eksporten, fordi begge tal gik
+  // til nul. Falsificeret 18.09.2026. En kilde, der maaler sig selv, maaler intet.
+  const vaerktoej = readFileSync(new URL("../../docs/laes-tilbage.mjs", import.meta.url), "utf8");
+  t("vaerktoejet ligger i repoet", vaerktoej.length > 500);
+  t("det henter de forventede triggere fra migrationerne, ikke fra filen",
+     /migrations/.test(vaerktoej) && /readdirSync/.test(vaerktoej));
+  t("det slaar fremmednoegler fra — ellers doer indlaesningen paa no such table",
+     /enableForeignKeyConstraints:\s*false/.test(vaerktoej));
+  t("det spoerger baade om fremmednoegler og helhed",
+     /foreign_key_check/.test(vaerktoej) && /integrity_check/.test(vaerktoej));
+  t("og det gaar i roedt, ikke bare skriver noget ud", /process\.exit\(1\)/.test(vaerktoej));
+
+  const koereplan = readFileSync(new URL("../../docs/SIKKERHEDSKOPI.md", import.meta.url), "utf8");
+  t("koereplanen findes", koereplan.length > 1000);
+  t("den naevner fremmednoegle-faelden ved navn", /no such table: main\.people/.test(koereplan));
+  t("den naevner trigger-faelden ved navn", /hele stedet er optaget/.test(koereplan));
+  t("den siger hoejt hvad der STADIG ikke er gjort",
+     /stadig ikke/i.test(koereplan) && /R2/.test(koereplan));
+}
+
 console.log(`\n${ok} bestået, ${fejl} fejlet\n`);
 process.exit(fejl ? 1 : 0);
