@@ -505,3 +505,89 @@ export async function fundTal(db) {
   ).first();
   return { i_alt: r?.i_alt || 0, aabne: r?.aabne || 0, haster: r?.haster || 0 };
 }
+
+// ── Vagter: et tidspunkt med pladser (BYG-583) ───────────────────────────────
+//
+// Dækningen regnes ud hver gang, af rækkerne i «paa». Den står ikke som et tal
+// på vagten, fordi et gemt tal kan blive forkert, og et udregnet ikke kan.
+
+export async function opretVagt(db, { hvad, dato, fra = null, til = null, pladser, hvor = null, ophold_id = null, note = null, oprettet_af }) {
+  const vid = id();
+  await db.prepare(
+    `INSERT INTO vagter (id, hvad, dato, fra, til, pladser, hvor, ophold_id, note, oprettet_af, oprettet)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)`
+  ).bind(vid, hvad, dato, fra, til, pladser, hvor, ophold_id, note, oprettet_af, nu()).run();
+  return db.prepare(`SELECT * FROM vagter WHERE id = ?1`).bind(vid).first();
+}
+
+/**
+ * De kommende vagter, med dækning og med om DU står på.
+ *
+ * Rækkefølgen er dato, ikke «det der mangler mest». Listen er en kalender, og
+ * en kalender, der springer i tid, kan man ikke bruge til at planlægge en uge.
+ * Det manglende er markeret i stedet — synligt uden at flytte rundt på tiden.
+ */
+export async function kommendeVagter(db, person_id, { fra_dato, graense = 30 } = {}) {
+  const { results } = await db.prepare(
+    `SELECT v.*,
+            (SELECT COUNT(*) FROM paa WHERE vagt_id = v.id) AS paa_antal,
+            (SELECT COUNT(*) FROM paa WHERE vagt_id = v.id AND person_id = ?2) AS jeg_staar_paa
+       FROM vagter v
+      WHERE v.dato >= ?1
+      ORDER BY v.dato, COALESCE(v.fra, '99:99'), v.hvad
+      LIMIT ?3`
+  ).bind(fra_dato, person_id, graense).all();
+  return results.map((v) => ({
+    ...v,
+    jeg_staar_paa: v.jeg_staar_paa > 0,
+    mangler: Math.max(0, v.pladser - v.paa_antal),
+  }));
+}
+
+/** Hvem der står på én vagt. Navne, ikke tal — det er den interne side. */
+export async function hvemStaarPaa(db, vagt_id) {
+  const { results } = await db.prepare(
+    `SELECT p.id, p.navn FROM paa j JOIN people p ON p.id = j.person_id
+      WHERE j.vagt_id = ?1 ORDER BY j.skrevet_paa`
+  ).bind(vagt_id).all();
+  return results;
+}
+
+/**
+ * Skriv dig på.
+ *
+ * Kapaciteten, fortiden og dobbelt tilmelding håndhæves af skemaet — se
+ * 0015_vagter.sql om hvorfor de ikke ligger her. Funktionen oversætter kun
+ * databasens indsigelse til noget, et menneske kan læse, og den siger «du står
+ * der allerede» frem for at fejle: to tryk skal føre til samme tilstand som ét.
+ */
+export async function skrivPaa(db, vagt_id, person_id) {
+  try {
+    await db.prepare(
+      `INSERT INTO paa (vagt_id, person_id, skrevet_paa) VALUES (?1, ?2, ?3)`
+    ).bind(vagt_id, person_id, nu()).run();
+    return { ok: true };
+  } catch (e) {
+    const m = String(e?.message || e);
+    if (/UNIQUE|PRIMARY KEY|constraint failed: paa/i.test(m)) return { ok: true, allerede: true };
+    if (/vagten er fuld/i.test(m)) return { ok: false, grund: "fuld" };
+    if (/vagten er gaaet/i.test(m)) return { ok: false, grund: "fortid" };
+    throw e;
+  }
+}
+
+/** Skriv dig af. Pladsen er fri i samme øjeblik. */
+export async function skrivAf(db, vagt_id, person_id) {
+  await db.prepare(`DELETE FROM paa WHERE vagt_id = ?1 AND person_id = ?2`).bind(vagt_id, person_id).run();
+  return { ok: true };
+}
+
+/** Tal til /internt: hvor mange kommende vagter, og hvor mange pladser der mangler. */
+export async function vagtTal(db, fra_dato) {
+  const r = await db.prepare(
+    `SELECT COUNT(*) AS vagter,
+            COALESCE(SUM(MAX(0, v.pladser - (SELECT COUNT(*) FROM paa WHERE vagt_id = v.id))), 0) AS mangler
+       FROM vagter v WHERE v.dato >= ?1`
+  ).bind(fra_dato).first();
+  return { vagter: r?.vagter ?? 0, mangler: r?.mangler ?? 0 };
+}

@@ -12,6 +12,7 @@ import { TEKST } from "./tekst.js";
 import { mitFetch } from "./mit.js";
 import { koerSikkerhedskopi, sidsteKopi } from "./sikkerhedskopi.js";
 import { erFund, besvarFund } from "./fund.js";
+import { erVagter, besvarVagter } from "./vagter-sider.js";
 import { haandterKorpus, ROD_KORPUS } from "./korpus.js";
 import {
   haandterRunde, listerRunder, saetAdgang, saetKlar, arkiverSag, historiskIndsendelse, FONDE,
@@ -182,8 +183,9 @@ export default {
     const internOphold = erOphold(sti);
     const internBreve = erBreve(sti);
     const internFund = erFund(sti);
+    const internVagter = erVagter(sti);
     const internKopi = erKopi(sti);
-    if (!internOphold && !internBreve && !internFund && !internKopi && !workerSti(url.pathname)) return env.ASSETS.fetch(request);
+    if (!internOphold && !internBreve && !internFund && !internKopi && !internVagter && !workerSti(url.pathname)) return env.ASSETS.fetch(request);
 
     let bruger = await identitet(request);
 
@@ -206,6 +208,7 @@ export default {
     if (internOphold) return besvarOphold(request, env, bruger, url);
     if (internBreve) return besvarBreve(request, env, bruger, url);
     if (internFund) return besvarFund(request, env, bruger, url);
+    if (internVagter) return besvarVagter(request, env, bruger, url);
     if (internKopi) return besvarKopi(request, env, bruger, url);
 
     const db = env.FONDE_DB;

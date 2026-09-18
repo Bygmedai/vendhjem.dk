@@ -56,6 +56,11 @@ export const PUNKTER = [
   "label": "Breve"
  },
  {
+  "id": "vagter",
+  "sti": "internt/vagter",
+  "label": "Vagter"
+ },
+ {
   "id": "fund",
   "sti": "internt/fund",
   "label": "Fund"
