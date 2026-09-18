@@ -1,0 +1,22 @@
+{
+  "name": "Vendhjem",
+  "short_name": "Vendhjem",
+  "description": "Dit ophold, din aftale og dine timer på Agersø.",
+  "lang": "da",
+  "start_url": "/mit",
+  "scope": "/mit",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#e9e7e0",
+  "theme_color": "#e9e7e0",
+  "icons": [
+    { "src": "/assets/app-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/assets/app-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/assets/app-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/assets/app-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Skriv timer", "short_name": "Skriv", "url": "/mit/skriv" },
+    { "name": "Overblik", "short_name": "Overblik", "url": "/mit/overblik" }
+  ]
+}

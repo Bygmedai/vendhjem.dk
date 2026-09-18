@@ -2,7 +2,7 @@
 // rigtige handlere. Kun D1/R2/Access er stubbet.
 //
 // Kør: node test/koer.mjs
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { lavD1, lavR2, lavAssets } from "./stubs.mjs";
 import { hentPerson, roller, harRolle, opretPerson, tildelRolle, udloebRolle, skiftMail } from "../src/db.js";
 import {
@@ -23,8 +23,9 @@ const opholdSql = readFileSync(new URL("../migrations/0007_ophold.sql", import.m
 const foresporgSql = readFileSync(new URL("../migrations/0008_foresporgsel.sql", import.meta.url), "utf8");
 const kalenderSql = readFileSync(new URL("../migrations/0009_kalender_2027.sql", import.meta.url), "utf8");
 const breveSql = readFileSync(new URL("../migrations/0011_breve.sql", import.meta.url), "utf8");
+const timerSql = readFileSync(new URL("../migrations/0012_timer.sql", import.meta.url), "utf8");
 const SKELET = [init, seed, peopleSql, mitSql, korpusSql, fondeE2, opholdSql, foresporgSql];
-const MIGRATIONER = [...SKELET, kalenderSql, breveSql];
+const MIGRATIONER = [...SKELET, kalenderSql, breveSql, timerSql];
 
 let ok = 0, fejl = 0;
 const t = (navn, betingelse, ekstra = "") => {
@@ -336,7 +337,7 @@ console.log("\n13 · Fladekontrakt (BYG-565 G1)");
   t("fondsfladen indfører ingen farve uden for paletten",
      farver.ok, JSON.stringify(farver));
 
-  const kilder = ["flade.js", "sider.js", "views.js", "index.js", "tekst.js", "mit.js", "session.js", "mail.js", "webauthn.js", "krypto.js", "korpus.js", "runde.js", "ophold.js", "ophold-sider.js", "breve.js", "fotos.js", "fod.js", "stigen.js"]
+  const kilder = ["flade.js", "sider.js", "views.js", "index.js", "tekst.js", "mit.js", "session.js", "mail.js", "webauthn.js", "krypto.js", "korpus.js", "runde.js", "ophold.js", "ophold-sider.js", "breve.js", "fotos.js", "fod.js", "stigen.js", "sikkerhedskopi.js"]
     .map((f) => readFileSync(new URL(`../src/${f}`, import.meta.url), "utf8")).join("\n");
   const kildeFarver = farverUdenforPalet(kilder, css);
   t("flade-kilden indfører ingen farve uden for paletten",
@@ -1297,6 +1298,127 @@ console.log("\n28 · Stigen har én kilde (BYG-576)");
      kilde.filter((l) => !side.includes(l.timer)).map((l) => l.navn).join(", "));
   t("ingen «altid», «aldrig» eller «hver gang» i stigen",
      !/\b(altid|aldrig|hver gang)\b/i.test(JSON.stringify(kilde)));
+}
+
+console.log("\n29 · Timer, aftale og appen på /mit (BYG-569 H1)");
+{
+  const db = env.FONDE_DB;
+  const css = readFileSync(new URL("../../assets/vh.css", import.meta.url), "utf8");
+  const { ukendteKlasser, farverUdenforPalet } = await import("../src/kontrakt.js");
+
+  // Log ind som Steven, som i afsnit 13.
+  mails.length = 0;
+  const jar = new Jar();
+  await jar.hent("/mit");
+  await jar.hent("/mit/login", { method: "POST", body: new URLSearchParams({ mail: "steven@bygmedai.dk" }) });
+  const lenke = linkIMail(mails[0]);
+  await jar.hent(lenke ? stiFraUrl(lenke) : "/mit/link/x");
+
+  const nu0 = await tekst(await jar.hent("/mit"));
+  t("Nu viser aftalen fra migrationen", /Bærer/.test(nu0) && /200 timer om året/.test(nu0), nu0.slice(0, 200));
+  t("Nu har de tre faner", /href="\/mit"/.test(nu0) && /href="\/mit\/skriv"/.test(nu0) && /href="\/mit\/overblik"/.test(nu0));
+  t("appen kan lægges på hjemmeskærmen", /rel="manifest" href="\/assets\/mit\.webmanifest"/.test(nu0) && /mit-sw\.js/.test(nu0));
+  t("Nu bruger kun klasser fra vh.css", ukendteKlasser(nu0, css).length === 0, ukendteKlasser(nu0, css).join(", "));
+
+  // Skriv: en rigtig dag.
+  const iforgaars = new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10);
+  const r1 = await jar.hent("/mit/timer", {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ hvad: "Ryddede op i laden og kørte to læs på genbrugspladsen", timer: "5", dato: iforgaars }),
+  });
+  const j1 = await r1.json();
+  t("en dag kan skrives ind", r1.status === 200 && j1.ok === true, JSON.stringify(j1));
+
+  const linje = await db.prepare(`SELECT * FROM timer WHERE id = ?1`).bind(j1.id).first();
+  t("linjen bærer sit eget grundlag og lag fra aftalen",
+     linje.grundlag === "frivillig" && linje.lag === "baerer" && linje.aftale_id === "a-steven",
+     JSON.stringify(linje));
+  t("linjen står på den dato der blev skrevet", linje.dato === iforgaars && linje.timer === 5, linje.dato);
+
+  // Aftalen kan genforhandles UDEN at gamle linjer skrives om. Fundamentets regel.
+  await db.prepare(`UPDATE aftaler SET grundlag = 'betalt', lag = 'med' WHERE id = 'a-steven'`).run();
+  const efter = await db.prepare(`SELECT * FROM timer WHERE id = ?1`).bind(j1.id).first();
+  t("en ændret aftale skriver IKKE gamle timer om",
+     efter.grundlag === "frivillig" && efter.lag === "baerer",
+     `${efter.grundlag}/${efter.lag}`);
+  await db.prepare(`UPDATE aftaler SET grundlag = 'frivillig', lag = 'baerer' WHERE id = 'a-steven'`).run();
+
+  // Afvisninger — hver med sin egen besked, ikke én generisk fejl.
+  const tom = await jar.hent("/mit/timer", {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ hvad: "", timer: "", dato: iforgaars }),
+  });
+  t("tom linje afvises med 400", tom.status === 400, tom.status);
+  const forMange = await jar.hent("/mit/timer", {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ hvad: "Arbejdede i døgndrift", timer: "20", dato: iforgaars }),
+  });
+  t("over 16 timer på én dag afvises", forMange.status === 400 && /del den op/i.test(JSON.stringify(await forMange.json())), forMange.status);
+  const imorgen = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+  const frem = await jar.hent("/mit/timer", {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ hvad: "Noget jeg har tænkt mig at lave", timer: "3", dato: imorgen }),
+  });
+  t("en dag i fremtiden afvises", frem.status === 400, frem.status);
+
+  const uden = await worker.fetch(new Request("http://vendhjem.dk/mit/timer", {
+    method: "POST", headers: { "content-type": "application/json" }, body: "{}",
+  }), env, {});
+  t("timer kan ikke skrives uden login", uden.status === 401, uden.status);
+
+  // Overblik.
+  const ov = await tekst(await jar.hent("/mit/overblik"));
+  t("Overblik viser linjen igen", /Ryddede op i laden/.test(ov));
+  t("Overblik måler mod det aftalte", /af 200 aftalte timer/.test(ov), ov.slice(0, 200));
+  t("Overblik siger højt at der ikke er en rangliste", /ikke, hvem der har lagt hvad/.test(ov));
+  t("Overblik holder paletten", farverUdenforPalet(ov, css).ok, JSON.stringify(farverUdenforPalet(ov, css)));
+  t("Overblik bruger kun klasser fra vh.css", ukendteKlasser(ov, css).length === 0, ukendteKlasser(ov, css).join(", "));
+
+  // Fællestallet tæller alle, men nævner ingen ved navn.
+  await db.prepare(
+    `INSERT INTO timer (id, person_id, dato, timer, hvad, grundlag, lag, oprettet)
+     VALUES ('t-lai-1', 'p-lai', ?1, 6, 'Malede sovesalen', 'frivillig', 'baerer', ?2)`
+  ).bind(iforgaars, new Date().toISOString()).run();
+  const ov2 = await tekst(await jar.hent("/mit/overblik"));
+  t("stedets total tæller begge, uden at nævne hvem", /2 mennesker/.test(ov2) && !/Lai Yde/.test(ov2), ov2.slice(0, 200));
+
+  // Uden login er fanerne ikke en genvej udenom døren.
+  const udenLogin = await worker.fetch(new Request("http://vendhjem.dk/mit/overblik"), env, {});
+  t("/mit/overblik uden login sender til login", udenLogin.status === 303, udenLogin.status);
+
+  // Appens filer findes, og køen har samme nøgle begge steder.
+  const rod = new URL("../../", import.meta.url);
+  const man = JSON.parse(readFileSync(new URL("assets/mit.webmanifest", rod), "utf8"));
+  t("manifestet starter i appen og bliver i den", man.start_url === "/mit" && man.scope === "/mit" && man.display === "standalone");
+  t("manifestet har et maskable ikon", man.icons.some((i) => i.purpose === "maskable"));
+  for (const i of man.icons) {
+    t(`ikonet ${i.src} findes`, existsSync(new URL(i.src.replace(/^\//, ""), rod)));
+  }
+  const sw = readFileSync(new URL("mit-sw.js", rod), "utf8");
+  const offline = readFileSync(new URL("mit-offline.html", rod), "utf8");
+  t("service workeren cacher ALDRIG en personlig /mit-side",
+     !/["']\/mit["']/.test(sw) && /mode === "navigate"/.test(sw));
+  t("offline-siden er den, service workeren falder tilbage på", /var OFFLINE = "\/mit-offline"/.test(sw));
+  t("køen bruger samme nøgle i appen og på offline-siden",
+     /vh-timer-koe/.test(offline) && /vh-timer-koe/.test(readFileSync(new URL("vh-worker/src/mit.js", rod), "utf8")));
+  t("offline-siden er noindex", /noindex/.test(offline));
+  t("offline-siden bruger kun klasser fra vh.css", ukendteKlasser(offline, css).length === 0, ukendteKlasser(offline, css).join(", "));
+}
+
+console.log("\n30 · Månedlig sikkerhedskopi af D1 til R2");
+{
+  const { lavKopi, kopiNavn, koerSikkerhedskopi } = await import("../src/sikkerhedskopi.js");
+  const kopi = await lavKopi(env.FONDE_DB);
+  t("kopien har alle tabeller med", kopi.tabeller.includes("people") && kopi.tabeller.includes("timer") && kopi.tabeller.includes("aftaler"));
+  t("kopien har rigtige rækker i sig", kopi.data.people.length >= 3 && kopi.antal.people === kopi.data.people.length);
+  t("kopien springer sqlite's egne tabeller over", !kopi.tabeller.some((n) => n.startsWith("sqlite_") || n.startsWith("_cf_")));
+  t("filnavnet er en dato man kan læse", kopiNavn(new Date("2027-01-01T04:00:00Z")) === "sikkerhedskopi/2027-01-01.json");
+
+  const r = await koerSikkerhedskopi(env, new Date("2027-01-01T04:00:00Z"));
+  t("kørslen skriver filen i R2", r.ok && r.navn === "sikkerhedskopi/2027-01-01.json" && r.raekker > 0, JSON.stringify(r));
+  const gemt = await env.FONDE_FILER.get("sikkerhedskopi/2027-01-01.json");
+  const igen = JSON.parse(await gemt.text());
+  t("filen kan læses igen som almindelig JSON", igen.database === "vendhjem-fonde" && igen.data.people.length >= 3);
 }
 
 console.log(`\n${ok} bestået, ${fejl} fejlet\n`);

@@ -18,9 +18,21 @@ ${PUNKTER.map((p) =>
 </nav>`;
 }
 
-export function mitSide({ titel, bruger, indhold }) {
+// /mit er en app, ikke en side: manifest, ikon og service worker gør, at den
+// kan lægges på hjemmeskærmen og åbne uden net. Skallen caches; det, der
+// skrives uden net, ligger i telefonens egen kø, indtil serveren siger ja.
+const MIT_FANER = [
+  { id: "nu", sti: "/mit", label: TEKST.fanerNu },
+  { id: "skriv", sti: "/mit/skriv", label: TEKST.fanerSkriv },
+  { id: "overblik", sti: "/mit/overblik", label: TEKST.fanerOverblik },
+];
+
+export function mitSide({ titel, bruger, indhold, fane }) {
   const logud = bruger
     ? `<nav class="nav" aria-label="Mit">
+${MIT_FANER.map((f) =>
+      `<a href="${f.sti}"${f.id === fane ? ' aria-current="page"' : ""}>${esc(f.label)}</a>`
+    ).join("\n")}
 <form method="post" action="/mit/logud" style="margin:0">
 <button class="lnk" type="submit">${esc(TEKST.logUd)}</button>
 </form>
@@ -36,6 +48,10 @@ export function mitSide({ titel, bruger, indhold }) {
 <title>${esc(titel)} · Vendhjem</title>
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#e9e7e0">
+<link rel="manifest" href="/assets/mit.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Vendhjem">
+<link rel="apple-touch-icon" href="/assets/app-180.png">
 <link rel="preload" href="/assets/fonts/lora-var.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/assets/fonts/jetbrains-mono-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
@@ -51,10 +67,13 @@ ${logud}
 <main>
 ${indhold}
 </main>
+<script>
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("/mit-sw.js", { scope: "/mit" }).catch(function(){});
+</script>
 <footer class="site-foot">
 <div class="stage row">
 <p>${esc(bruger ? TEKST.mitFod(bruger.navn) : TEKST.mitFodGaest)}</p>
-<p>${esc(TEKST.mitNote)}</p>
+<p>${esc(bruger ? TEKST.mitNoteInde : TEKST.mitNote)}</p>
 </div>
 </footer>
 ${bruger ? "" : passkeyLoginScript()}

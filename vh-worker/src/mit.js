@@ -2,8 +2,12 @@
 // Magic link (engangs, 15 min, bundet til browseren) + signeret session-cookie.
 // Passkey som tilbud, aldrig krav.
 
-import { personMedGyldigRolle, sætSidstSet, sætPasskeyTilbud, id, nu } from "./db.js";
-import { mitSide, felt, knap, esc } from "./flade.js";
+import {
+  personMedGyldigRolle, sætSidstSet, sætPasskeyTilbud, id, nu,
+  gaeldendeAftale, opretTime, mineTimer, mineTimerSum, stedetsTimer, mitNaesteOphold,
+} from "./db.js";
+import { mitSide, felt, knap, esc, tomTilstand } from "./flade.js";
+import { periodeTekst } from "./ophold-sider.js";
 import { TEKST } from "./tekst.js";
 import { sendMagicMail } from "./mail.js";
 import {
@@ -42,8 +46,257 @@ function redirect(til, cookies = []) {
   return new Response(null, { status: 303, headers });
 }
 
-function sideHtml({ titel, bruger, indhold }) {
-  return mitSide({ titel, bruger, indhold });
+function sideHtml({ titel, bruger, indhold, fane }) {
+  return mitSide({ titel, bruger, indhold, fane });
+}
+
+// ── De tre faner (BYG-569 H1) ────────────────────────────────────────────────
+//
+// Nu · Skriv · Overblik. Ikke fire, ikke seks. «Nu» viser én ting ad gangen,
+// «Skriv» er den, hele systemet står og falder med — tager den mere end et
+// minut efter en arbejdsdag, bliver den ikke brugt — og «Overblik» findes,
+// fordi «Skriv» uden den er en kirkegård: man holder op med at skrive noget
+// ned, der aldrig bliver regnet sammen.
+
+const DAGE = ["søndag", "mandag", "tirsdag", "onsdag", "torsdag", "fredag", "lørdag"];
+const MDR = ["januar", "februar", "marts", "april", "maj", "juni",
+  "juli", "august", "september", "oktober", "november", "december"];
+
+function datoDk(iso, medAar = false) {
+  const d = new Date(`${String(iso).slice(0, 10)}T12:00:00Z`);
+  if (Number.isNaN(d.getTime())) return String(iso || "");
+  // Året med, hvor det betyder noget. En slutdato uden årstal er ikke en
+  // slutdato — «31. august» kan være hvad som helst.
+  return `${d.getUTCDate()}. ${MDR[d.getUTCMonth()]}${medAar ? ` ${d.getUTCFullYear()}` : ""}`;
+}
+
+function idagIso(env) {
+  return String(env?.MIT_IDAG || new Date().toISOString().slice(0, 10)).slice(0, 10);
+}
+
+/** Timer uden falsk præcision: 3, ikke 3,0. Halve timer får en halv. */
+function timerTekst(n) {
+  const v = Math.round(Number(n) * 2) / 2;
+  return (Number.isInteger(v) ? String(v) : v.toFixed(1).replace(".", ",")) + " t";
+}
+
+function aftaleKort(aftale) {
+  if (!aftale) {
+    return `<div class="ramme mt3">
+<p class="meta-s">${esc(TEKST.aftaleH)}</p>
+<p class="small mt1">${esc(TEKST.ingenAftale)}</p>
+</div>`;
+  }
+  const lagNavn = { gaest: "Gæst", med: "Med", baerer: "Bærer" }[aftale.lag] || aftale.lag;
+  const timer = aftale.timer_aar
+    ? TEKST.aftaleTimer(aftale.timer_aar)
+    : TEKST.aftaleUdenTimer;
+  const slut = aftale.slut_dato
+    ? TEKST.aftaleSlut(datoDk(aftale.slut_dato, true))
+    : TEKST.aftaleUdenSlut;
+  return `<div class="ramme mt3">
+<p class="meta-s">${esc(TEKST.aftaleH)}</p>
+<p class="small mt1"><strong>${esc(lagNavn)}</strong> · ${esc(timer)}</p>
+<p class="meta mt1">${esc(slut)}</p>
+${aftale.note ? `<p class="xs soft mt1">${esc(aftale.note)}</p>` : ""}
+</div>`;
+}
+
+function nuIndhold({ person, aftale, ophold, minSum, tilbud }) {
+  const opholdHtml = ophold
+    ? `<p class="small mt1"><strong>${esc(ophold.type_navn)}</strong></p>
+<p class="meta mt1">${esc(periodeTekst(ophold.start_dato, ophold.slut_dato))} · ${esc(ophold.plads_status)}</p>`
+    : `<p class="small mt1">${esc(TEKST.mitIntetOphold)}</p>
+<p class="mt2"><a class="lnk" href="/sporene">Se hvad der er åbent →</a></p>`;
+
+  const maal = aftale?.timer_aar
+    ? `<p class="meta mt1">af ${aftale.timer_aar} aftalte</p>`
+    : "";
+
+  return `<section class="stage sektion">
+<p class="sec">Nu</p>
+<h1 class="stor maxw">Godmorgen, ${esc(person.navn.split(" ")[0])}.</h1>
+
+<div class="g g-2 nb mt4">
+<div>
+<p class="meta-s">Dit næste ophold</p>
+${opholdHtml}
+</div>
+<div>
+<p class="meta-s">Dine timer i år</p>
+<p class="small mt1"><strong>${esc(timerTekst(minSum.i_alt))}</strong> på ${minSum.dage} ${minSum.dage === 1 ? "dag" : "dage"}</p>
+${maal}
+</div>
+</div>
+
+${aftaleKort(aftale)}
+
+<p class="mt4"><a class="lnk lnk-accent" href="/mit/skriv">Skriv dagens timer →</a></p>
+${tilbud}
+</section>`;
+}
+
+function skrivIndhold({ idag, besked, udkast = {} }) {
+  const b = besked
+    ? `<p class="small mt3"${besked.ok ? "" : ' style="color:var(--accent)"'}>${esc(besked.t)}</p>`
+    : "";
+  return `<section class="stage sektion">
+<p class="sec">Skriv</p>
+<h1 class="stor maxw">${esc(TEKST.timerH1)}</h1>
+<p class="lead maxw mt3">${esc(TEKST.timerLead)}</p>
+${b}
+<form method="post" action="/mit/timer" id="timeform" class="maxw mt4" style="max-width:480px">
+${felt({ label: TEKST.timerHvad, name: "hvad", value: udkast.hvad || "", placeholder: "Ryddede op i laden", required: true, klasse: "mt2" })}
+<p class="xs soft mt1">${esc(TEKST.timerHvadNote)}</p>
+<div class="g g-2 nb mt3">
+<div>${felt({ label: TEKST.timerAntal, name: "timer", type: "number", value: udkast.timer || "", placeholder: "4", required: true })}</div>
+<div>${felt({ label: TEKST.timerDato, name: "dato", type: "date", value: udkast.dato || idag, required: true })}</div>
+</div>
+<p class="mt3">${knap({ label: TEKST.timerGem, accent: true })}</p>
+</form>
+<p class="meta mt4"><a href="/mit/overblik">Se dine timer →</a></p>
+</section>${koeScript()}`;
+}
+
+/**
+ * Køen. På en ø med dårligt net er en knap, der fejler, det samme som ingen
+ * knap: linjen skrives aldrig igen. Går POST'en ikke igennem, lægges linjen i
+ * telefonens egen hukommelse og sendes, når nettet kommer tilbage. Den ligger
+ * kun på den ene telefon og forsvinder, hvis browserdata ryddes — derfor står
+ * der, at den venter, indtil serveren har svaret ja.
+ */
+function koeScript() {
+  return `<script>
+(function(){
+  var NØGLE = "vh-timer-koe";
+  var f = document.getElementById("timeform");
+  if (!f || !window.fetch) return;
+  function koe(){ try { return JSON.parse(localStorage.getItem(NØGLE) || "[]"); } catch (e) { return []; } }
+  function gem(k){ try { localStorage.setItem(NØGLE, JSON.stringify(k)); } catch (e) {} }
+  function vis(t, ok){
+    var p = document.getElementById("koebesked");
+    if (!p) { p = document.createElement("p"); p.id = "koebesked"; p.className = "small mt3"; f.parentNode.insertBefore(p, f); }
+    p.textContent = t;
+    p.style.color = ok ? "" : "var(--accent)";
+  }
+  function send(rk){
+    return fetch("/mit/timer", {
+      method: "POST", credentials: "same-origin",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(rk)
+    }).then(function(r){ return r.json().catch(function(){ return { ok: false }; }); });
+  }
+  function toem(){
+    var k = koe();
+    if (!k.length) return Promise.resolve();
+    return send(k[0]).then(function(j){
+      if (!j.ok) return;
+      k.shift(); gem(k);
+      vis(k.length ? (k.length + " venter stadig på net.") : "Det, du skrev uden net, er sendt nu.", true);
+      return toem();
+    }).catch(function(){});
+  }
+  f.addEventListener("submit", function(e){
+    e.preventDefault();
+    var rk = { hvad: f.hvad.value, timer: f.timer.value, dato: f.dato.value };
+    if (!rk.hvad.trim() || !rk.timer) { vis(${JSON.stringify(TEKST.timerMangler)}, false); return; }
+    send(rk).then(function(j){
+      if (j.ok) { location.href = "/mit/overblik?m=gemt"; return; }
+      vis(j.grund || ${JSON.stringify(TEKST.timerFejl)}, false);
+    }).catch(function(){
+      var k = koe(); k.push(rk); gem(k);
+      f.reset(); f.dato.value = new Date().toISOString().slice(0,10);
+      vis(${JSON.stringify(TEKST.timerKoe)}, true);
+    });
+  });
+  window.addEventListener("online", toem);
+  toem();
+})();
+</script>`;
+}
+
+function overblikIndhold({ aftale, minSum, mine, sted, aar, besked }) {
+  const maal = aftale?.timer_aar || 0;
+  const andel = maal ? Math.min(100, Math.round((minSum.i_alt / maal) * 100)) : 0;
+  const bjaelke = maal
+    ? `<div class="ramme mt2" style="padding:0;height:10px;background:var(--papir-loeft)">
+<div style="height:10px;width:${andel}%;background:var(--hav)"></div>
+</div>
+<p class="meta mt1">${esc(timerTekst(minSum.i_alt))} af ${maal} aftalte timer i ${aar}</p>`
+    : `<p class="meta mt1">${esc(timerTekst(minSum.i_alt))} i ${aar} · ingen aftalt sum at måle mod</p>`;
+
+  const fordelt = [
+    ["Frivillige", minSum.frivillig],
+    ["Aftalt modydelse", minSum.aftalt_modydelse],
+    ["Betalt", minSum.betalt],
+  ].filter(([, v]) => v > 0);
+
+  const mineRaekker = mine.length
+    ? `<ul class="liste mt2">${mine.map((r) =>
+        `<li><span>${esc(datoDk(r.dato))} · ${esc(r.hvad)}</span><span class="r">${esc(timerTekst(r.timer))}</span></li>`
+      ).join("")}</ul>`
+    : tomTilstand(TEKST.timerTom);
+
+  const stedRaekker = sted.linjer
+    ? `<p class="small mt1"><strong>${esc(timerTekst(sted.timer))}</strong> lagt af ${sted.folk} ${sted.folk === 1 ? "person" : "mennesker"}</p>
+<ul class="liste mt2">${sted.seneste.map((r) =>
+        `<li><span>${esc(datoDk(r.dato))} · ${esc(r.hvad)}</span><span class="r">${esc(timerTekst(r.timer))}</span></li>`
+      ).join("")}</ul>
+<p class="xs soft mt2">${esc(TEKST.mitIngenRangliste)}</p>`
+    : tomTilstand(TEKST.mitFaellesTom);
+
+  return `<section class="stage sektion">
+<p class="sec">Overblik</p>
+<h1 class="stor maxw">Det, du har lagt i stedet.</h1>
+${besked ? `<p class="small mt3">${esc(besked)}</p>` : ""}
+
+<div class="maxw mt4">
+${bjaelke}
+${fordelt.length > 1
+    ? `<p class="xs soft mt2">${fordelt.map(([n, v]) => `${esc(n)}: ${esc(timerTekst(v))}`).join(" · ")}</p>`
+    : ""}
+</div>
+
+<div class="g g-2 nb mt4">
+<div>
+<p class="meta-s">Dine seneste linjer</p>
+${mineRaekker}
+</div>
+<div>
+<p class="meta-s">${esc(TEKST.mitFaellesH)}</p>
+${stedRaekker}
+</div>
+</div>
+
+<p class="mt4"><a class="lnk" href="/mit/skriv">Skriv en dag mere →</a></p>
+</section>`;
+}
+
+/** POST /mit/timer — både fra formularen og fra køen. Svarer altid JSON. */
+async function timerPost(request, env, person) {
+  let rk = {};
+  try {
+    rk = request.headers.get("content-type")?.includes("json")
+      ? await request.json()
+      : Object.fromEntries(await request.formData());
+  } catch { /* tom */ }
+
+  const hvad = String(rk.hvad ?? "").trim().slice(0, 500);
+  const antal = Number(String(rk.timer ?? "").replace(",", "."));
+  const dato = String(rk.dato ?? "").slice(0, 10);
+  const idag = idagIso(env);
+
+  if (!hvad || !Number.isFinite(antal) || antal <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(dato)) {
+    return json({ ok: false, grund: TEKST.timerMangler }, { status: 400 });
+  }
+  if (antal > 16) return json({ ok: false, grund: TEKST.timerForMange }, { status: 400 });
+  if (dato > idag) return json({ ok: false, grund: TEKST.timerFremtid }, { status: 400 });
+
+  const aftale = await gaeldendeAftale(env.FONDE_DB, person.id, dato);
+  const linje = await opretTime(env.FONDE_DB, {
+    person_id: person.id, dato, timer: antal, hvad, aftale,
+  });
+  return json({ ok: true, id: linje.id });
 }
 
 function loginIndhold(besked) {
@@ -60,20 +313,13 @@ ${felt({ label: TEKST.mitMailLabel, name: "mail", type: "email", required: true,
 </section>`;
 }
 
-function indeIndhold(person) {
-  const tilbud = !person.passkey_tilbud
-    ? `<div class="ramme ramme-loeft mt3">
+function passkeyTilbud(person) {
+  if (person.passkey_tilbud) return "";
+  return `<div class="ramme ramme-loeft mt4">
 <p class="small">${esc(TEKST.mitPasskeyTilbud)}</p>
 <form method="post" action="/mit/enhed/ja" class="mt2">${knap({ label: TEKST.mitPasskeyJa, accent: true })}</form>
 <form method="post" action="/mit/enhed/nej" class="mt2">${knap({ label: TEKST.mitPasskeyNej })}</form>
-</div>`
-    : "";
-  return `<section class="stage sektion">
-<p class="sec">Mit</p>
-<h1 class="stor maxw">Du er her, ${esc(person.navn)}.</h1>
-<p class="lead maxw mt3">${esc(TEKST.mitIndeLead)}</p>
-${tilbud}
-</section>`;
+</div>`;
 }
 
 function beskedSide(titel, broed, bruger = null) {
@@ -312,10 +558,56 @@ export async function mitFetch(request, env) {
     }
 
     const person = await personFraSession(env, request);
+
     if (person && request.method === "GET" && sti === "/mit") {
       const sc = await sessionCookies(env, person, cookiesUd);
       await enhedAf(request, sc);
-      return html(sideHtml({ titel: "Mit", bruger: person, indhold: indeIndhold(person) }), { cookies: sc });
+      const idag = idagIso(env);
+      const aar = idag.slice(0, 4);
+      const [aftale, ophold, minSum] = await Promise.all([
+        gaeldendeAftale(env.FONDE_DB, person.id, idag),
+        mitNaesteOphold(env.FONDE_DB, person.id, idag),
+        mineTimerSum(env.FONDE_DB, person.id, `${aar}-01-01`, `${aar}-12-31`),
+      ]);
+      return html(sideHtml({
+        titel: "Mit", bruger: person, fane: "nu",
+        indhold: nuIndhold({ person, aftale, ophold, minSum, tilbud: passkeyTilbud(person) }),
+      }), { cookies: sc });
+    }
+
+    if (person && request.method === "GET" && sti === "/mit/skriv") {
+      const sc = await sessionCookies(env, person, cookiesUd);
+      return html(sideHtml({
+        titel: TEKST.fanerSkriv, bruger: person, fane: "skriv",
+        indhold: skrivIndhold({ idag: idagIso(env) }),
+      }), { cookies: sc });
+    }
+
+    if (person && request.method === "GET" && sti === "/mit/overblik") {
+      const sc = await sessionCookies(env, person, cookiesUd);
+      const idag = idagIso(env);
+      const aar = idag.slice(0, 4);
+      const [aftale, minSum, mine, sted] = await Promise.all([
+        gaeldendeAftale(env.FONDE_DB, person.id, idag),
+        mineTimerSum(env.FONDE_DB, person.id, `${aar}-01-01`, `${aar}-12-31`),
+        mineTimer(env.FONDE_DB, person.id, { graense: 12 }),
+        stedetsTimer(env.FONDE_DB, `${aar}-01-01`, `${aar}-12-31`),
+      ]);
+      const besked = url.searchParams.get("m") === "gemt" ? TEKST.timerGemt : "";
+      return html(sideHtml({
+        titel: TEKST.fanerOverblik, bruger: person, fane: "overblik",
+        indhold: overblikIndhold({ aftale, minSum, mine, sted, aar, besked }),
+      }), { cookies: sc });
+    }
+
+    if (request.method === "POST" && sti === "/mit/timer") {
+      if (!person) return json({ ok: false, grund: TEKST.ingenAdgang }, { status: 401 });
+      return timerPost(request, env, person);
+    }
+
+    if (!person && request.method === "GET" && (sti === "/mit/skriv" || sti === "/mit/overblik")) {
+      await enhedAf(request, cookiesUd);
+      return redirect("/mit", cookiesUd);
     }
 
     if (request.method === "GET" && sti === "/mit") {

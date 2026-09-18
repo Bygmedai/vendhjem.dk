@@ -57,7 +57,14 @@ export function lavR2() {
     async get(key) {
       if (!m.has(key)) return null;
       const v = m.get(key);
-      return { body: v.body, arrayBuffer: async () => v.body };
+      // text() findes på rigtige R2-objekter. Uden den her kunne en prøve
+      // bestå mod stubben og fejle i produktion.
+      return {
+        body: v.body,
+        httpMetadata: v.opts?.httpMetadata,
+        arrayBuffer: async () => v.body,
+        text: async () => (typeof v.body === "string" ? v.body : new TextDecoder().decode(v.body)),
+      };
     },
     _size: () => m.size,
   };
