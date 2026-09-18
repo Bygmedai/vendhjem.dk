@@ -1673,5 +1673,66 @@ console.log("\n34 · Natten flyttede derhen, hvor den kan læses");
      /\/internt\/natten \/mit\/aftalt 301/.test(readFileSync(new URL("_redirects", rod), "utf8")));
 }
 
+console.log("\n35 · Ingen gammel adresse peger ud i ingenting");
+{
+  // HVORFOR DEN HER PROEVE FINDES
+  //
+  // Maalt 18.09.2026 paa den levende flade:
+  //   /blog.html        301 -> /          men /blog        404
+  //   /integral.html    301 -> /fundamentet   men /integral    404
+  //   /integral-typer.html  404            og /integral-typer 404
+  //
+  // _redirects pegede paa integral1.html … integral5.html og manifest.html —
+  // seks filer, der aldrig har ligget i repoet — mens de fem, der FINDES
+  // (integral-kvadranter, -linjer, -niveauer, -tilstande, -typer), ikke stod
+  // der. Kortet var tegnet efter en aeldre navngivning end sitets egen.
+  //
+  // Cloudflare matcher paa den eksakte sti, saa `/blog` og `/blog.html` er to
+  // adresser. Begge er blevet delt. Proeven kraever derfor begge former, og
+  // den kraever at hver kilde peger paa noget, der findes — ellers er kortet
+  // en paastand om et site, der ikke er her mere.
+  const rod = new URL("../../", import.meta.url);
+  const { readdirSync, existsSync: findes } = await import("node:fs");
+  const linjer = readFileSync(new URL("_redirects", rod), "utf8")
+    .split("\n").map((l) => l.trim())
+    .filter((l) => l && !l.startsWith("#"));
+  const kilder = new Set(linjer.map((l) => l.split(/\s+/)[0]));
+
+  // Sider build.py skriver, plus appens egne. De skal IKKE omdirigeres.
+  const LEVENDE = new Set([
+    "index.html", "fundamentet.html", "permakultur.html", "sporene.html",
+    "maend.html", "bliv-en-del.html", "privatlivspolitik.html", "cookies.html",
+    "noter.html", "404.html", "mit-offline.html",
+  ]);
+
+  const foraeldreloese = readdirSync(rod, { withFileTypes: true })
+    .filter((d) => d.isFile() && d.name.endsWith(".html") && !LEVENDE.has(d.name))
+    .map((d) => d.name);
+
+  const uden = foraeldreloese.filter((f) =>
+    !kilder.has("/" + f) || !kilder.has("/" + f.replace(/\.html$/, "")));
+  t("hver foraeldreloes side har en adresse — i BEGGE former",
+     uden.length === 0, uden.length ? `mangler: ${uden.join(", ")}` : "");
+
+  const doede = [...kilder].filter((k) =>
+    k.endsWith(".html") && !findes(new URL(k.slice(1), rod)));
+  t("ingen linje peger paa en fil, der ikke findes",
+     doede.length === 0, doede.length ? `doede kilder: ${doede.join(", ")}` : "");
+
+  t("og proeven bider: en opdigtet gammel side ville mangle",
+     !kilder.has("/noget-der-aldrig-fandtes.html"));
+
+  // Natten. /internt/* fanges af Access foer denne fil, saa den offentlige
+  // vej er den eneste, faellesskabet kan bruge.
+  t("Natten har en offentlig vej, ikke kun en bag Access",
+     kilder.has("/natten") && linjer.some((l) => /^\/natten\s+\/mit\/aftalt/.test(l)));
+
+  t("ingen linje sender et sted hen, der selv omdirigerer",
+     linjer.every((l) => {
+       const maal = l.split(/\s+/)[1] || "";
+       return !maal.startsWith("/") || !kilder.has(maal);
+     }));
+}
+
 console.log(`\n${ok} bestået, ${fejl} fejlet\n`);
 process.exit(fejl ? 1 : 0);

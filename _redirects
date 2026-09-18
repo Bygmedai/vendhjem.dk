@@ -1,17 +1,63 @@
-/agersoe.html /sporene 301
-/faellesskab.html /bliv-en-del 301
+# Gamle adresser, der stadig kan ligge i en mail, en sms eller hos Google.
+#
+# HVORFOR BEGGE FORMER STAAR HER
+#
+# Cloudflare matcher paa den EKSAKTE sti. `/blog.html` og `/blog` er to
+# forskellige adresser. De gamle sider blev delt i begge former — den ene fra
+# dengang filnavnet stod i adressen, den anden efter at sitet gik over til
+# adresser uden endelse. Maalt 18.09.2026: `/blog.html` gav 301, `/blog` gav
+# 404. Halvdelen af de doede links pegede altsaa ingen steder.
+#
+# HVORFOR integral1-5 og manifest ER VAEK
+#
+# De stod her indtil 18.09.2026 og pegede paa filer, der aldrig har ligget i
+# repoet. Imens gav de fem, der FINDES — integral-kvadranter, -linjer,
+# -niveauer, -tilstande, -typer — 404 i begge former. Kortet var tegnet efter
+# en aeldre navngivning end sitets egen.
+#
+# Proeve 35 i vh-worker/test/koer.mjs holder de to ting i skak: hver kilde her
+# skal pege paa en fil der findes, og hver foraeldreloes side skal have en
+# adresse i begge former.
+
+# Det integrale materiale — samlet paa /fundamentet
 /integral.html /fundamentet 301
-/integral1.html /fundamentet 301
-/integral2.html /fundamentet 301
-/integral3.html /fundamentet 301
-/integral4.html /fundamentet 301
-/integral5.html /fundamentet 301
-/manifest.html /fundamentet 301
+/integral /fundamentet 301
+/integral-kvadranter.html /fundamentet 301
+/integral-kvadranter /fundamentet 301
+/integral-linjer.html /fundamentet 301
+/integral-linjer /fundamentet 301
+/integral-niveauer.html /fundamentet 301
+/integral-niveauer /fundamentet 301
+/integral-tilstande.html /fundamentet 301
+/integral-tilstande /fundamentet 301
+/integral-typer.html /fundamentet 301
+/integral-typer /fundamentet 301
+
+# Stedet og faellesskabet
+/agersoe.html /sporene 301
+/agersoe /sporene 301
+/faellesskab.html /bliv-en-del 301
+/faellesskab /bliv-en-del 301
+
+# Skrevet stof, der ikke findes mere
 /blog.html / 301
+/blog / 301
 /refleksion.html / 301
+/refleksion / 301
+
+# Lais eget — ligger hos ham, ikke her
 /finddinvej.html https://www.humandirection.dk/ 301
+/finddinvej https://www.humandirection.dk/ 301
+
+# Korte veje, folk skriver i hånden
 /index.html / 301
 /stedet /internt/stedet 301
 /hjulet /fundamentet 301
+
 # Natten flyttede til /mit/aftalt, hvor faellesskabet kan laese den.
+# /internt/natten fanges af Access FOER Workeren og foer den her fil — maalt
+# 18.09.2026: 302 til cloudflareaccess.com. Linjen virker altsaa kun for de
+# faa med en Access-plads. /natten er den offentlige vej, faellesskabet kan
+# faa i en sms; den sender til doeren paa /mit og videre derfra.
+/natten /mit/aftalt 301
 /internt/natten /mit/aftalt 301
