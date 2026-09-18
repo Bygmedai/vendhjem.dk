@@ -124,10 +124,24 @@ kl. ~19:30 og igen kl. 22:15 med kald mod den levende flade — ikke læst i en 
 | `0008_foresporgsel` (PR #27) | **applied** 17/9 kl. 22:15 | `wrangler d1 migrations list --remote` viste den som pending før, og `apply` returnerede ✅ for 0008 og 0009 i én kørsel. Udefra kan den stadig ikke skelnes fra en tom kalender — C2's Worker-kode er ikke deployet endnu |
 | `0009_kalender_2027` (PR #28) | **applied** 17/9 kl. 22:15 | `GET /sporene` mod ekstern resolver: «Ingen datoer åbne» gik fra 6 til 3 forekomster; tre mandeweekender (14.–16. maj, 15.–17. okt, 10.–12. dec 2027 à 850 kr.), retreat 20.–25. okt, festival 5.–11. juli og syv lukkede uger står på siden |
 
-**Det, der mangler nu, er ikke en migration men et deploy:** C2's kode (#27),
-de absolutte stier (#30) og de interne sider bygget af `build.py` er på main
-og ikke i produktion. Tryk «Udrul til Cloudflare» — efter at build-trinnet
-er merget (PR #32), ellers deployes de interne sider ikke.
+| `0010_spor_copy` (PR #34) | **applied** 18/9 | Sporenes tekster på `/sporene` uden navne; «Festival, burns og raves» står på siden |
+| `0011_breve` (B1) | pending indtil merge | Køres af `udrul.yml`, som fra 18/9 starter selv ved push til main. Måles ved `GET /bliv-en-del/skriv` → 303 (readback-trin i udrul) og et brev sendt fra `/bliv-en-del`, der står på `/internt/breve` |
+
+**Udrulning sker nu automatisk ved merge til main** (`udrul.yml`: build →
+migrationer → deploy → readback). Knappen «Udrul til Cloudflare» findes stadig
+som nødløsning. Første automatiske kørsel: 18.09.2026 kl. 08:25Z på d00d6fa
+(manuelt tryk); derefter ved push.
+
+### Brevet på /bliv-en-del (B1, BYG-558)
+
+`POST /bliv-en-del/skriv` uden Access. Brevet gemmes i `breve`, personen i
+`people` (genkendt på mail), mailen går til `BREV_TIL` (kommasepareret;
+uden var: `laiydeh@gmail.com`, samme adresse som den gamle mailto) med
+`reply_to` = afsender, og afsenderen får en kvittering. Honningkrukke
+(`website` skal være tomt) og tidsstempel (`t`, under 3 s = afvist; mangler
+den, går brevet igennem). Listen ligger på `/internt/breve` bag Access med
+status nyt/besvaret. Mailfejl gemmes på brevet og vises i listen — brevet
+går aldrig tabt, fordi Resend fejler.
 
 Afsnittet her stod indtil 17/9 som «`0007_ophold.sql` er **ikke** applied
 remote fra denne PR». Det var sandt da PR'en blev skrevet og forkert

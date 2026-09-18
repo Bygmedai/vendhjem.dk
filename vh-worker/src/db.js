@@ -312,3 +312,32 @@ export async function saetPladsStatus(db, pladsId, status) {
     .bind(pladsId, status).run();
   return db.prepare(`SELECT * FROM pladser WHERE id = ?1`).bind(pladsId).first();
 }
+
+// ── Breve (BYG-558 B1) ───────────────────────────────────────────────────────
+export async function opretBrev(db, { person_id, navn, mail, tekst }) {
+  const bid = id();
+  await db.prepare(
+    `INSERT INTO breve (id, person_id, navn, mail, tekst, status, oprettet)
+     VALUES (?1, ?2, ?3, ?4, ?5, 'nyt', ?6)`
+  ).bind(bid, person_id, navn, mail, tekst, nu()).run();
+  return db.prepare(`SELECT * FROM breve WHERE id = ?1`).bind(bid).first();
+}
+
+export async function saetBrevMailFejl(db, brevId, fejl) {
+  await db.prepare(`UPDATE breve SET mail_fejl = ?2 WHERE id = ?1`)
+    .bind(brevId, fejl).run();
+}
+
+export async function saetBrevStatus(db, brevId, status) {
+  await db.prepare(
+    `UPDATE breve SET status = ?2, besvaret = CASE WHEN ?2 = 'besvaret' THEN ?3 ELSE NULL END WHERE id = ?1`
+  ).bind(brevId, status, nu()).run();
+  return db.prepare(`SELECT * FROM breve WHERE id = ?1`).bind(brevId).first();
+}
+
+export async function breveListe(db) {
+  const { results } = await db.prepare(
+    `SELECT * FROM breve ORDER BY CASE status WHEN 'nyt' THEN 0 ELSE 1 END, oprettet DESC`
+  ).all();
+  return results;
+}

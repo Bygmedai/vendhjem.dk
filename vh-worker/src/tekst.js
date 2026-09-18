@@ -71,7 +71,42 @@ export const TEKST = {
   forespørgsler: "Forespørgsler",
   mailFejl: "Mailen nåede ikke frem",
   kendtSom: (navn, mail) => `Vi kender dig som ${navn} (${mail}).`,
+
+  // Brevet på /bliv-en-del (BYG-558 B1)
+  breve: "Breve",
+  brevTakH1: "Tak for dit brev.",
+  brevTakLead: "Vi har det. Vi svarer inden 7 dage, på den mail du skrev.",
+  brevManglerFelter: "Skriv navn, en rigtig mail og selve brevet.",
+  brevForKort: "Brevet er for kort til at være et brev. Skriv lidt mere.",
+  brevForLangt: "Brevet er for langt. Der er plads til 20.000 tegn.",
+  brevForHurtigt: "Det gik for hurtigt. Prøv igen.",
+  brevNyt: "Nyt",
+  brevBesvaret: "Besvaret",
+  markerBesvaret: "Markér besvaret",
+  markerNyt: "Markér nyt",
+  tomBreve: "Ingen breve endnu.",
 };
+
+export function brevTilOs({ navn, mail, tekst, oprettet }) {
+  return {
+    subject: `Brev til Vend Hjem fra ${navn}`,
+    text:
+      `Fra: ${navn} <${mail}>\n` +
+      `Modtaget: ${oprettet}\n\n` +
+      `${tekst}\n\n` +
+      `—\nSvar direkte på denne mail. Brevet ligger også på vendhjem.dk/internt/breve.`,
+  };
+}
+
+export function brevKvittering({ navn }) {
+  return {
+    subject: "Vi har dit brev",
+    text:
+      `Hej ${navn}\n\n` +
+      `Vi har dit brev. Vi svarer inden 7 dage, på den mail du skrev fra.\n\n` +
+      `Vend Hjem\nAgersø`,
+  };
+}
 
 export function kvitteringBrev({ navn, type_navn, periode }) {
   return {

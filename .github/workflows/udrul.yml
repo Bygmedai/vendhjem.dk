@@ -1,4 +1,4 @@
-# Udrulning til Cloudflare — fra en knap på GitHub, ikke fra en terminal.
+# Udrulning til Cloudflare — automatisk ved merge til main, og fra en knap.
 #
 # HVORFOR DEN FINDES
 #
@@ -11,10 +11,14 @@
 # Ingen skal laere wrangler for at faa det, der allerede er merget, ud at
 # virke. Tryk paa knappen.
 #
-# SAADAN KOERER DU DEN
+# HVORNAAR DEN KOERER
 #
+#   Hver gang noget merges til main (push). Merge = udrulning; ingen knap.
+#   Knappen findes stadig som noedloesning, fx hvis Cloudflare var nede:
 #   github.com/Bygmedai/vendhjem.dk  →  Actions  →  «Udrul til Cloudflare»
 #   →  Run workflow  →  Run workflow
+#   Fra 18.09.2026. Foer det koerte den kun paa knappen, og fire mergede
+#   PR'er laa igen og ventede paa et tryk.
 #
 # ENGANGSOPSAETNING (kun foerste gang)
 #
@@ -28,13 +32,15 @@
 #   Tokenet ligger derefter kun hos GitHub og hos Cloudflare. Det staar
 #   aldrig i repoet, i en log eller i en fil paa nogens maskine.
 #
-# ZONE B. Kun fra main, kun naar et menneske trykker. Se CLAUDE.md om de tre
+# ZONE B. Kun fra main — ved push (efter et menneskes merge) eller paa knappen. Se CLAUDE.md om de tre
 # CI-zoner: A secretless PR+push · B post-merge fra beskyttet main · C bag
 # trusted adapter.
 
 name: Udrul til Cloudflare
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -44,13 +50,15 @@ concurrency:
 jobs:
   udrul:
     name: Migrationer, deploy og readback
-    runs-on: ubuntu-latest
+    # Fast version, ikke ubuntu-latest: GitHub flytter «latest» til 26.04 og
+    # varslede det 18.09.2026. En udrulning skal ikke skifte OS uden at nogen har valgt det.
+    runs-on: ubuntu-24.04
     # Kun fra main. En udrulning fra en gren ville sende ufaerdig kode ud.
     if: github.ref == 'refs/heads/main'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
 
@@ -144,6 +152,12 @@ jobs:
             if [ "$k" = "200" ]; then sig "offentlig $p" "200"
             else sig "offentlig $p" "FEJL ($k)"; fejl=1; fi
           done
+
+          # Brevet: GET paa modtageren skal sende tilbage til formularen (303).
+          # 404 betyder at Workeren ikke fanger stien, og at Send-knappen igen er doed.
+          skriv=$(curl -s -o /dev/null -w '%{http_code}' https://vendhjem.dk/bliv-en-del/skriv)
+          if [ "$skriv" = "303" ]; then sig "/bliv-en-del/skriv svarer" "303"
+          else sig "/bliv-en-del/skriv svarer" "FEJL ($skriv)"; echo "::error::/bliv-en-del/skriv svarer $skriv, ikke 303. Brevet naar ikke frem."; fejl=1; fi
 
           exit $fejl
 

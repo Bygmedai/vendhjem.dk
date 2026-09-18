@@ -443,16 +443,18 @@ pages["bliv-en-del.html"] = head("Bliv en del · Vend Hjem", "Forløbet fra brev
 </div>
 <div>
 <p class="sec">Skriv</p>
-<form class="ramme ramme-loeft" id="brev" style="padding:18px 20px">
-<p class="small soft">Skriv hvad du hedder, hvor du er i dit liv, og hvad du er bange for at det her bliver.</p>
+<form class="ramme ramme-loeft" id="brev" method="post" action="/bliv-en-del/skriv" style="padding:18px 20px">
+<p class="small soft">Skriv, hvem du er, og hvorfor du skriver. Det behøver ikke være langt.</p>
 <label class="felt-label" for="navn">Navn</label>
-<input class="felt" id="navn" name="navn" type="text" autocomplete="name" required>
+<input class="felt" id="navn" name="navn" type="text" autocomplete="name" maxlength="200" required>
 <label class="felt-label" for="mail">Mail</label>
-<input class="felt" id="mail" name="mail" type="email" autocomplete="email" required>
+<input class="felt" id="mail" name="mail" type="email" autocomplete="email" maxlength="200" required>
 <label class="felt-label" for="brevet">Brevet</label>
-<textarea class="felt" id="brevet" name="brevet" required></textarea>
+<textarea class="felt" id="brevet" name="brevet" minlength="20" maxlength="20000" required></textarea>
+<div style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden" aria-hidden="true"><label for="website">Website</label><input id="website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
+<input type="hidden" name="t" value="">
 <button class="lnk" type="submit">Send →</button>
-<p class="note mt2">Brevet åbner i dit eget mailprogram. Vi svarer inden 7 dage.</p>
+<p class="note mt2">Brevet gemmes hos os og går til den, der svarer. Du får en kvittering på mail. Vi svarer inden 7 dage.</p>
 </form>
 </div>
 </div>
@@ -460,12 +462,7 @@ pages["bliv-en-del.html"] = head("Bliv en del · Vend Hjem", "Forløbet fra brev
 <script>
 (function(){
   var f=document.getElementById('brev'); if(!f) return;
-  f.addEventListener('submit',function(e){
-    e.preventDefault();
-    var n=f.navn.value.trim(), m=f.mail.value.trim(), b=f.brevet.value.trim();
-    var body='Fra: '+n+' <'+m+'>\\n\\n'+b;
-    location.href='mailto:laiydeh@gmail.com?subject='+encodeURIComponent('Brev til Vend Hjem fra '+n)+'&body='+encodeURIComponent(body);
-  });
+  var t=f.querySelector('input[name="t"]'); if(t) t.value=String(Date.now());
 })();
 </script>
 ''' + foot()
@@ -480,20 +477,20 @@ pages["privatlivspolitik.html"] = head("Privatlivspolitik · Vend Hjem", "Hvilke
 <section class="stage stage-n sektion">
 <p class="sec">Privatlivspolitik</p>
 <h1 class="stor">Hvad vi gør med det, du skriver.</h1>
-<p class="meta mt3">Senest opdateret 15. september 2026</p>
+<p class="meta mt3">Senest opdateret 18. september 2026</p>
 
 <p class="lead mt4">Vi behandler kun det, du selv sender os. Vi indsamler intet i det skjulte, profilerer ikke og videresælger ikke.</p>
 
 <div class="stak mt4">
 <div><p class="sec">Dataansvarlig</p><p class="small">Vend Hjem drives af Lai Yde, Egholmvej 23, Agersø. Spørgsmål til behandlingen af dine oplysninger: <a href="mailto:laiydeh@gmail.com">laiydeh@gmail.com</a>.</p></div>
 
-<div><p class="sec">Hvad vi får</p><p class="small">Brevet på <a href="/bliv-en-del">Bliv en del</a> beder om navn, mailadresse og din tekst. Formularen sender intet selv - den åbner en mail i dit eget program, som du selv afsender. Vi modtager altså kun det, du vælger at sende, og vi ser det først, når mailen ligger hos os.</p></div>
+<div><p class="sec">Hvad vi får</p><p class="small">Brevet på <a href="/bliv-en-del">Bliv en del</a> beder om navn, mailadresse og din tekst. Når du trykker send, gemmes de tre ting i vores eget system, brevet sendes pr. mail til den, der svarer, og du får en kvittering på den mail, du skrev. Forespørgsler på <a href="/sporene">Sporene</a> gemmes på samme måde: navn, mail og det, du skriver til os.</p></div>
 
 <div><p class="sec">Hvorfor</p><p class="small">For at kunne svare dig og for at forberede eller indgå en aftale om ophold, medlemskab eller leje. Retsgrundlag: databeskyttelsesforordningens artikel 6, stk. 1, litra b, og litra a, hvor du har givet samtykke.</p></div>
 
 <div><p class="sec">Hvor længe</p><p class="small">Henvendelser, der ikke fører til noget, slettes senest efter to år. Fører de til en aftale, gemmer vi det, aftalen kræver, så længe den løber, og derefter så længe bogførings- og forældelsesregler kræver det.</p></div>
 
-<div><p class="sec">Hvem ser det</p><p class="small">Kun de mennesker i Vend Hjem, der skal svare dig. Mailen ligger hos vores mailudbyder. Vi overfører ikke oplysninger til tredjelande på eget initiativ.</p></div>
+<div><p class="sec">Hvem ser det</p><p class="small">Kun de mennesker i Vend Hjem, der skal svare dig. Brevet ligger i vores system hos Cloudflare og hos vores mailudbyder. Vi overfører ikke oplysninger til tredjelande på eget initiativ.</p></div>
 
 <div><p class="sec">Dine rettigheder</p><p class="small">Du kan bede om indsigt, rettelse eller sletning, om begrænsning, og du kan gøre indsigelse. Skriv til <a href="mailto:laiydeh@gmail.com">laiydeh@gmail.com</a>. Er du utilfreds med vores svar, kan du klage til Datatilsynet, <a href="https://www.datatilsynet.dk/">datatilsynet.dk</a>.</p></div>
 </div>

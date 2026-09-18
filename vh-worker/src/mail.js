@@ -18,7 +18,7 @@ export async function sendMail(env, { to, subject, text, ...rest }) {
         Authorization: `Bearer ${env.RESEND_API_KEY}`,
         "content-type": "application/json",
       },
-      body: JSON.stringify({ from: fra, to: [to], subject, text }),
+      body: JSON.stringify({ from: fra, to: [to], subject, text, ...(rest.reply_to ? { reply_to: rest.reply_to } : {}) }),
     });
     if (!r.ok) {
       const detalje = await r.text();

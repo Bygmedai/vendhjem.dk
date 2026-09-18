@@ -22,8 +22,9 @@ const fondeE2 = readFileSync(new URL("../migrations/0006_fonde_e2.sql", import.m
 const opholdSql = readFileSync(new URL("../migrations/0007_ophold.sql", import.meta.url), "utf8");
 const foresporgSql = readFileSync(new URL("../migrations/0008_foresporgsel.sql", import.meta.url), "utf8");
 const kalenderSql = readFileSync(new URL("../migrations/0009_kalender_2027.sql", import.meta.url), "utf8");
+const breveSql = readFileSync(new URL("../migrations/0011_breve.sql", import.meta.url), "utf8");
 const SKELET = [init, seed, peopleSql, mitSql, korpusSql, fondeE2, opholdSql, foresporgSql];
-const MIGRATIONER = [...SKELET, kalenderSql];
+const MIGRATIONER = [...SKELET, kalenderSql, breveSql];
 
 let ok = 0, fejl = 0;
 const t = (navn, betingelse, ekstra = "") => {
@@ -335,7 +336,7 @@ console.log("\n13 · Fladekontrakt (BYG-565 G1)");
   t("fondsfladen indfører ingen farve uden for paletten",
      farver.ok, JSON.stringify(farver));
 
-  const kilder = ["flade.js", "sider.js", "views.js", "index.js", "tekst.js", "mit.js", "session.js", "mail.js", "webauthn.js", "krypto.js", "korpus.js", "runde.js", "ophold.js", "ophold-sider.js"]
+  const kilder = ["flade.js", "sider.js", "views.js", "index.js", "tekst.js", "mit.js", "session.js", "mail.js", "webauthn.js", "krypto.js", "korpus.js", "runde.js", "ophold.js", "ophold-sider.js", "breve.js"]
     .map((f) => readFileSync(new URL(`../src/${f}`, import.meta.url), "utf8")).join("\n");
   const kildeFarver = farverUdenforPalet(kilder, css);
   t("flade-kilden indfører ingen farve uden for paletten",
@@ -1154,6 +1155,102 @@ console.log("\n25 · År-0-kalender 2027 (syv lukkede uger + åbne datoer)");
   t("/sporene JSON-kald viser stadig lukket og åben dato i HTML",
      jsonSporene.status === 200 && /februar/i.test(jsonKrop) && /850/.test(jsonKrop),
      jsonSporene.status);
+}
+
+console.log("\n26 · Brevet på /bliv-en-del lander i systemet (BYG-558 B1)");
+{
+  const db = env.FONDE_DB;
+  const gaaet = String(Date.now() - 10000);
+
+  const get = await hent("/bliv-en-del/skriv");
+  t("GET på /bliv-en-del/skriv sendes tilbage til formularen",
+     get.status === 303 && /\/bliv-en-del/.test(get.headers.get("location") || ""), get.status);
+
+  mails.length = 0;
+  const tomt = await hent("/bliv-en-del/skriv", {
+    method: "POST", body: new URLSearchParams({ navn: "", mail: "x", brevet: "", t: gaaet }),
+  });
+  t("tomt brev afvises med 400 og ingen mail", tomt.status === 400 && mails.length === 0, tomt.status);
+  const kort = await hent("/bliv-en-del/skriv", {
+    method: "POST", body: new URLSearchParams({ navn: "Kort Karl", mail: "karl@example.com", brevet: "Hej", t: gaaet }),
+  });
+  t("for kort brev afvises", kort.status === 400 && /for kort/i.test(await tekst(kort)), kort.status);
+
+  const robot = await hent("/bliv-en-del/skriv", {
+    method: "POST", body: new URLSearchParams({
+      navn: "Robot", mail: "robot@example.com", brevet: "Jeg er en robot og skriver meget hurtigt.", website: "http://spam", t: gaaet,
+    }),
+  });
+  t("honningkrukke: udfyldt skjult felt giver tak-side men intet brev og ingen mail",
+     robot.status === 200 && mails.length === 0 &&
+     !(await db.prepare(`SELECT 1 FROM breve WHERE mail = 'robot@example.com'`).first()),
+     robot.status);
+  const hurtig = await hent("/bliv-en-del/skriv", {
+    method: "POST", body: new URLSearchParams({
+      navn: "Hurtig Hans", mail: "hans@example.com", brevet: "Skrevet på under et sekund, det er ikke et menneske.", t: String(Date.now()),
+    }),
+  });
+  t("under tre sekunder afvises", hurtig.status === 400 && mails.length === 0, hurtig.status);
+
+  const brevTekst = "Jeg hedder Mette, er 41 og bor i Slagelse. Jeg har læst om Agersø og vil gerne høre mere om prøveaftalen.";
+  const ok1 = await hent("/bliv-en-del/skriv", {
+    method: "POST", body: new URLSearchParams({ navn: "Mette Ny", mail: "mette.ny@example.com", brevet: brevTekst, t: gaaet }),
+  });
+  const ok1Html = await tekst(ok1);
+  t("rigtigt brev giver tak-side", ok1.status === 200 && /tak for dit brev/i.test(ok1Html) && /7 dage/.test(ok1Html), ok1.status);
+  const mette = await db.prepare(`SELECT * FROM people WHERE lower(mail) = 'mette.ny@example.com'`).first();
+  t("afsenderen oprettes som person", Boolean(mette?.id) && mette.navn === "Mette Ny", JSON.stringify(mette));
+  const brev = await db.prepare(`SELECT * FROM breve WHERE person_id = ?1`).bind(mette?.id).first();
+  t("brevet ligger i D1 med status nyt", brev?.status === "nyt" && brev.tekst === brevTekst && brev.mail_fejl == null, JSON.stringify(brev));
+  t("brevet er sendt til os med reply-to afsender",
+     mails.some((m) => m.to === "laiydeh@gmail.com" && m.reply_to === "mette.ny@example.com" && m.text.includes(brevTekst)),
+     JSON.stringify(mails.map((m) => ({ to: m.to, subject: m.subject }))));
+  t("afsenderen får kvittering",
+     mails.some((m) => m.to === "mette.ny@example.com" && /vi har dit brev/i.test(m.subject)),
+     JSON.stringify(mails.map((m) => m.to)));
+  t("tak-siden bruger kun klasser fra vh.css", (await import("../src/kontrakt.js")).ukendteKlasser(ok1Html,
+     readFileSync(new URL("../../assets/vh.css", import.meta.url), "utf8")).length === 0);
+
+  // Uden JS: t mangler — brevet skal stadig gå igennem.
+  mails.length = 0;
+  const udenJs = await hent("/bliv-en-del/skriv", {
+    method: "POST", body: new URLSearchParams({ navn: "Uden Js", mail: "udenjs@example.com", brevet: "Jeg har slået JavaScript fra og skriver alligevel et rigtigt brev." }),
+  });
+  t("uden tidsstempel går brevet igennem", udenJs.status === 200 && mails.length === 2, udenJs.status);
+
+  // Mailfejl bliver synlig, brevet gemmes alligevel.
+  const gammelSink = env.mailSink;
+  env.mailSink = async () => { throw new Error("Resend nede"); };
+  const fejlet = await hent("/bliv-en-del/skriv", {
+    method: "POST", body: new URLSearchParams({ navn: "Fejl Frida", mail: "frida@example.com", brevet: "Mit brev skal gemmes, selv om mailen fejler undervejs.", t: gaaet }),
+  });
+  env.mailSink = gammelSink;
+  const frida = await db.prepare(`SELECT * FROM breve WHERE mail = 'frida@example.com'`).first();
+  t("mailfejl: brevet gemmes og fejlen står på brevet",
+     fejlet.status === 200 && frida?.status === "nyt" && /Resend nede/.test(frida.mail_fejl || ""), JSON.stringify(frida));
+
+  // Intern liste bag identitet.
+  const listeUden = await worker.fetch(new Request("http://vendhjem.dk/internt/breve"), { ...env, LOKAL_TEST: "0" }, {});
+  t("/internt/breve uden identitet er 401", listeUden.status === 401, listeUden.status);
+  const liste = await hent("/internt/breve");
+  const listeHtml = await tekst(liste);
+  t("/internt/breve viser brevene", liste.status === 200 && listeHtml.includes("Mette Ny") && listeHtml.includes(brevTekst), liste.status);
+  t("listen viser mailfejlen på Fridas brev", /Resend nede/.test(listeHtml));
+  t("listen har Breve i navigationen", /href="\/internt\/breve"[^>]*aria-current="page"/.test(listeHtml));
+  const kontraktBreve = (await import("../src/kontrakt.js")).ukendteKlasser(listeHtml,
+     readFileSync(new URL("../../assets/vh.css", import.meta.url), "utf8"));
+  t("/internt/breve bruger kun klasser fra vh.css", kontraktBreve.length === 0, kontraktBreve.join(", "));
+
+  const skift = await hent(`/internt/breve/${brev.id}/status`, {
+    method: "POST", body: new URLSearchParams({ status: "besvaret" }),
+  });
+  const efter = await db.prepare(`SELECT * FROM breve WHERE id = ?1`).bind(brev.id).first();
+  t("markér besvaret sætter status og tidspunkt", skift.status === 303 && efter.status === "besvaret" && Boolean(efter.besvaret), JSON.stringify(efter));
+  const tilbage = await hent(`/internt/breve/${brev.id}/status`, {
+    method: "POST", body: new URLSearchParams({ status: "nyt" }),
+  });
+  const igen = await db.prepare(`SELECT * FROM breve WHERE id = ?1`).bind(brev.id).first();
+  t("markér nyt fjerner tidspunktet", tilbage.status === 303 && igen.status === "nyt" && igen.besvaret == null);
 }
 
 console.log(`\n${ok} bestået, ${fejl} fejlet\n`);
