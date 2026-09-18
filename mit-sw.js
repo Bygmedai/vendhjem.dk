@@ -14,16 +14,26 @@
 // Det er det ærlige bytte: appen åbner altid, men den lyver aldrig om, hvad
 // der står i databasen lige nu.
 
-var CACHE = "vh-mit-1";
+var CACHE = "vh-mit-2";
 var OFFLINE = "/mit-offline";   // uden .html: assets serverer HTML uden endelse (html_handling)
-var FILER = [
-  OFFLINE,
-  "/assets/vh.css",
+
+// To slags filer, to regler.
+//
+// FRISK: ting, der ændrer sig, mens vi bygger — stilarket og offline-siden.
+// Nettet først, cachen kun når nettet svigter. Ellers ville en rettelse i
+// stilarket først vise sig anden gang, appen blev åbnet, og man ville sidde
+// og se på noget andet end det, der lige blev udrullet.
+//
+// FAST: ting, der ikke ændrer sig — skrifter og ikoner. Cachen først, så de
+// aldrig hentes igen. Skifter de en dag, skifter CACHE-navnet med.
+var FRISK = [OFFLINE, "/assets/vh.css"];
+var FAST = [
   "/assets/fonts/lora-var.woff2",
   "/assets/fonts/jetbrains-mono-400.woff2",
   "/assets/favicon.svg",
   "/assets/app-192.png",
 ];
+var FILER = FRISK.concat(FAST);
 
 self.addEventListener("install", function (e) {
   // Én ad gangen, ikke addAll: mangler en enkelt fil, skal appen stadig
@@ -54,16 +64,26 @@ self.addEventListener("fetch", function (e) {
     return;
   }
 
-  // Skallen: cache først, og hent stille en frisk kopi til næste gang.
-  if (FILER.indexOf(url.pathname) !== -1) {
+  function gem(r) {
+    if (r && r.ok && r.type === "basic") {
+      var kopi = r.clone();
+      caches.open(CACHE).then(function (c) { c.put(req, kopi); });
+    }
+    return r;
+  }
+
+  // Det, der ændrer sig: nettet først, cachen som faldskærm.
+  if (FRISK.indexOf(url.pathname) !== -1) {
+    e.respondWith(fetch(req).then(gem).catch(function () {
+      return caches.match(req, { ignoreSearch: true });
+    }));
+    return;
+  }
+
+  // Det, der ikke ændrer sig: cachen først, og hent stille en frisk kopi.
+  if (FAST.indexOf(url.pathname) !== -1) {
     e.respondWith(caches.match(req, { ignoreSearch: true }).then(function (hit) {
-      var net = fetch(req).then(function (r) {
-        if (r && r.ok && r.type === "basic") {
-          var kopi = r.clone();
-          caches.open(CACHE).then(function (c) { c.put(req, kopi); });
-        }
-        return r;
-      }).catch(function () { return hit; });
+      var net = fetch(req).then(gem).catch(function () { return hit; });
       return hit || net;
     }));
   }
