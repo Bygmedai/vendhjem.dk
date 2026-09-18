@@ -1,7 +1,11 @@
 # CLAUDE.md — vendhjem.dk
 
-**Status:** udkast til review. Skrevet 18.09.2026 efter en fuld QA på `fb1fe61`.
-Alt herunder er målt på det tidspunkt, ikke husket. Hvor jeg ikke har målt, står det.
+**Status:** ratificeret 18.09.2026 (#46). Sidst målt på `29cf955`, samme dag.
+Alt herunder er målt, ikke husket. Hvor jeg ikke har målt, står det.
+
+Filen blev forældet under en time efter den blev merget — #45, #47, #48 og #49
+landede imens. Det er ikke en undskyldning, det er et arbejdsvilkår: **ændrer du
+en sti, en migration eller antallet af prøver, så ret den her fil i samme PR.**
 
 ---
 
@@ -29,13 +33,21 @@ Retter du copy i `build.py` og ser den på den statiske fil, kan den levende sid
 stadig sige noget andet. Det er sket (PR #42: fotoene lå på den statiske side og
 manglede på den levende).
 
-**Sådan afgør du hvilken der gælder:** `vh-worker/src/index.js` linje ~122.
-Fanger Workeren stien, ejer Workeren siden. Ellers er det `env.ASSETS.fetch`, og
-så er det filen.
+**Sådan afgør du hvilken der gælder:** find `env.ASSETS.fetch` i
+`vh-worker/src/index.js` (linje 135 på `29cf955` — den flytter sig, så søg efter
+udtrykket, ikke efter linjen). Alt, der returnerer før den, ejer Workeren. Alt,
+der når ned til den, er en fil.
 
 Workeren ejer i dag: `/sporene`, `/sporene/*`, **`/sporene.html`**, `/mit`,
 `/mit/*`, `/bliv-en-del/skriv`, `/internt/ophold*`, `/internt/breve*`,
-`/internt/fonde*`, `/internt/korpus*`, `/sundhed/fonde`. Resten er statiske filer.
+`/internt/fund*`, `/internt/fonde*`, `/internt/korpus*`, `/sundhed/fonde`.
+Resten er statiske filer.
+
+**Fælden i navnet:** `/mit-offline` og `/mit-sw.js` hedder noget med «mit», men
+Workeren fanger dem **ikke** — grenen matcher `/mit` og `/mit/*`, ikke `/mit-*`.
+De er almindelige filer i roden (`mit-offline.html`, `mit-sw.js`,
+`assets/mit.webmanifest`), og de skal blive ved med at være det: en service worker,
+der bliver bygget af den Worker, den skal kunne overleve, er ikke offline-sikker.
 
 Bemærk `/sporene.html`: Workeren fanger også filnavnet, så selv den direkte vej
 til filen giver den levende side. Du kan altså ikke omgå den ved at skrive `.html`
@@ -47,7 +59,7 @@ i adresselinjen.
 
 ```
 python3 build.py                 # skriver siderne + fire genererede JS-moduler
-node vh-worker/test/koer.mjs     # 234 prøver (fb1fe61). Kører IKKE i CI — se nedenfor
+node vh-worker/test/koer.mjs     # 306 prøver (29cf955). Kører IKKE i CI — se nedenfor
 bash vh-worker/test/flader.sh    # måler den levende flade
 ```
 
@@ -103,6 +115,11 @@ den side, der skal sælge året, sagde «ingen datoer».
 **Kun readbacket må hævde at noget er udrullet.** En kommando, der kom tilbage
 uden fejl, er en påstand. Et kald er en måling.
 
+Workeren har også en **cron** (`[triggers] crons = ["0 4 1 * *"]`): den 1. i
+måneden kl. 04:00 UTC skrives hele D1 som almindelig JSON til R2. Se
+`src/sikkerhedskopi.js`. Den kører uden for enhver anmodning — ændrer du skemaet,
+så husk at den også læser det.
+
 ---
 
 ## Hårde regler
@@ -149,10 +166,10 @@ den kode, der står i dag.
 
 ## Kendte huller i porten
 
-Målt 18.09.2026 på `fb1fe61`. De står her, fordi et hul, ingen har skrevet ned,
+Målt 18.09.2026 på `29cf955`. De står her, fordi et hul, ingen har skrevet ned,
 bliver til en overraskelse.
 
-1. **De 234 Worker-prøver kører ikke i CI.** Quality Gate har fire jobs —
+1. **De 306 Worker-prøver kører ikke i CI.** Quality Gate har fire jobs —
    html-validate, broken-links, Lighthouse, Playwright — og ingen af dem rører
    `vh-worker/`. Hele beviset for brevet, opholdene, overlaps-triggeren og
    kalenderen ligger i en fil, kun et menneske kører. Siden merge nu udruller
