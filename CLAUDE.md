@@ -110,8 +110,12 @@ De står, fordi de er blevet brudt. Fjern dem ikke, fordi de ser overflødige ud
 | Access på `/internt` **og** `www.vendhjem.dk/internt` | Cloudflare | www-varianten lå åben i et døgn i september. `udrul.yml` måler begge i sit readback. |
 
 `.assetsignore` er en **deny-liste**. En ny fil i roden er offentlig, indtil nogen
-skriver den på listen. Målt 18.09.2026: `/stigen.json` svarer 200. Indholdet er
-harmløst, men mekanikken er det ikke.
+skriver den på listen. `/stigen.json` og `/images/sted/_manifest.json` lå åbne af
+præcis den grund og blev lukket i #52. Mekanikken er nu håndhævet af **prøve 35**,
+som vender listen om: hver fil i roden skal være *besluttet* — enten offentlig med
+vilje eller på `.assetsignore`. Er den ingen af delene, falder porten, og
+spørgsmålet «må en fremmed hente den her?» bliver stillet før udrulningen.
+Prøven er Vildes; falsificeret i #52.
 
 ---
 
@@ -215,8 +219,9 @@ bliver til en overraskelse.
    er præcis den fejl, hvor én tekst valideres og en anden udrulles. Det trin
    dækker alle fire genererede moduler på én gang — ikke kun `stigen.js`, som
    var det eneste med en ægte kilde-mod-genereret-prøve.
-3. **Ingen prøve rammer `.assetsignore`.** Hegnet, der lukkede `/.git/`, er
-   ubevist.
+3. ~~**Ingen prøve rammer `.assetsignore`.**~~ **LUKKET 18.09.2026 [Vilde].**
+   Prøve 35. Se §Hegnene. Hegnet, der lukkede `/.git/`, er nu bevist — og
+   mekanikken bag det håndhævet, ikke kun lækagen lappet.
 4. **GitHub Pages kører stadig** og bygger repoet på hver merge. `.assetsignore`
    gælder ikke der. Hullet er lukket af en 301 til vendhjem.dk (målt), altså af
    `CNAME` og af at Cloudflare ejer DNS'en. Pages gør ikke andet nyttigt.
