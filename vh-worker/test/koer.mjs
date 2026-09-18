@@ -1673,5 +1673,91 @@ console.log("\n34 · Natten flyttede derhen, hvor den kan læses");
      /\/internt\/natten \/mit\/aftalt 301/.test(readFileSync(new URL("_redirects", rod), "utf8")));
 }
 
+console.log("\n35 · .assetsignore er en deny-liste — og den skal rammes af en prøve");
+{
+  // Skrevet af Vilde og gennemgaaet af Haruki (#52). Se hans review dér for
+  // falsifikationen: fjern stigen.json fra listen, og den bliver roed.
+  //
+  // HVORFOR DEN HER PROEVE FINDES
+  //
+  // [assets] directory = "../" uploader HELE repoet til Cloudflare. Den 17.09.2026
+  // laa /.git/, /vh-worker/src/, wrangler.toml og build.py aabent paa vendhjem.dk,
+  // fordi .assetsignore kun laa paa forken. Filen kom paa plads samme dag.
+  //
+  // Men et hegn ingen proeve rammer, er ubevist — og .assetsignore er en
+  // DENY-liste: en ny fil i roden er offentlig, indtil nogen husker at skrive
+  // den paa listen. Maalt 18.09.2026: /stigen.json og
+  // /images/sted/_manifest.json svarede 200, fordi ingen huskede det.
+  //
+  // Proeven vender listen om. Hver fil i roden skal vaere BESLUTTET: enten staar
+  // den paa OFFENTLIGT nedenfor, fordi den skal ud, eller ogsaa staar den paa
+  // .assetsignore. En ny fil, der er ingen af delene, faelder porten — og saa er
+  // spoergsmaalet «skal den her ud paa nettet?» stillet FOER udrulningen,
+  // ikke bagefter.
+  const rod = new URL("../../", import.meta.url);
+  const { readdirSync } = await import("node:fs");
+
+  // Filer i roden, der MED VILJE ligger offentligt. Tilfoej kun her, naar du
+  // har svaret ja til: «maa en fremmed hente den her?»
+  const OFFENTLIGT = new Set([
+    // Byggede sider fra build.py
+    "index.html", "fundamentet.html", "permakultur.html", "sporene.html",
+    "maend.html", "bliv-en-del.html", "privatlivspolitik.html", "cookies.html",
+    "noter.html", "404.html",
+    // Appen paa telefonen — statiske med vilje, se «Faelden i navnet» i CLAUDE.md
+    "mit-offline.html", "mit-sw.js",
+    // Det nettet selv beder om
+    "sitemap.xml", "noter.xml", "robots.txt",
+    // Cloudflares egen konfiguration. Vilde satte dem paa listen med forbehold
+    // («de ER offentlige i dag, og jeg har ladet dem vaere det»). Maalt af
+    // Haruki 18.09.2026: /_headers og /_redirects svarer begge **404** — de
+    // laeses af Cloudflare som konfiguration og serveres ikke.
+    //
+    // De skal derfor blive staaende HER og ikke flyttes til .assetsignore:
+    // listen styrer, hvad der uploades, og en fil, der ikke uploades, kan
+    // Cloudflare ikke laese. Flytter du dem, holder alle 301'erne op med at
+    // virke. De er hverken offentlige eller ignorerede — de er platformens.
+    "_headers", "_redirects",
+  ]);
+
+  const ignoreret = readdirSync(rod, { withFileTypes: true })
+    .filter((d) => d.isFile() && d.name === ".assetsignore")
+    .length === 1
+    ? readFileSync(new URL(".assetsignore", rod), "utf8")
+        .split("\n").map((l) => l.trim())
+        .filter((l) => l && !l.startsWith("#"))
+    : [];
+
+  const daekket = (navn) => ignoreret.some((m) =>
+    m === navn || (m.startsWith("*.") && navn.endsWith(m.slice(1))));
+
+  const filerIRoden = readdirSync(rod, { withFileTypes: true })
+    .filter((d) => d.isFile()).map((d) => d.name);
+
+  const ubesluttede = filerIRoden.filter((f) => !OFFENTLIGT.has(f) && !daekket(f));
+
+  t(".assetsignore findes overhovedet", ignoreret.length > 0);
+  t("hver fil i roden er besluttet — offentlig med vilje eller paa .assetsignore",
+     ubesluttede.length === 0,
+     ubesluttede.length ? `ubesluttede: ${ubesluttede.join(", ")}` : "");
+
+  // Negativt vidne. Uden det kan proeven bestaa, fordi den ikke maaler noget.
+  t("og proeven bider: en opdigtet ny fil ville falde igennem",
+     !OFFENTLIGT.has("hemmelig-ny-fil.json") && !daekket("hemmelig-ny-fil.json"));
+
+  // De fire, der laa aabne. De skal blive paa listen.
+  for (const f of ["build.py", "nav-internt.json", "stigen.json"]) {
+    t(`${f} er lukket`, daekket(f));
+  }
+  t("vh-worker er lukket", ignoreret.includes("vh-worker"));
+  t(".git er lukket", ignoreret.includes(".git"));
+
+  // Maalt 18.09.2026: begge svarer 404 paa vendhjem.dk. Staar de en dag paa
+  // .assetsignore, bliver de ikke uploadet, og redirects og headers falder ud.
+  t("_headers og _redirects er platformens — hverken offentlige eller ignorerede",
+     !daekket("_headers") && !daekket("_redirects") &&
+     OFFENTLIGT.has("_headers") && OFFENTLIGT.has("_redirects"));
+}
+
 console.log(`\n${ok} bestået, ${fejl} fejlet\n`);
 process.exit(fejl ? 1 : 0);
