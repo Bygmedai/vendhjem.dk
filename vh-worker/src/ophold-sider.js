@@ -4,6 +4,7 @@
 import { side, esc, tabel, felt, knap, statusPil, tomTilstand } from "./flade.js";
 import { billede, fotoBaand } from "./fotos.js";
 import { TEKST } from "./tekst.js";
+import { FOD } from "./fod.js";
 
 const kr = (n) => (n == null ? null : n.toLocaleString("da-DK") + " kr.");
 
@@ -220,7 +221,7 @@ ${link ? `<p class="mt2"><a class="lnk" href="${esc(link.href)}">${esc(link.labe
 
   const lukketHtml = lukkede.length
     ? lukkede.map((o) => `<p class="meta mt1">${esc(periodeTekst(o.start_dato, o.slut_dato))}</p>`).join("")
-    : `<p class="small soft">De står i kalenderen som ro, når ugerne er sat: ingen gæster, intet salg. Et sted, der kan fylde 52 uger, brænder sine ejere af i år ét. Det har vi set før.</p>`;
+    : `<p class="small soft">De står i kalenderen som ro, når ugerne er sat: ingen gæster, intet salg. Et sted har brug for at trække vejret, og det har de mennesker, der bærer det, også.</p>`;
 
   return sporeneSkal({
     titel: "Sporene",
@@ -297,12 +298,7 @@ export function offentligSkal({ titel, canonical, description, indhold, aktiv = 
 <main>
 ${indhold}
 </main>
-<footer class="site-foot">
-<div class="stage row">
-<p>Vend Hjem · Agersø · Slagelse Kommune</p>
-<p>Udkast · 15. september 2026 · Lederudvikling og foredrag ligger på <a href="https://www.humandirection.dk/">humandirection.dk</a></p>
-</div>
-</footer>
+${FOD}
 </body>
 </html>`;
 }

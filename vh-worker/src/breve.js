@@ -108,6 +108,22 @@ function dato(iso) {
   return d.toLocaleDateString("da-DK", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Copenhagen" });
 }
 
+const VENTER_DAGE = 7;
+
+/** Hele dage siden brevet kom. Siden lover svar inden 7 dage; efter det
+ *  står det på listen, så løftet ikke glider i stilhed. */
+function dageSiden(iso, nu = Date.now()) {
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return 0;
+  return Math.floor((nu - t) / 86400000);
+}
+
+function statusTekst(b) {
+  if (b.status !== "nyt") return TEKST.brevBesvaret;
+  const d = dageSiden(b.oprettet);
+  return d >= VENTER_DAGE ? TEKST.brevVenter(d) : TEKST.brevNyt;
+}
+
 function breveSide({ bruger, breve, advarsel }) {
   const raekker = breve.map((b) => {
     const nyt = b.status === "nyt";
@@ -115,7 +131,7 @@ function breveSide({ bruger, breve, advarsel }) {
 <td>${esc(dato(b.oprettet))}</td>
 <td>${esc(b.navn)}<br><a class="lnk" href="mailto:${esc(b.mail)}?subject=${encodeURIComponent("Sv: dit brev til Vend Hjem")}">${esc(b.mail)}</a></td>
 <td><details><summary>${esc(b.tekst.slice(0, 90))}${b.tekst.length > 90 ? "…" : ""}</summary><p class="small mt2" style="white-space:pre-wrap">${esc(b.tekst)}</p></details>${b.mail_fejl ? `<p class="small mt2">${esc(TEKST.mailFejl)}: ${esc(b.mail_fejl)}</p>` : ""}</td>
-<td>${esc(nyt ? TEKST.brevNyt : TEKST.brevBesvaret)}</td>
+<td>${nyt && dageSiden(b.oprettet) >= VENTER_DAGE ? `<strong>${esc(statusTekst(b))}</strong>` : esc(statusTekst(b))}</td>
 <td><form method="post" action="${ROD_BREVE}/${esc(b.id)}/status">${knap({ label: nyt ? TEKST.markerBesvaret : TEKST.markerNyt, name: "status", value: nyt ? "besvaret" : "nyt" })}</form></td>
 </tr>`;
   });

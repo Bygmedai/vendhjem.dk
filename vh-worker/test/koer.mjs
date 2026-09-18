@@ -336,7 +336,7 @@ console.log("\n13 · Fladekontrakt (BYG-565 G1)");
   t("fondsfladen indfører ingen farve uden for paletten",
      farver.ok, JSON.stringify(farver));
 
-  const kilder = ["flade.js", "sider.js", "views.js", "index.js", "tekst.js", "mit.js", "session.js", "mail.js", "webauthn.js", "krypto.js", "korpus.js", "runde.js", "ophold.js", "ophold-sider.js", "breve.js", "fotos.js"]
+  const kilder = ["flade.js", "sider.js", "views.js", "index.js", "tekst.js", "mit.js", "session.js", "mail.js", "webauthn.js", "krypto.js", "korpus.js", "runde.js", "ophold.js", "ophold-sider.js", "breve.js", "fotos.js", "fod.js"]
     .map((f) => readFileSync(new URL(`../src/${f}`, import.meta.url), "utf8")).join("\n");
   const kildeFarver = farverUdenforPalet(kilder, css);
   t("flade-kilden indfører ingen farve uden for paletten",
@@ -1236,6 +1236,13 @@ console.log("\n26 · Brevet på /bliv-en-del lander i systemet (BYG-558 B1)");
   const listeHtml = await tekst(liste);
   t("/internt/breve viser brevene", liste.status === 200 && listeHtml.includes("Mette Ny") && listeHtml.includes(brevTekst), liste.status);
   t("listen viser mailfejlen på Fridas brev", /Resend nede/.test(listeHtml));
+  // Siden lover svar inden 7 dage. Et brev, der har ventet 8, skal sige det selv.
+  const forOtteDage = new Date(Date.now() - 8 * 86400000).toISOString();
+  await db.prepare(`INSERT INTO breve (id, person_id, navn, mail, tekst, status, oprettet) VALUES ('brev_gammel', ?1, 'Gamle Gorm', 'gorm@example.com', 'Jeg skrev for otte dage siden og har ikke hørt noget endnu.', 'nyt', ?2)`)
+    .bind(mette.id, forOtteDage).run();
+  const listeGammel = await tekst(await hent("/internt/breve"));
+  t("et ubesvaret brev på 8 dage markeres som ventende", /har ventet 8 dage/.test(listeGammel) && /Gamle Gorm/.test(listeGammel));
+  t("et nyt brev fra i dag markeres ikke som ventende", !/Mette Ny[\s\S]{0,600}har ventet/.test(listeGammel));
   t("listen har Breve i navigationen", /href="\/internt\/breve"[^>]*aria-current="page"/.test(listeHtml));
   const kontraktBreve = (await import("../src/kontrakt.js")).ukendteKlasser(listeHtml,
      readFileSync(new URL("../../assets/vh.css", import.meta.url), "utf8"));

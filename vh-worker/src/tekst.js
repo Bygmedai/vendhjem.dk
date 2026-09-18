@@ -63,7 +63,7 @@ export const TEKST = {
   forespørgMail: "Din mail",
   forespørgBesked: "Hvis der er noget, vi skal vide",
   takH1: "Tak. Vi vender tilbage.",
-  takLead: "Vi har din forespørgsel. Inden tre dage skriver vi, om pladsen er din. Ja eller nej — ikke et måske.",
+  takLead: "Vi har din forespørgsel. Inden tre dage skriver vi tilbage, om pladsen er din.",
   opholdFuldt: "Opholdet er fuldt. Vi tager ikke flere forespørgsler på den her dato.",
   opholdIkkeAabent: "Det ophold kan ikke forespørges på.",
   bekraeft: "Bekræft",
@@ -82,6 +82,7 @@ export const TEKST = {
   brevForHurtigt: "Det gik for hurtigt. Prøv igen.",
   brevNyt: "Nyt",
   brevBesvaret: "Besvaret",
+  brevVenter: (d) => `Nyt · har ventet ${d} dage`,
   markerBesvaret: "Markér besvaret",
   markerNyt: "Markér nyt",
   tomBreve: "Ingen breve endnu.",
@@ -114,7 +115,7 @@ export function kvitteringBrev({ navn, type_navn, periode }) {
     text:
       `Hej ${navn}\n\n` +
       `Vi har din forespørgsel på ${type_navn}, ${periode}.\n\n` +
-      `Inden tre dage skriver vi tilbage. Ja eller nej — ikke et måske.\n\n` +
+      `Inden tre dage skriver vi tilbage, om pladsen er din.\n\n` +
       `Vendhjem\nAgersø`,
   };
 }

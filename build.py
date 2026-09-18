@@ -7,7 +7,34 @@ import json as _json
 import os, re
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
-FOOT_DATE = "15. september 2026"
+import subprocess as _sp, datetime as _dt
+
+# «Senest ændret» i foden. Datoen kom fra hukommelsen («Udkast · 15. sep-
+# tember») og blev ikke rettet, mens sitet aendrede sig hver dag. Nu tages
+# den fra det seneste commit; Udrul koerer build.py paa main, saa den
+# levende side viser dagen for den seneste merge. Uden git: i dag.
+_MDR = ["januar", "februar", "marts", "april", "maj", "juni", "juli",
+        "august", "september", "oktober", "november", "december"]
+def _senest():
+    try:
+        iso = _sp.check_output(["git", "log", "-1", "--format=%cs"], cwd=ROOT,
+                               stderr=_sp.DEVNULL, text=True).strip()
+        d = _dt.date.fromisoformat(iso)
+    except Exception:
+        d = _dt.date.today()
+    return f"{d.day}. {_MDR[d.month - 1]} {d.year}"
+FOOT_DATE = _senest()
+
+def fod_offentlig():
+    """Foden paa alle offentlige sider — ogsaa dem Workeren bygger.
+    Skrives til vh-worker/src/fod.js nederst, saa der er én fod, ikke to."""
+    return f'''<footer class="site-foot">
+<div class="stage row">
+<p>Vend Hjem · Agersø · Slagelse Kommune</p>
+<p>Senest ændret {FOOT_DATE} · Lederudvikling og foredrag ligger på <a href="https://www.humandirection.dk/">humandirection.dk</a></p>
+<p><a href="/noter">Noter</a> · <a href="/privatlivspolitik">Privatlivspolitik</a> · <a href="/cookies">Cookies</a></p>
+</div>
+</footer>'''
 
 # Intern navigation har ÉN kilde: nav-internt.json. Den blev delt i to —
 # build.py og fondsværktøjets views.js — og listerne drev fra hinanden, så
@@ -83,14 +110,7 @@ def foot(intern=False, path=""):
 </body>
 </html>
 '''
-    return f'''</main>
-<footer class="site-foot">
-<div class="stage row">
-<p>Vend Hjem · Agersø · Slagelse Kommune</p>
-<p>Udkast · {FOOT_DATE} · Lederudvikling og foredrag ligger på <a href="https://www.humandirection.dk/">humandirection.dk</a></p>
-<p><a href="{depth}privatlivspolitik">Privatlivspolitik</a> · <a href="{depth}cookies">Cookies</a></p>
-</div>
-</footer>
+    return '</main>\n' + fod_offentlig() + '''
 </body>
 </html>
 '''
@@ -251,6 +271,11 @@ pages["index.html"] = head("Vend Hjem · Agersø", "Vi laver en gammel campingpl
 <div><p class="sec">Bliv en del</p><p class="small soft">Forløbet fra den første samtale til en aftale, og hvad der gælder, hvis du vil stoppe. <a class="lnk" href="/bliv-en-del">Se forløbet →</a></p></div>
 </div>
 </section>
+
+<section class="stage sektion">
+<p class="lead maxw" style="color:var(--blaek)">Der står ét langt bord. Det er dér, vi spiser sammen, og dér dagen samler sig — efter arbejdet, når nogen kommer, når nogen skal videre.</p>
+<p class="meta mt3"><a href="/noter">Noter fra stedet →</a></p>
+</section>
 ''' + foot()
 
 # ───────────────────────────── FUNDAMENTET (1d) ─────────────────────────────
@@ -304,7 +329,7 @@ pages["fundamentet.html"] = head("Fundamentet · Vend Hjem", "Det, stedet hviler
 <div><div class="maxw">
 <p class="sec">Største drøm og største frygt</p>
 <p class="small">Før du skriver under på en aftale, taler vi om din største drøm for at være med og det, du frygter mest. Samtalen hjælper os med at få dine ønsker og forbehold med i det, vi aftaler.</p>
-<p class="xs soft mt3">Den samtale tages to ad gangen, i et rum med en dør. Ikke på et møde.</p>
+<p class="xs soft mt3">Den samtale tager vi to ad gangen, i et rum med en dør, hvor der er tid til den.</p>
 </div></div>
 <div class="media">''' + foto_i_horisont("vaerelse", "", stil="min-height:300px") + '''</div>
 </div>
@@ -638,9 +663,9 @@ pages["maend.html"] = head("Mandegrupper · Vend Hjem", "Femten mænd, en weeken
 <p class="sec">Sådan ligger en weekend</p>
 <div class="tl">
 <div><div class="pkt"></div><p class="t">Fredag eftermiddag</p><p class="b">Færgen fra Stigsnæs, et kvarter. Kaffe, rundtur - og telefonen i en kasse ved døren, hvis du vil. De fleste lægger den.</p></div>
-<div><div class="pkt"></div><p class="t">Fredag aften</p><p class="b">Mad fra storkøkkenet. Bål. En runde: hvorfor er du kommet, og hvad er du bange for at sige. Ingen kommenterer.</p></div>
+<div><div class="pkt"></div><p class="t">Fredag aften</p><p class="b">Mad fra storkøkkenet. Bål. En runde: hvorfor er du kommet, og hvad er du bange for at sige. Der lyttes, og ingen behøver svare på det.</p></div>
 <div><div class="pkt a"></div><p class="t">Lørdag</p><p class="b">Arbejde om formiddagen - rigtigt arbejde, valgt fordi femten utrænede hænder faktisk kan flytte det. Sauna og havet om eftermiddagen. Workshop om aftenen.</p></div>
-<div><div class="pkt"></div><p class="t">Søndag</p><p class="b">Morgenmad, oprydning, en sidste runde: hvad tager du med. Så færgen igen. Ingen gruppe på nettet bagefter.</p></div>
+<div><div class="pkt"></div><p class="t">Søndag</p><p class="b">Morgenmad, oprydning, en sidste runde: hvad tager du med. Så færgen igen. Det, der blev sagt, bliver på øen.</p></div>
 </div>
 </section>
 
@@ -666,7 +691,7 @@ pages["maend.html"] = head("Mandegrupper · Vend Hjem", "Femten mænd, en weeken
 <li><span>Isolering</span><span class="r">loft og vægge</span></li>
 <li><span>Udearealer</span><span class="r">stier, hegn, bålplads, bænke</span></li>
 </ul>
-<p class="note mt2">Tag, el, VVS og alt bærende laves af folk med papir på det. Femten frivillige på et tag er en dårlig idé, uanset hvor gode intentionerne er.</p>
+<p class="note mt2">Tag, el, VVS og alt bærende laves af folk med papir på det. Resten er der plads til at lære sammen, med jorden under fødderne.</p>
 </div>
 </div>
 </section>
@@ -685,8 +710,8 @@ pages["bliv-en-del.html"] = head("Bliv en del · Vend Hjem", "Forløbet fra brev
 
 <section class="stage">
 <div class="g g-4">
-<div class="trin"><p class="nr">01</p><p class="t">Du skriver</p><p class="b">Et brev. Ikke en formular med felter til "interesseområde".</p><p class="m">Lai svarer inden 7 dage</p></div>
-<div class="trin"><p class="nr">02</p><p class="t">To samtaler</p><p class="b">Én om hvad du vil. Én om hvad du har svært ved. Den anden er den vigtige.</p><p class="m">3–6 uger</p></div>
+<div class="trin"><p class="nr">01</p><p class="t">Du skriver</p><p class="b">Et brev med dine egne ord. Det behøver ikke være langt.</p><p class="m">Lai svarer inden 7 dage</p></div>
+<div class="trin"><p class="nr">02</p><p class="t">To samtaler</p><p class="b">Én om det, du drømmer om. Én om det, du er bange for. Begge tæller.</p><p class="m">3–6 uger</p></div>
 <div class="trin loeft"><p class="nr a">03</p><p class="t">Prøveaftale</p><p class="b">Du bor og arbejder her. Slutdatoen står i aftalen fra begyndelsen.</p><p class="m">6 måneder · skriftlig</p></div>
 <div class="trin"><p class="nr">04</p><p class="t">Medlem</p><p class="b">Begge siger ja igen. Timer, indskud og mandat skrives ned, som de er aftalt.</p><p class="m">Tages op hvert år</p></div>
 </div>
@@ -701,10 +726,10 @@ pages["bliv-en-del.html"] = head("Bliv en del · Vend Hjem", "Forløbet fra brev
 <div>
 <p class="sec">Døren ud - sådan ser den ud</p>
 <ul class="tjek">
-<li><span>Du siger op med tre måneders varsel. Ingen skal forklare sig.</span></li>
+<li><span>Du kan sige op med tre måneders varsel, uden at skulle forklare hvorfor.</span></li>
 <li><span>Dine indskud har en aftalt karakter - kapital, lån eller udlæg. Det står på papir fra dag ét.</span></li>
-<li><span>Dine timer opgøres på det grundlag, de blev aftalt på. Ikke på hvad nogen husker.</span></li>
-<li><span>Går det i hårdknude, kommer der en tredje part ind. Aftalt på forhånd.</span></li>
+<li><span>Dine timer opgøres på det grundlag, de blev aftalt på, så ingen skal huske for hinanden.</span></li>
+<li><span>Går det i hårdknude, henter vi en tredje part ind, som vi har aftalt på forhånd.</span></li>
 </ul>
 <p class="xs soft mt3">Prøveaftalen beskriver dit ophold, dine opgaver og den periode, vi sammen har aftalt. Den giver dig ikke en ejerandel eller tilsagn om en bolig eller en varig plads i fællesskabet.</p>
 </div>
@@ -1199,3 +1224,14 @@ ${celler}
 }
 """)
     print("genererede vh-worker/src/fotos.js")
+
+# Generér Workerens fod fra samme kilde som de statiske sider. Foden stod
+# hardcodet i offentligSkal med «Udkast · 15. september» i tre dage efter
+# sitet gik live. Redigér ALDRIG vh-worker/src/fod.js i hånden.
+_fodjs = os.path.join(ROOT, "vh-worker", "src", "fod.js")
+if os.path.isdir(os.path.dirname(_fodjs)):
+    with open(_fodjs, "w", encoding="utf-8") as f:
+        f.write("// GENERERET af build.py. Ret ikke her — ret fod_offentlig() i build.py.\n")
+        f.write("export const SENEST = " + _json.dumps(FOOT_DATE, ensure_ascii=False) + ";\n")
+        f.write("export const FOD = " + _json.dumps(fod_offentlig(), ensure_ascii=False) + ";\n")
+    print("genererede vh-worker/src/fod.js")
