@@ -5,6 +5,10 @@ on:
     branches: [main, staging]
   pull_request:
     branches: [main]
+    # «edited» er med, fordi Facit-jobbet laeser PR-broedteksten: rettes
+    # Facit-linjen efter pushet, skal porten maale den nye tekst — et rerun
+    # genbruger den gamle. Maalt paa #60, 19.09.2026.
+    types: [opened, synchronize, reopened, edited]
 
 jobs:
   # Worker-proeverne. De daekker brevet, opholdene, overlaps-triggeren,
