@@ -38,6 +38,29 @@ jobs:
           echo "Kilder og byggede filer er i sync."
       - name: Prøver
         run: node vh-worker/test/koer.mjs
+      - name: Hegn-røg (Worker under test, ikke produktion)
+        run: bash vh-worker/test/smoke-hegn.sh
+
+  # Facit: en Worker-ændring uden hvorfor er blind. Kun pull_request —
+  # paa push til main er der ingen PR-broedtekst at laese.
+  facit:
+    name: Facit
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Scriptets egne prøver
+        run: python3 .github/tjek-facit.py --proeve
+      - name: Worker-ændring kræver et facit
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          FACIT_BASE: origin/${{ github.base_ref }}
+          FACIT_HEAD: HEAD
+        run: |
+          git fetch origin "${{ github.base_ref }}"
+          python3 .github/tjek-facit.py
 
   html-validate:
     name: HTML Validation

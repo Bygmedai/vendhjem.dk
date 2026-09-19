@@ -73,8 +73,17 @@ gav 404. Matcher og generator er `FORESPORG_STI` i `ophold-sider.js`.
 ```
 python3 build.py                 # skriver siderne + fire genererede JS-moduler
 node vh-worker/test/koer.mjs     # 447 prøver. Kører i CI på hver PR — se «Porten»
+bash vh-worker/test/smoke-hegn.sh  # curl mod Worker under test (ASCII/301/404/CSRF)
 bash vh-worker/test/flader.sh    # måler den levende flade
 ```
+
+Live røg (`VH_SMOKE_LIVE=1` eller `VH_SMOKE_URL=https://vendhjem.dk`) er manuel.
+PR-CI rammer ikke produktion.
+
+**Facit.** En meningsfuld Worker-ændring peger på `docs/facit/<slug>.md` —
+hvorfor, kilde, køber/job, kill. Porten falder uden. Skabelon:
+`docs/facit/_SKABELON.md`. `Facit: ingen — …` kun når diffen ikke rører
+`vh-worker/`.
 
 `build.py` skriver tre slags ting:
 
@@ -117,6 +126,7 @@ De står, fordi de er blevet brudt. Fjern dem ikke, fordi de ser overflødige ud
 | Forespørg-hegnet | `0016_foresporg_hegn.sql` + `hegn.js` | Offentlig POST uden login. CSRF (signeret felt + SameSite-cookie), honningkrukke, rate pr. IP/mail i D1. Uden dem er kalenderen en sluse til `people` og Resend. |
 | Sikkerhedshoveder | `hegn.js` `medSikkerhed` | CSP, HSTS, X-Frame-Options, Referrer-Policy, X-Content-Type-Options på alle Worker-svar. Cookies var allerede HttpOnly/Secure/SameSite=Lax. CSP tillader `'unsafe-inline'` fordi /mit har inline script (SW + passkeys). |
 | Access på `/internt` **og** `www.vendhjem.dk/internt` | Cloudflare | www-varianten lå åben i et døgn i september. `udrul.yml` måler begge i sit readback. |
+| Facit | `docs/facit/` + `.github/tjek-facit.py` | En Worker-ændring uden hvorfor er blind. Porten falder, hvis PR'en rører `vh-worker/` eller en migration, og brødteksten ikke peger på et facit der findes i grenen. `Facit: ingen` er kun tilladt, når vh-worker ikke er rørt. |
 
 `.assetsignore` er en **deny-liste**. En ny fil i roden er offentlig, indtil nogen
 skriver den på listen. `/stigen.json` og `/images/sted/_manifest.json` lå åbne af
@@ -144,10 +154,16 @@ den side, der skal sælge året, sagde «ingen datoer».
 **Kun readbacket må hævde at noget er udrullet.** En kommando, der kom tilbage
 uden fejl, er en påstand. Et kald er en måling.
 
-**Porten [Haruki 18.09].** `test.yml` har nu fem jobs. Det første, **`Worker-prøver`**,
-kører `build.py`, fejler hvis det ændrer en committet fil, og kører derefter
-`koer.mjs`. Det er det eneste sted i CI, der rører `vh-worker/`. Bliver det rødt,
-skal en PR ikke merges — for merge er deploy.
+**Porten [Haruki 18.09, facit 19.09].** `test.yml` har nu seks jobs. Det første,
+**`Worker-prøver`**, kører `build.py`, fejler hvis det ændrer en committet fil,
+kører `koer.mjs`, og kører `smoke-hegn.sh` mod Workeren under test (ikke
+produktion). Det er det eneste sted i CI, der rører `vh-worker/`-koden. Bliver
+det rødt, skal en PR ikke merges — for merge er deploy.
+
+**`Facit`** kører kun på `pull_request`. Rører diffen `vh-worker/` eller en
+migration, skal brødteksten have en synlig linje `Facit: docs/facit/<slug>.md`
+der peger på en fil i grenen. `Facit: ingen — …` er kun tilladt, når vh-worker
+ikke er rørt. Uden den linje er agenten blind, og porten falder.
 
 Workeren har også en **cron** (`[triggers] crons = ["0 4 * * *"]`): hver nat
 klokken 04:00 UTC skrives hele D1 som almindelig JSON til R2, inklusive
