@@ -28,14 +28,19 @@ jobs:
       - name: Byg siderne (internt/ findes ikke i checkout)
         run: python3 build.py
       - name: Er de byggede filer i sync med kilderne?
+        # «Senest ændret» er HEAD-committets dato og skifter ved merge (run #163,
+        # 18.09: main rød og live på samme tid over elleve filer, der kun afveg i
+        # datoen). De to datolinjer holdes uden for sammenligningen; alt andet,
+        # build.py ændrer, er drift. Nye, ukendte filer er også drift.
         run: |
-          if [ -n "$(git status --porcelain)" ]; then
+          NYE="$(git ls-files --others --exclude-standard)"
+          if [ -n "$NYE" ] || ! git diff --quiet -I '^<p>Senest ændret ' -I '^export const SENEST = '; then
             echo "::error::build.py aendrede filer, der er committet. Koer 'python3 build.py' og commit resultatet."
-            git status --short
-            git diff --stat
+            [ -n "$NYE" ] && { echo "Nye filer:"; echo "$NYE"; }
+            git diff --stat -I '^<p>Senest ændret ' -I '^export const SENEST = '
             exit 1
           fi
-          echo "Kilder og byggede filer er i sync."
+          echo "Kilder og byggede filer er i sync (de to datolinjer undtaget)."
       - name: Prøver
         run: node vh-worker/test/koer.mjs
       - name: Hegn-røg (Worker under test, ikke produktion)
