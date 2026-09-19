@@ -104,6 +104,17 @@ hinanden.
 `Worker-prøver` kører `build.py` og fejler, hvis et committet resultat ændrer sig.
 Det dækker alle fire moduler og de byggede sider på én gang.
 
+**[Vilde 19.09] — undtagen datoen.** «Senest ændret» i foden er HEAD-committets
+dato. Den skifter ved merge: Stevens merge-commit får merge-dagens dato, PR'en
+havde sin egen, og porten gik rød på main (run #163, 18.09 22:07 UTC) over ti
+sider og `fod.js`, der kun afveg i datoen. Merge udruller, så main var rød og
+live på samme tid. Porten holder derfor de to datolinjer uden for
+sammenligningen (`git diff -I`), og `fod.js` bærer datoen kun i `SENEST` —
+`FOD` har en pladsholder, der udfyldes ved indlæsning, så fodens *ord* stadig
+fanges. Konsekvens: kører du `build.py` på en anden dag end det seneste commit,
+ser du datoen ændre sig i elleve filer. Det er ikke drift, og du behøver ikke
+committe det. Alt andet, `build.py` ændrer, er drift.
+
 Beskrivelsen af prøverne var til gengæld for optimistisk. Prøve 28 sammenligner
 `stigen.json` med `stigen.js` — den er en ægte kilde-mod-genereret-prøve. Prøve 27
 gør **ikke** det samme for `fotos.js`; den tjekker kun, at modulet er internt

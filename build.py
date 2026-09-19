@@ -1401,7 +1401,15 @@ if os.path.isdir(os.path.dirname(_fodjs)):
     with open(_fodjs, "w", encoding="utf-8") as f:
         f.write("// GENERERET af build.py. Ret ikke her — ret fod_offentlig() i build.py.\n")
         f.write("export const SENEST = " + _json.dumps(FOOT_DATE, ensure_ascii=False) + ";\n")
-        f.write("export const FOD = " + _json.dumps(fod_offentlig(), ensure_ascii=False) + ";\n")
+        # Datoen staar KUN i SENEST-linjen. FOD baerer en pladsholder og saetter
+        # datoen ind ved indlaesning, saa porten kan holde datolinjerne uden for
+        # sammenligningen (test.yml, -I) og stadig fange enhver aendring i fodens
+        # ord. Maalt 18.09 (run #163): merge-commitets dato != PR'ens dato, og
+        # ti filer + fod.js gik roede over en dato alene.
+        _fod_skabelon = fod_offentlig().replace(FOOT_DATE, "__SENEST__")
+        assert "__SENEST__" in _fod_skabelon, "foden mangler datoen"
+        f.write("export const FOD = " + _json.dumps(_fod_skabelon, ensure_ascii=False)
+                + ".replace(\"__SENEST__\", SENEST);\n")
     print("genererede vh-worker/src/fod.js")
 
 # Generér Workerens stige fra stigen.json. Redigér ALDRIG vh-worker/src/stigen.js.
