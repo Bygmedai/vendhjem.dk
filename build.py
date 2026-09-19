@@ -128,7 +128,22 @@ def head(title, desc, path, intern=False, current=None, noindex=False):
     # noindex uden intern: en offentlig side, der endnu ikke har noget indhold,
     # skal ikke indekseres — men den skal stadig have den offentlige menu.
     robots = '<meta name="robots" content="noindex, nofollow">\n' if (intern or noindex) else ""
-    canon = "" if intern else f'<link rel="canonical" href="https://vendhjem.dk/{path.replace("index.html","").replace(".html","")}">\n'
+    public_url = f'https://vendhjem.dk/{path.replace("index.html","").replace(".html","")}'
+    canon = "" if intern else f'<link rel="canonical" href="{public_url}">\n'
+    # Samme titel og description som siden allerede har. Ingen ny copy.
+    kort = "" if intern else (
+        f'<meta property="og:title" content="{title}">\n'
+        f'<meta property="og:description" content="{desc}">\n'
+        f'<meta property="og:url" content="{public_url}">\n'
+        f'<meta property="og:type" content="website">\n'
+        f'<meta property="og:locale" content="da_DK">\n'
+        f'<meta property="og:site_name" content="Vend Hjem">\n'
+        f'<meta property="og:image" content="https://vendhjem.dk/images/sted/oppefra.webp">\n'
+        f'<meta name="twitter:card" content="summary_large_image">\n'
+        f'<meta name="twitter:title" content="{title}">\n'
+        f'<meta name="twitter:description" content="{desc}">\n'
+        f'<meta name="twitter:image" content="https://vendhjem.dk/images/sted/oppefra.webp">\n'
+    )
     if intern:
         nav = f'''<nav class="nav" aria-label="Internt">
 {nav_internt(depth, current)}
@@ -150,7 +165,7 @@ def head(title, desc, path, intern=False, current=None, noindex=False):
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>{title}</title>
 <meta name="description" content="{desc}">
-{robots}{canon}<meta name="theme-color" content="#e9e7e0">
+{robots}{canon}{kort}<meta name="theme-color" content="#e9e7e0">
 <link rel="preload" href="{depth}assets/fonts/lora-var.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="{depth}assets/fonts/jetbrains-mono-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="icon" href="{depth}assets/favicon.svg" type="image/svg+xml">

@@ -8,6 +8,10 @@ import { FOD } from "./fod.js";
 
 const kr = (n) => (n == null ? null : n.toLocaleString("da-DK") + " kr.");
 
+// Offentlig sti. ASCII med vilje: ø i URL'en gav soft-200 på /foresporg
+// og 404 på HEAD. Ø-varianter 301'es i ophold.js. Ret ikke hrefs tilbage.
+export const FORESPORG_STI = "/sporene/foresporg";
+
 export function datoTekst(iso) {
   if (!iso) return TEKST.streg;
   return new Date(iso + "T12:00:00").toLocaleDateString("da-DK", {
@@ -205,7 +209,7 @@ export function sporeneSide({ typer, aabne, lukkede }) {
         const p = kr(o.vis_pris);
         const fuld = o.status === "fuld" ? " · fuld" : "";
         return `<p class="meta mt1">${esc(periodeTekst(o.start_dato, o.slut_dato))}${p ? ` · ${p}` : ""}${fuld}</p>
-${o.status === "åben" ? `<p class="mt1"><a class="lnk" href="/sporene/forespørg/${esc(o.id)}">${esc(TEKST.forespørg)} →</a></p>` : ""}`;
+${o.status === "åben" ? `<p class="mt1"><a class="lnk" href="${FORESPORG_STI}/${esc(o.id)}">${esc(TEKST.forespørg)} →</a></p>` : ""}`;
       }).join("")
       : `<p class="meta mt2">${esc(TEKST.ingenDatoerSpor)}</p>`;
     const link = SPOR_LINKS[t.spor];
@@ -271,6 +275,22 @@ ${lukketHtml}
 
 // Offentligt skelet. Samme hoved og fod som build.py; aktiv = det menupunkt
 // der er markeret. Bruges af /sporene og af brevet på /bliv-en-del/skriv.
+function delingsKort({ titel, description, canonical }) {
+  const sideTitel = `${titel} · Vend Hjem`;
+  const url = `https://vendhjem.dk${canonical}`;
+  return `<meta property="og:title" content="${esc(sideTitel)}">
+<meta property="og:description" content="${esc(description)}">
+<meta property="og:url" content="${esc(url)}">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="da_DK">
+<meta property="og:site_name" content="Vend Hjem">
+<meta property="og:image" content="https://vendhjem.dk/images/sted/oppefra.webp">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${esc(sideTitel)}">
+<meta name="twitter:description" content="${esc(description)}">
+<meta name="twitter:image" content="https://vendhjem.dk/images/sted/oppefra.webp">`;
+}
+
 export function offentligSkal({ titel, canonical, description, indhold, aktiv = "sporene" }) {
   const cur = (id) => (id === aktiv ? ' aria-current="page"' : "");
   return `<!DOCTYPE html>
@@ -281,6 +301,7 @@ export function offentligSkal({ titel, canonical, description, indhold, aktiv = 
 <title>${esc(titel)} · Vend Hjem</title>
 <meta name="description" content="${esc(description)}">
 <link rel="canonical" href="https://vendhjem.dk${esc(canonical)}">
+${delingsKort({ titel, description, canonical })}
 <meta name="theme-color" content="#e9e7e0">
 <link rel="preload" href="/assets/fonts/lora-var.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/assets/fonts/jetbrains-mono-400.woff2" as="font" type="font/woff2" crossorigin>
@@ -309,7 +330,12 @@ ${FOD}
 
 function sporeneSkal(args) { return offentligSkal({ ...args, aktiv: "sporene" }); }
 
-export function sporeneForesporgSide({ o, person, advarsel }) {
+function honningOgCsrf(csrf) {
+  return `<div style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden" aria-hidden="true"><label for="website">Website</label><input id="website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
+${csrf ? `<input type="hidden" name="_csrf" value="${esc(csrf)}">` : ""}`;
+}
+
+export function sporeneForesporgSide({ o, person, advarsel, csrf }) {
   const kendt = Boolean(person?.navn && person?.mail);
   const felter = kendt
     ? `<p class="small mt2">${esc(TEKST.kendtSom(person.navn, person.mail))}</p>
@@ -320,7 +346,7 @@ ${felt({ label: TEKST.forespørgBesked, name: "besked", type: "textarea", klasse
 
   return sporeneSkal({
     titel: TEKST.forespørg,
-    canonical: `/sporene/forespørg/${o.id}`,
+    canonical: `${FORESPORG_STI}/${o.id}`,
     description: `Forespørg på ${o.type_navn}.`,
     indhold: `
 <section class="stage blok">
@@ -328,10 +354,25 @@ ${felt({ label: TEKST.forespørgBesked, name: "besked", type: "textarea", klasse
 <h1>${esc(periodeTekst(o.start_dato, o.slut_dato))}</h1>
 <p class="lead maxw mt2">${esc(o.type_navn)}. Navn, mail, og det du vil sige. Ikke mere.</p>
 ${advarsel ? `<p class="small mt2" style="color:var(--accent)">${esc(advarsel)}</p>` : ""}
-<form method="post" action="/sporene/forespørg/${esc(o.id)}" class="maxw mt4" style="max-width:420px">
+<form method="post" action="${FORESPORG_STI}/${esc(o.id)}" class="maxw mt4" style="max-width:420px">
+${honningOgCsrf(csrf)}
 ${felter}
 <p class="mt3">${knap({ label: TEKST.sendForespørg, accent: true })}</p>
 </form>
+</section>`,
+  });
+}
+
+export function sporeneFindesIkke() {
+  return sporeneSkal({
+    titel: TEKST.findesIkke,
+    canonical: "/sporene",
+    description: TEKST.findesIkke,
+    indhold: `
+<section class="stage blok">
+<p class="sec">Sporene</p>
+<h1 class="stor maxw">${esc(TEKST.findesIkke)}</h1>
+<p class="mt3"><a class="lnk" href="/sporene">Tilbage til sporene →</a></p>
 </section>`,
   });
 }

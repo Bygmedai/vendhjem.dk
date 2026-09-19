@@ -1,15 +1,19 @@
 // Ophold: intern kalender bag Access, offentlig /sporene uden.
-// C2: forespørgsel på /sporene/forespørg — uden betaling, uden ny auth.
+// C2: forespørgsel på /sporene/foresporg — uden betaling, uden ny auth.
 import { opholdstyper, opholdListe, opholdSag, opretOphold, gemOphold,
          opretPlads, saetPladsStatus, saetPladsMailFejl, findAktivPlads,
          findEllerOpretPerson, aabneForespoergsler, personer,
-         offentligeOphold, lukkedeUger } from "./db.js";
+         offentligeOphold, lukkedeUger,
+         tjekForesporgRate, logForesporgForsoeg } from "./db.js";
 import { opholdOversigt, opholdSide, sporeneSide, sporeneForesporgSide,
-         sporeneTakSide, sporeneFuldtSide, periodeTekst } from "./ophold-sider.js";
+         sporeneTakSide, sporeneFuldtSide, sporeneFindesIkke,
+         periodeTekst, FORESPORG_STI } from "./ophold-sider.js";
 import { side, fejlTilstand } from "./flade.js";
 import { TEKST, kvitteringBrev, bekraeftelsesBrev, afslagsBrev } from "./tekst.js";
 import { sendMail } from "./mail.js";
 import { sessionPerson } from "./session.js";
+import { lavCsrf, tjekCsrf, csrfCookie, CSRF_NAVN, klientIp } from "./hegn.js";
+import { laesCookie } from "./krypto.js";
 
 const ROD = "/internt/ophold";
 const STATUS = new Set(["planlagt", "åben", "fuld", "lukket", "afholdt"]);
@@ -19,8 +23,14 @@ const MAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const redirect = (til, besked) =>
   new Response(null, { status: 303, headers: { Location: besked ? `${til}?m=${encodeURIComponent(besked)}` : til } });
 
-const html = (s, status = 200) =>
-  new Response(s, { status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+function html(s, status = 200, cookies = []) {
+  const headers = new Headers({
+    "content-type": "text/html; charset=utf-8",
+    "cache-control": "no-store",
+  });
+  for (const c of cookies) headers.append("Set-Cookie", c);
+  return new Response(s, { status, headers });
+}
 
 function afvist(bruger) {
   return html(side({
@@ -131,6 +141,15 @@ async function sendAfslag(env, pladsId) {
   await sendMail(env, { to: row.person_mail, ...brev });
 }
 
+async function formSvar(env, { o, person, advarsel }, status = 200) {
+  const token = await lavCsrf(env.SESSION_NOEGLE, { form: "foresporg", id: o.id });
+  return html(
+    sporeneForesporgSide({ o, person, advarsel, csrf: token }),
+    status,
+    token ? [csrfCookie(token)] : [],
+  );
+}
+
 async function besvarForesporg(request, env, opholdId) {
   const db = env.FONDE_DB;
   const o = await opholdSag(db, opholdId);
@@ -141,21 +160,51 @@ async function besvarForesporg(request, env, opholdId) {
     return html(sporeneFuldtSide({ o }), 409);
   }
 
-  if (request.method === "GET") {
-    return html(sporeneForesporgSide({ o, person: session }));
+  if (request.method === "GET" || request.method === "HEAD") {
+    return formSvar(env, { o, person: session });
   }
 
   if (request.method !== "POST") return new Response("Findes ikke.", { status: 404 });
 
   const fd = await request.formData();
+  // Honningkrukke: samme mønster som /bliv-en-del/skriv. Udfyldt = robot.
+  // Svar som om alt gik godt, så robotten ikke lærer noget.
+  if (String(fd.get("website") || "").trim()) {
+    return html(sporeneTakSide({ o, person: { navn: "" } }));
+  }
+
+  const csrfOk = await tjekCsrf(
+    env.SESSION_NOEGLE,
+    fd.get("_csrf"),
+    laesCookie(request, CSRF_NAVN),
+    { form: "foresporg", id: o.id },
+  );
+  const ip = klientIp(request);
+  if (!csrfOk) {
+    await logForesporgForsoeg(db, { ip });
+    return formSvar(env, {
+      o, person: session, advarsel: TEKST.forespørgUdløbet,
+    }, 400);
+  }
+
+  const gaestMail = session?.mail || String(fd.get("mail") || "").trim();
+  const rate = await tjekForesporgRate(db, { ip, mail: gaestMail || null });
+  if (!rate.ok) {
+    await logForesporgForsoeg(db, { ip, mail: gaestMail || null });
+    return formSvar(env, {
+      o, person: session, advarsel: TEKST.forespørgForMange,
+    }, 429);
+  }
+  await logForesporgForsoeg(db, { ip, mail: gaestMail || null });
+
   let person = session;
   if (!person) {
     const navn = String(fd.get("navn") || "").trim();
     const mail = String(fd.get("mail") || "").trim();
     if (!navn || !MAIL_RE.test(mail)) {
-      return html(sporeneForesporgSide({
+      return formSvar(env, {
         o, person: null, advarsel: "Skriv navn og en rigtig mail.",
-      }), 400);
+      }, 400);
     }
     person = await findEllerOpretPerson(db, { navn, mail });
   }
@@ -186,19 +235,43 @@ async function besvarForesporg(request, env, opholdId) {
   return html(sporeneTakSide({ o, person }));
 }
 
+function sporeneGren(sti) {
+  if (sti === "/sporene") return { slags: "liste" };
+  const ascii = sti.match(new RegExp(`^${FORESPORG_STI}/([A-Za-z0-9_-]{4,64})$`));
+  if (ascii) return { slags: "form", id: ascii[1] };
+  const oe = sti.match(/^\/sporene\/forespørg\/([A-Za-z0-9_-]{4,64})$/);
+  if (oe) return { slags: "omdiriger", id: oe[1] };
+  if (sti.startsWith("/sporene/")) return { slags: "ukendt" };
+  return { slags: "liste" };
+}
+
 export async function besvarSporene(request, env) {
   const url = new URL(request.url);
-  const sti = afkodSti(url.pathname).replace(/\/+$/, "") || "/sporene";
-  const mForm = sti.match(/^\/sporene\/forespørg\/([A-Za-z0-9_-]{4,64})$/);
-  if (mForm) {
+  const raa = url.pathname;
+  const sti = afkodSti(raa).replace(/\/+$/, "") || "/sporene";
+  const gren = sti === "/sporene.html" ? { slags: "liste" } : sporeneGren(sti);
+
+  if (gren.slags === "omdiriger") {
+    const lok = `${FORESPORG_STI}/${gren.id}`;
+    // POST på den gamle ø-sti: 308, så en åben fane ikke mister kroppen.
+    // GET/HEAD: 301 til ASCII. Det er det, der måltes som 404 på HEAD.
+    const status = request.method === "POST" ? 308 : 301;
+    return new Response(null, { status, headers: { Location: lok } });
+  }
+
+  if (gren.slags === "form") {
     try {
-      return await besvarForesporg(request, env, mForm[1]);
+      return await besvarForesporg(request, env, gren.id);
     } catch (e) {
       return html(side({
         titel: TEKST.fejl, aktiv: "ophold", bruger: null,
         indhold: fejlTilstand({ detalje: String(e.message || e) }),
       }), 500);
     }
+  }
+
+  if (gren.slags === "ukendt") {
+    return html(sporeneFindesIkke(), 404);
   }
 
   try {

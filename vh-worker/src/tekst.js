@@ -179,6 +179,9 @@ export const TEKST = {
   takLead: "Vi har din forespørgsel. Inden tre dage skriver vi tilbage, om pladsen er din.",
   opholdFuldt: "Opholdet er fuldt. Vi tager ikke flere forespørgsler på den her dato.",
   opholdIkkeAabent: "Det ophold kan ikke forespørges på.",
+  forespørgUdløbet: "Formularen er udløbet. Prøv igen.",
+  forespørgForMange: "Du har sendt for mange forespørgsler. Vent en time og prøv igen.",
+  findesIkke: "Siden findes ikke.",
   // Forespurgt er IKKE det samme som bekræftet — men den holder en plads
   // (0007_ophold.sql). Derfor står tallet, og det ubesvarede står ved siden af.
   opholdHeraf: (n) => `heraf ${n === 1 ? "én ubesvaret" : `${n} ubesvarede`}`,
