@@ -60,13 +60,19 @@ Bemærk `/sporene.html`: Workeren fanger også filnavnet, så selv den direkte v
 til filen giver den levende side. Du kan altså ikke omgå den ved at skrive `.html`
 i adresselinjen.
 
+**Fælden i ø:** den offentlige formular ligger på `/sporene/foresporg/{id}`
+(ASCII). Href, canonical og POST-action er den sti. `/sporene/forespørg/{id}`
+og den procent-kodede ø 301'er (POST: 308). En ukendt `/sporene/...` er 404 —
+ikke listen med 200. Det stod forkert: ASCII gav listen (soft-200), HEAD på ø
+gav 404. Matcher og generator er `FORESPORG_STI` i `ophold-sider.js`.
+
 ---
 
 ## Byg og prøv
 
 ```
 python3 build.py                 # skriver siderne + fire genererede JS-moduler
-node vh-worker/test/koer.mjs     # 358 prøver (#57). Kører i CI på hver PR — se «Porten»
+node vh-worker/test/koer.mjs     # 447 prøver. Kører i CI på hver PR — se «Porten»
 bash vh-worker/test/flader.sh    # måler den levende flade
 ```
 
@@ -108,6 +114,8 @@ De står, fordi de er blevet brudt. Fjern dem ikke, fordi de ser overflødige ud
 | `.assetsignore` | roden | `[assets] directory = "../"` uploader **hele repoet**. Uden filen lå `/.git/`, `/vh-worker/src/`, `wrangler.toml` og `build.py` åbent på vendhjem.dk. Målt 17.09.2026 (S594). |
 | Sti-hegnet i `build.py` | `RELATIV` / `_find_relative` | En relativ sti virker på `/fundamentet` og knækker på `/internt/timer`. Bygget i PR #30. **Det tjekker at en sti er absolut — ikke at den peger på noget, der findes.** Jeg lavede præcis den fejl selv i #30; Haruki fandt den. |
 | Overlaps- og kapacitets-triggere | `0007_ophold.sql` | To ophold må ikke dække samme nat, og et ophold må ikke overbookes. Håndhævet i databasen, ikke i app-kode. **De fyrer også ved en gendannelse** og afviser så den kalender, de beskytter — målt 18.09.2026, første gang nogen læste en kopi tilbage. Derfor gemmer kopien triggerne, og `genskabSql` tager dem ned omkring indsættelsen og sætter dem op igen. Prøve 37 gør det ved hver kørsel. |
+| Forespørg-hegnet | `0016_foresporg_hegn.sql` + `hegn.js` | Offentlig POST uden login. CSRF (signeret felt + SameSite-cookie), honningkrukke, rate pr. IP/mail i D1. Uden dem er kalenderen en sluse til `people` og Resend. |
+| Sikkerhedshoveder | `hegn.js` `medSikkerhed` | CSP, HSTS, X-Frame-Options, Referrer-Policy, X-Content-Type-Options på alle Worker-svar. Cookies var allerede HttpOnly/Secure/SameSite=Lax. CSP tillader `'unsafe-inline'` fordi /mit har inline script (SW + passkeys). |
 | Access på `/internt` **og** `www.vendhjem.dk/internt` | Cloudflare | www-varianten lå åben i et døgn i september. `udrul.yml` måler begge i sit readback. |
 
 `.assetsignore` er en **deny-liste**. En ny fil i roden er offentlig, indtil nogen

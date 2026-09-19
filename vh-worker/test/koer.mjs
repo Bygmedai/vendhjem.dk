@@ -27,8 +27,9 @@ const timerSql = readFileSync(new URL("../migrations/0012_timer.sql", import.met
 const loginSql = readFileSync(new URL("../migrations/0013_login_forsoeg.sql", import.meta.url), "utf8");
 const fundSql = readFileSync(new URL("../migrations/0014_fund.sql", import.meta.url), "utf8");
 const vagterSql = readFileSync(new URL("../migrations/0015_vagter.sql", import.meta.url), "utf8");
+const foresporgHegnSql = readFileSync(new URL("../migrations/0016_foresporg_hegn.sql", import.meta.url), "utf8");
 const SKELET = [init, seed, peopleSql, mitSql, korpusSql, fondeE2, opholdSql, foresporgSql];
-const MIGRATIONER = [...SKELET, kalenderSql, breveSql, timerSql, loginSql, fundSql, vagterSql];
+const MIGRATIONER = [...SKELET, kalenderSql, breveSql, timerSql, loginSql, fundSql, vagterSql, foresporgHegnSql];
 
 let ok = 0, fejl = 0;
 const t = (navn, betingelse, ekstra = "") => {
@@ -95,6 +96,26 @@ const stiFraUrl = (u) => {
   const x = new URL(u);
   return x.pathname + x.search;
 };
+
+function csrfFra(html) {
+  const m = String(html).match(/name="_csrf" value="([^"]+)"/);
+  return m ? m[1] : "";
+}
+
+async function sendForesporg(sti, felter, extra = {}) {
+  const get = await hent(sti, extra.headers ? { headers: extra.headers } : undefined);
+  const getHtml = await tekst(get);
+  const jar = new Jar();
+  jar.eat(get);
+  const headers = new Headers(extra.headers || {});
+  if (!extra.udenCookie && jar.header()) headers.set("Cookie", jar.header());
+  const body = new URLSearchParams({
+    _csrf: extra.udenCsrf ? "" : (extra.csrf ?? csrfFra(getHtml)),
+    ...felter,
+  });
+  if (extra.website != null) body.set("website", extra.website);
+  return hent(sti, { method: "POST", headers, body });
+}
 
 console.log("\n1 · Oversigten");
 {
@@ -340,7 +361,7 @@ console.log("\n13 · Fladekontrakt (BYG-565 G1)");
   t("fondsfladen indfører ingen farve uden for paletten",
      farver.ok, JSON.stringify(farver));
 
-  const kilder = ["flade.js", "sider.js", "views.js", "index.js", "tekst.js", "mit.js", "session.js", "mail.js", "webauthn.js", "krypto.js", "korpus.js", "runde.js", "ophold.js", "ophold-sider.js", "breve.js", "fotos.js", "fod.js", "stigen.js", "sikkerhedskopi.js", "fund.js", "aftalt.js"]
+  const kilder = ["flade.js", "sider.js", "views.js", "index.js", "tekst.js", "mit.js", "session.js", "mail.js", "webauthn.js", "krypto.js", "korpus.js", "runde.js", "ophold.js", "ophold-sider.js", "breve.js", "fotos.js", "fod.js", "stigen.js", "sikkerhedskopi.js", "fund.js", "aftalt.js", "hegn.js"]
     .map((f) => readFileSync(new URL(`../src/${f}`, import.meta.url), "utf8")).join("\n");
   const kildeFarver = farverUdenforPalet(kilder, css);
   t("flade-kilden indfører ingen farve uden for paletten",
@@ -888,25 +909,27 @@ console.log("\n24 · Forespørgsel (BYG-562 C2)");
 
   const sporene = await tekst(await hent("/sporene"));
   t("åbent ophold har forespørg-knap på /sporene",
-     sporene.includes(`/sporene/forespørg/${april.id}`), sporene.slice(0, 400));
+     sporene.includes(`/sporene/foresporg/${april.id}`), sporene.slice(0, 400));
+  t("knappen bruger ASCII-slug, ikke ø",
+     !sporene.includes(`/sporene/forespørg/${april.id}`));
 
-  const form = await hent(`/sporene/forespørg/${april.id}`);
+  const form = await hent(`/sporene/foresporg/${april.id}`);
   const formHtml = await tekst(form);
   t("formularen svarer 200 uden Access", form.status === 200, form.status);
+  t("formularen hedder Forespørg", /<title>Forespørg/i.test(formHtml), formHtml.slice(0, 180));
   t("formularen har navn, mail og fritekst",
      /name="navn"/.test(formHtml) && /name="mail"/.test(formHtml) && /name="besked"/.test(formHtml));
+  t("formularen har CSRF og honningkrukke",
+     /name="_csrf"/.test(formHtml) && /name="website"/.test(formHtml));
   t("formularen har ikke telefon, adresse eller attribution",
      !/name="telefon"/.test(formHtml) && !/name="adresse"/.test(formHtml) &&
      !/hørte du/i.test(formHtml) && !/name="kilde"/.test(formHtml));
 
   mails.length = 0;
-  const ukendt = await hent(`/sporene/forespørg/${april.id}`, {
-    method: "POST",
-    body: new URLSearchParams({
-      navn: "Anna Ny",
-      mail: "anna.ny@example.com",
-      besked: "Kommer med tog til Stigsnæs",
-    }),
+  const ukendt = await sendForesporg(`/sporene/foresporg/${april.id}`, {
+    navn: "Anna Ny",
+    mail: "anna.ny@example.com",
+    besked: "Kommer med tog til Stigsnæs",
   });
   const ukendtHtml = await tekst(ukendt);
   t("ukendt person får kvittering på skærmen",
@@ -930,9 +953,8 @@ console.log("\n24 · Forespørgsel (BYG-562 C2)");
     `SELECT COUNT(*) n FROM people WHERE lower(mail) = 'steven@bygmedai.dk'`
   ).first();
   mails.length = 0;
-  const kendt = await hent(`/sporene/forespørg/${april.id}`, {
-    method: "POST",
-    body: new URLSearchParams({ navn: "Steven Wensley", mail: "steven@bygmedai.dk" }),
+  const kendt = await sendForesporg(`/sporene/foresporg/${april.id}`, {
+    navn: "Steven Wensley", mail: "steven@bygmedai.dk",
   });
   const folkEfter = await db.prepare(
     `SELECT COUNT(*) n FROM people WHERE lower(mail) = 'steven@bygmedai.dk'`
@@ -945,9 +967,8 @@ console.log("\n24 · Forespørgsel (BYG-562 C2)");
      JSON.stringify({ status: kendt.status, foer: folkFoer.n, efter: folkEfter.n, plads: stevenPlads }));
 
   mails.length = 0;
-  const dobbelt = await hent(`/sporene/forespørg/${april.id}`, {
-    method: "POST",
-    body: new URLSearchParams({ navn: "Anna Ny", mail: "anna.ny@example.com" }),
+  const dobbelt = await sendForesporg(`/sporene/foresporg/${april.id}`, {
+    navn: "Anna Ny", mail: "anna.ny@example.com",
   });
   const annaIgen = await db.prepare(
     `SELECT COUNT(*) n FROM people WHERE lower(mail) = 'anna.ny@example.com'`
@@ -968,10 +989,9 @@ console.log("\n24 · Forespørgsel (BYG-562 C2)");
 
   const sporeneFuld = await tekst(await hent("/sporene"));
   t("fuldt ophold har ingen forespørg-knap",
-     !sporeneFuld.includes("/sporene/forespørg/op-fuld-c2"));
-  const fuldPost = await hent("/sporene/forespørg/op-fuld-c2", {
-    method: "POST",
-    body: new URLSearchParams({ navn: "Ude Lukket", mail: "ude.lukket@example.com" }),
+     !sporeneFuld.includes("/sporene/foresporg/op-fuld-c2"));
+  const fuldPost = await sendForesporg("/sporene/foresporg/op-fuld-c2", {
+    navn: "Ude Lukket", mail: "ude.lukket@example.com",
   });
   const ude = await db.prepare(
     `SELECT COUNT(*) n FROM people WHERE lower(mail) = 'ude.lukket@example.com'`
@@ -1006,9 +1026,8 @@ console.log("\n24 · Forespørgsel (BYG-562 C2)");
 
   const gammelSink = env.mailSink;
   env.mailSink = async () => { throw new Error("Resend svarede 500: test-fejl"); };
-  const mailFejl = await hent(`/sporene/forespørg/${april.id}`, {
-    method: "POST",
-    body: new URLSearchParams({ navn: "Bo Fejl", mail: "bo.fejl@example.com" }),
+  const mailFejl = await sendForesporg(`/sporene/foresporg/${april.id}`, {
+    navn: "Bo Fejl", mail: "bo.fejl@example.com",
   });
   env.mailSink = gammelSink;
   const bo = await db.prepare(
@@ -1029,7 +1048,7 @@ console.log("\n24 · Forespørgsel (BYG-562 C2)");
 
   const udenAccess = { ...env, LOKAL_TEST: undefined };
   t("forespørgsel er offentlig",
-     (await worker.fetch(new Request(BASE + `/sporene/forespørg/${april.id}`), udenAccess, {})).status === 200);
+     (await worker.fetch(new Request(BASE + `/sporene/foresporg/${april.id}`), udenAccess, {})).status === 200);
 
   mails.length = 0;
   const jarMit = new Jar();
@@ -1041,7 +1060,7 @@ console.log("\n24 · Forespørgsel (BYG-562 C2)");
   const magic = mails[0];
   const magicUrl = linkIMail(magic);
   await jarMit.hent(magicUrl ? stiFraUrl(magicUrl) : "/mit/link/mangler");
-  const indeForm = await tekst(await jarMit.hent(`/sporene/forespørg/${april.id}`));
+  const indeForm = await tekst(await jarMit.hent(`/sporene/foresporg/${april.id}`));
   t("logget ind via /mit: navn og mail er kendt",
      indeForm.includes("Steven Wensley") && indeForm.includes("steven@bygmedai.dk") &&
      !/<input[^>]*name="navn"[^>]*required/i.test(indeForm),
@@ -2212,9 +2231,8 @@ console.log("\n41 · Nejet bliver sendt, og en ubesvaret forespoergsel ligner ik
   t("der findes et aabent ophold at proeve paa", Boolean(aabent), JSON.stringify(aabent || {}));
 
   mails.length = 0;
-  const foresp = await hent(`/sporene/forespørg/${aabent.id}`, {
-    method: "POST",
-    body: new URLSearchParams({ navn: "Ane Spoerger", mail: "ane.spoerger@example.dk" }),
+  const foresp = await sendForesporg(`/sporene/foresporg/${aabent.id}`, {
+    navn: "Ane Spoerger", mail: "ane.spoerger@example.dk",
   });
   t("en forespoergsel kan sendes", foresp.status === 200 || foresp.status === 303, String(foresp.status));
   t("og kvitteringen lander hos den, der spurgte", mails.some((m) => /ane\.spoerger/.test(JSON.stringify(m))),
@@ -2259,8 +2277,8 @@ console.log("\n41 · Nejet bliver sendt, og en ubesvaret forespoergsel ligner ik
 
   // --- Det vigtige skel: et afbud fra dem selv er ikke et nej fra os ---
   mails.length = 0;
-  await hent(`/sporene/forespørg/${aabent.id}`, {
-    method: "POST", body: new URLSearchParams({ navn: "Bo Selvafbud", mail: "bo.selv@example.dk" }),
+  await sendForesporg(`/sporene/foresporg/${aabent.id}`, {
+    navn: "Bo Selvafbud", mail: "bo.selv@example.dk",
   });
   const selv = await db.prepare(
     `SELECT * FROM people WHERE lower(mail) = 'bo.selv@example.dk'`).first();
@@ -2274,6 +2292,118 @@ console.log("\n41 · Nejet bliver sendt, og en ubesvaret forespoergsel ligner ik
   t("melder man selv afbud fra en bekraeftet plads, faar man IKKE et afslag",
      !mails.some((m) => /kan ikke give dig en plads/.test(m.text || "")),
      JSON.stringify(mails).slice(0, 200));
+}
+
+console.log("\n42 · Hegn om forespørgslen og sikkerhedshoveder");
+{
+  const db = env.FONDE_DB;
+  const april = await db.prepare(
+    `SELECT id FROM ophold WHERE start_dato = '2027-04-16' AND type_id = 'ot-mandegrupper'`
+  ).first();
+  const ascii = `/sporene/foresporg/${april.id}`;
+  const oe = `/sporene/forespørg/${april.id}`;
+
+  const omdiriger = await hent(oe);
+  t("ø-slug 301'er til ASCII",
+     omdiriger.status === 301 && omdiriger.headers.get("Location") === ascii,
+     `${omdiriger.status} ${omdiriger.headers.get("Location")}`);
+
+  const encoded = await worker.fetch(
+    new Request(BASE + `/sporene/foresp%C3%B8rg/${april.id}`), env, {});
+  t("procent-kodet ø 301'er til ASCII",
+     encoded.status === 301 && encoded.headers.get("Location") === ascii,
+     `${encoded.status} ${encoded.headers.get("Location")}`);
+
+  const headOe = await worker.fetch(
+    new Request(BASE + oe, { method: "HEAD" }), env, {});
+  t("HEAD på ø er 301, ikke 404",
+     headOe.status === 301 && headOe.headers.get("Location") === ascii,
+     String(headOe.status));
+
+  const headAscii = await worker.fetch(
+    new Request(BASE + ascii, { method: "HEAD" }), env, {});
+  t("HEAD på ASCII er formularen", headAscii.status === 200, String(headAscii.status));
+
+  const bogus = await hent("/sporene/findes-ikke-xyz");
+  const bogusHtml = await tekst(bogus);
+  t("ukendt understi er 404", bogus.status === 404, String(bogus.status));
+  t("ukendt understi er ikke listen (ingen soft-200)",
+     /Siden findes ikke/.test(bogusHtml) && !/Det, der sker på stedet/.test(bogusHtml),
+     bogusHtml.slice(0, 240));
+
+  const postOe = await worker.fetch(new Request(BASE + oe, {
+    method: "POST", body: new URLSearchParams({ navn: "x", mail: "x@y.dk" }),
+  }), env, {});
+  t("POST på ø er 308 til ASCII, så en åben fane ikke mister kroppen",
+     postOe.status === 308 && postOe.headers.get("Location") === ascii,
+     `${postOe.status} ${postOe.headers.get("Location")}`);
+
+  const udenCsrf = await hent(ascii, {
+    method: "POST",
+    body: new URLSearchParams({ navn: "Spam Curl", mail: "spam.csrf@example.com" }),
+  });
+  const spam = await db.prepare(
+    `SELECT COUNT(*) n FROM people WHERE lower(mail) = 'spam.csrf@example.com'`
+  ).first();
+  t("POST uden CSRF afvises og opretter ingen",
+     udenCsrf.status === 400 && spam.n === 0,
+     JSON.stringify({ status: udenCsrf.status, personer: spam.n }));
+
+  const udenCookie = await sendForesporg(ascii, {
+    navn: "Uden Cookie", mail: "uden.cookie@example.com",
+  }, { udenCookie: true });
+  const udenCookieP = await db.prepare(
+    `SELECT COUNT(*) n FROM people WHERE lower(mail) = 'uden.cookie@example.com'`
+  ).first();
+  t("POST med felt men uden cookie afvises",
+     udenCookie.status === 400 && udenCookieP.n === 0,
+     JSON.stringify({ status: udenCookie.status, personer: udenCookieP.n }));
+
+  mails.length = 0;
+  const honning = await sendForesporg(ascii, {
+    navn: "Bot Honning", mail: "bot.honning@example.com",
+  }, { website: "https://spam.example" });
+  const honningHtml = await tekst(honning);
+  const bot = await db.prepare(
+    `SELECT COUNT(*) n FROM people WHERE lower(mail) = 'bot.honning@example.com'`
+  ).first();
+  t("honningkrukke svarer som tak uden at oprette eller maile",
+     honning.status === 200 && /tak/i.test(honningHtml) && bot.n === 0 && mails.length === 0,
+     JSON.stringify({ status: honning.status, personer: bot.n, mails: mails.length }));
+
+  const { logForesporgForsoeg, FORESPORG_IP_MAX } = await import("../src/db.js");
+  for (let i = 0; i < FORESPORG_IP_MAX; i++) {
+    await logForesporgForsoeg(db, { ip: "203.0.113.9" });
+  }
+  const rate = await sendForesporg(ascii, {
+    navn: "Rate Hegn", mail: "rate.hegn@example.com",
+  }, { headers: { "CF-Connecting-IP": "203.0.113.9" } });
+  const rateP = await db.prepare(
+    `SELECT COUNT(*) n FROM people WHERE lower(mail) = 'rate.hegn@example.com'`
+  ).first();
+  t("for mange fra samme IP afvises",
+     rate.status === 429 && rateP.n === 0,
+     JSON.stringify({ status: rate.status, personer: rateP.n }));
+
+  const spor = await hent("/sporene");
+  const sporHtml = await tekst(spor);
+  t("CSP står på HTML",
+     (spor.headers.get("content-security-policy") || "").includes("default-src 'self'"),
+     spor.headers.get("content-security-policy"));
+  t("HSTS står på HTML",
+     (spor.headers.get("strict-transport-security") || "").includes("max-age=31536000"));
+  t("X-Frame-Options DENY", spor.headers.get("x-frame-options") === "DENY");
+  t("Referrer-Policy", spor.headers.get("referrer-policy") === "strict-origin-when-cross-origin");
+  t("X-Content-Type-Options nosniff", spor.headers.get("x-content-type-options") === "nosniff");
+
+  const mit = await hent("/mit");
+  t("samme hegn på /mit (PWA/passkeys må ikke miste connect-src self)",
+     (mit.headers.get("content-security-policy") || "").includes("connect-src 'self'") &&
+     mit.headers.get("x-content-type-options") === "nosniff");
+
+  t("OG/Twitter genbruger den eksisterende description",
+     sporHtml.includes('property="og:description" content="Det, der sker på stedet:') &&
+     sporHtml.includes('name="twitter:description" content="Det, der sker på stedet:'));
 }
 
 console.log(`\n${ok} bestået, ${fejl} fejlet\n`);

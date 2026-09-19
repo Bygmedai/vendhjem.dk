@@ -594,6 +594,60 @@ export async function skrivAf(db, vagt_id, person_id) {
   return { ok: true };
 }
 
+// ── Forespørgsel: rate (19.09.2026) ──────────────────────────────────────────
+//
+// POST /sporene/foresporg var åben. Samme mønster som login_forsoeg: D1
+// husker forsøgene, JavaScript tæller, skemaet gemmer. 12 pr. IP / 5 pr.
+// mail pr. time er nok til et menneske, der retter en tastefejl, og for lidt
+// til en slange, der fylder people og Resend.
+
+export const FORESPORG_IP_MAX = 12;
+export const FORESPORG_MAIL_MAX = 5;
+const FORESPORG_VINDUE_MS = 3600 * 1000;
+const FORESPORG_GEM_MS = 2 * 86400 * 1000;
+
+export async function tjekForesporgRate(db, { ip, mail }) {
+  const siden = new Date(Date.now() - FORESPORG_VINDUE_MS).toISOString();
+  let ipN = 0;
+  let mailN = 0;
+  if (ip) {
+    const r = await db.prepare(
+      `SELECT COUNT(*) n FROM foresporg_forsoeg
+        WHERE slags = 'ip' AND noegle = ?1 AND oprettet >= ?2`
+    ).bind(String(ip).slice(0, 64), siden).first();
+    ipN = r?.n ?? 0;
+  }
+  if (mail) {
+    const r = await db.prepare(
+      `SELECT COUNT(*) n FROM foresporg_forsoeg
+        WHERE slags = 'mail' AND noegle = ?1 AND oprettet >= ?2`
+    ).bind(String(mail).toLowerCase().slice(0, 200), siden).first();
+    mailN = r?.n ?? 0;
+  }
+  return {
+    ok: ipN < FORESPORG_IP_MAX && mailN < FORESPORG_MAIL_MAX,
+    ipN,
+    mailN,
+  };
+}
+
+export async function logForesporgForsoeg(db, { ip = null, mail = null }) {
+  const graense = new Date(Date.now() - FORESPORG_GEM_MS).toISOString();
+  const stmts = [];
+  if (ip) {
+    stmts.push(db.prepare(
+      `INSERT INTO foresporg_forsoeg (id, slags, noegle, oprettet) VALUES (?1, 'ip', ?2, ?3)`
+    ).bind(id(), String(ip).slice(0, 64), nu()));
+  }
+  if (mail) {
+    stmts.push(db.prepare(
+      `INSERT INTO foresporg_forsoeg (id, slags, noegle, oprettet) VALUES (?1, 'mail', ?2, ?3)`
+    ).bind(id(), String(mail).toLowerCase().slice(0, 200), nu()));
+  }
+  stmts.push(db.prepare(`DELETE FROM foresporg_forsoeg WHERE oprettet < ?1`).bind(graense));
+  if (stmts.length) await db.batch(stmts);
+}
+
 /** Tal til /internt: hvor mange kommende vagter, og hvor mange pladser der mangler. */
 export async function vagtTal(db, fra_dato) {
   const r = await db.prepare(

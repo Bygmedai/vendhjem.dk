@@ -20,6 +20,7 @@ import {
 import { erSporene, erOphold, besvarSporene, besvarOphold } from "./ophold.js";
 import { erSkriv, erBreve, besvarSkriv, besvarBreve } from "./breve.js";
 import { erKopi, besvarKopi } from "./kopi-side.js";
+import { medSikkerhed } from "./hegn.js";
 
 const ROD = FONDE;
 
@@ -57,6 +58,11 @@ export default {
   },
 
   async fetch(request, env, ctx) {
+    return medSikkerhed(await besvar(request, env, ctx));
+  },
+};
+
+async function besvar(request, env, ctx) {
     const url = new URL(request.url);
 
     // www har sin egen vaert og var IKKE daekket af Access, som er bundet til
@@ -402,5 +408,4 @@ export default {
         indhold: fejlTilstand({ detalje: String(e.message || e) }),
       }), 500);
     }
-  },
-};
+}
