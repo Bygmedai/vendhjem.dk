@@ -1645,6 +1645,13 @@ console.log("\n33 · Sitet lover ikke en side, der ikke er der");
   t("sitemap er genereret, ikke håndholdt — alle offentlige sider står i den",
      ["", "fundamentet", "sporene", "permakultur", "maend", "bliv-en-del", "privatlivspolitik", "cookies"]
        .every((sti) => sitemap.includes(`https://vendhjem.dk/${sti}<`)));
+
+  const cookies = l("cookies.html");
+  t("cookies-siden påstår ikke, at sitet sætter ingen cookies",
+     !/Sitet sætter ingen cookies/.test(cookies) &&
+     cookies.includes("vh_session") &&
+     cookies.includes("vh_csrf") &&
+     /HttpOnly/.test(cookies));
 }
 
 console.log("\n34 · Natten flyttede derhen, hvor den kan læses");
@@ -1794,9 +1801,10 @@ console.log("\n36 · Ingen gammel adresse peger ud i ingenting");
   // der. Kortet var tegnet efter en aeldre navngivning end sitets egen.
   //
   // Cloudflare matcher paa den eksakte sti, saa `/blog` og `/blog.html` er to
-  // adresser. Begge er blevet delt. Proeven kraever derfor begge former, og
-  // den kraever at hver kilde peger paa noget, der findes — ellers er kortet
-  // en paastand om et site, der ikke er her mere.
+  // adresser. Begge er blevet delt. Proeven kraever derfor begge former.
+  // HTML-filerne for de gamle sider er vaek med vilje (stale cut 20.09.2026);
+  // det, der skal findes, er destinationen — ellers er kortet en paastand
+  // om et site, der ikke er her mere.
   const rod = new URL("../../", import.meta.url);
   const { readdirSync, existsSync: findes } = await import("node:fs");
   const linjer = readFileSync(new URL("_redirects", rod), "utf8")
@@ -1820,10 +1828,31 @@ console.log("\n36 · Ingen gammel adresse peger ud i ingenting");
   t("hver foraeldreloes side har en adresse — i BEGGE former",
      uden.length === 0, uden.length ? `mangler: ${uden.join(", ")}` : "");
 
-  const doede = [...kilder].filter((k) =>
-    k.endsWith(".html") && !findes(new URL(k.slice(1), rod)));
-  t("ingen linje peger paa en fil, der ikke findes",
-     doede.length === 0, doede.length ? `doede kilder: ${doede.join(", ")}` : "");
+  const pensionerede = [
+    "agersoe", "blog", "faellesskab", "finddinvej", "integral",
+    "integral-kvadranter", "integral-linjer", "integral-niveauer",
+    "integral-tilstande", "integral-typer", "refleksion",
+  ];
+  const manglerForm = pensionerede.filter((n) =>
+    !kilder.has("/" + n) || !kilder.has("/" + n + ".html"));
+  t("pensionerede adresser har stadig begge former, selv uden HTML",
+     manglerForm.length === 0,
+     manglerForm.length ? `mangler: ${manglerForm.join(", ")}` : "");
+
+  const workerSti = (sti) => sti === "/mit" || sti.startsWith("/mit/") ||
+    sti === "/internt" || sti.startsWith("/internt/");
+  const maalFindes = (maal) => {
+    if (!maal.startsWith("/")) return true;
+    const sti = maal.split("?")[0].replace(/\/$/, "") || "/";
+    if (sti === "/") return findes(new URL("index.html", rod));
+    if (workerSti(sti)) return true;
+    const html = sti.slice(1) + ".html";
+    return LEVENDE.has(html) && findes(new URL(html, rod));
+  };
+  const doedeMaal = linjer.filter((l) => !maalFindes(l.split(/\s+/)[1] || ""));
+  t("hver intern destination findes eller er en Worker-sti",
+     doedeMaal.length === 0,
+     doedeMaal.length ? `doede maal: ${doedeMaal.join(" | ")}` : "");
 
   t("og proeven bider: en opdigtet gammel side ville mangle",
      !kilder.has("/noget-der-aldrig-fandtes.html"));

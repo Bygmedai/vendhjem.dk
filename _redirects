@@ -15,9 +15,10 @@
 # -niveauer, -tilstande, -typer — 404 i begge former. Kortet var tegnet efter
 # en aeldre navngivning end sitets egen.
 #
-# Proeve 36 i vh-worker/test/koer.mjs holder de to ting i skak: hver kilde her
-# skal pege paa en fil der findes, og hver foraeldreloes side skal have en
-# adresse i begge former.
+# Proeve 36 i vh-worker/test/koer.mjs holder de to ting i skak: hver intern
+# destination skal findes (eller vaere en Worker-sti), og hver pensioneret
+# adresse skal have begge former. HTML-filerne for de gamle sider er vaek;
+# linjerne her er det, der fanger et bogmaerke.
 
 # Det integrale materiale — samlet paa /fundamentet
 /integral.html /fundamentet 301
