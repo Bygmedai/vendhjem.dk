@@ -72,7 +72,7 @@ gav 404. Matcher og generator er `FORESPORG_STI` i `ophold-sider.js`.
 
 ```
 python3 build.py                 # skriver siderne + fire genererede JS-moduler
-node vh-worker/test/koer.mjs     # 447 prøver. Kører i CI på hver PR — se «Porten»
+node vh-worker/test/koer.mjs     # 449 prøver. Kører i CI på hver PR — se «Porten»
 bash vh-worker/test/smoke-hegn.sh  # curl mod Worker under test (ASCII/301/404/CSRF)
 bash vh-worker/test/flader.sh    # måler den levende flade
 ```
