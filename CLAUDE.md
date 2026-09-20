@@ -72,7 +72,7 @@ gav 404. Matcher og generator er `FORESPORG_STI` i `ophold-sider.js`.
 
 ```
 python3 build.py                 # skriver siderne + fire genererede JS-moduler
-node vh-worker/test/koer.mjs     # 447 prøver. Kører i CI på hver PR — se «Porten»
+node vh-worker/test/koer.mjs     # 449 prøver. Kører i CI på hver PR — se «Porten»
 bash vh-worker/test/smoke-hegn.sh  # curl mod Worker under test (ASCII/301/404/CSRF)
 bash vh-worker/test/flader.sh    # måler den levende flade
 ```
@@ -305,17 +305,14 @@ bliver til en overraskelse.
 4. **GitHub Pages kører stadig** og bygger repoet på hver merge. `.assetsignore`
    gælder ikke der. Hullet er lukket af en 301 til vendhjem.dk (målt), altså af
    `CNAME` og af at Cloudflare ejer DNS'en. Pages gør ikke andet nyttigt.
-5. **23 forældreløse HTML-filer** — 11 i roden, 12 i `design/`. `build.py` rører
-   dem ikke, ingen side linker til dem, og de står ikke i sitemap. Men porten
-   validerer dem, og de bærer copy, ingen har godkendt.
-
-   **[Haruki 18.09]** «404 på fladen» er ikke rigtigt, og forskellen er værd at
-   kende. De er på `.assetsignore`, så de serveres ikke — men ti af dem fanges af
-   `_redirects` og svarer **301** til en nulevende side (`/agersoe.html` →
-   `/sporene`, `/blog.html` → `/`, `/finddinvej.html` → humandirection.dk). De fem
-   `integral-*.html` (kvadranter, linjer, niveauer, tilstande, typer) har **ingen**
-   redirect og svarer 404. Har de fem adresser været delt et sted, er det fem døde
-   links, der kunne have været 301.
+5. ~~**23 forældreløse HTML-filer**~~ **LUKKET 20.09.2026 [Topper].** De elleve
+   i roden (`agersoe`, `blog`, `faellesskab`, `finddinvej`, `integral`,
+   `integral-*`, `refleksion`) og de tolv i `design/` er slettet. `_redirects`
+   fanger de gamle adresser i begge former. Det, der blev stående, er det
+   `build.py` stadig skriver, plus `mit-offline.html` (service worker).
+   `cookies.html` sagde «ingen cookies»; det er rettet til `vh_session`,
+   `vh_enhed`, `vh_csrf` og Access. GitHub Pages kører stadig — Steven: sluk
+   Pages.
 
 6. **[Haruki 18.09] `.assetsignore` er en deny-liste, og det er mekanikken, der
    betyder noget.** `/stigen.json` og `/images/sted/_manifest.json` svarede 200.

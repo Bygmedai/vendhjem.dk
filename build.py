@@ -859,8 +859,10 @@ pages["bliv-en-del.html"] = head("Bliv en del · Vend Hjem", "Forløbet fra brev
 # ─────────────────────── PRIVATLIV OG COOKIES ───────────────────────
 # De gamle sider laa stadig live og beskrev et site, der ikke findes mere:
 # YouTube-videoer paa forsiden, CDN-biblioteker og en formular med telefon
-# og "interessefelt". Maalt 15-09-2026: sitet henter fra vendhjem.dk og
-# static.cloudflareinsights.com, og saetter ingen cookies.
+# og "interessefelt". Cookies-paastanden fra 15-09-2026 («sitet saetter
+# ingen cookies») er forkert efter /mit og CSRF: vh_session, vh_enhed,
+# vh_csrf (alle HttpOnly/Secure/SameSite=Lax i krypto.js) plus
+# CF_Authorization fra Access. Maalt i koden 20-09-2026.
 pages["privatlivspolitik.html"] = head("Privatlivspolitik · Vend Hjem", "Hvilke oplysninger vi behandler, hvorfor, og hvor længe.", "privatlivspolitik.html") + '''
 <section class="stage stage-n sektion">
 <p class="sec">Privatlivspolitik</p>
@@ -887,22 +889,26 @@ pages["privatlivspolitik.html"] = head("Privatlivspolitik · Vend Hjem", "Hvilke
 </section>
 ''' + foot()
 
-pages["cookies.html"] = head("Cookies · Vend Hjem", "Sitet sætter ingen cookies. Her står, hvad der så hentes udefra.", "cookies.html") + '''
+pages["cookies.html"] = head("Cookies · Vend Hjem", "Hvilke cookies sitet sætter, og hvorfor.", "cookies.html") + '''
 <section class="stage stage-n sektion">
 <p class="sec">Cookies</p>
-<h1 class="stor">Sitet sætter ingen cookies.</h1>
-<p class="meta mt3">Senest opdateret 15. september 2026 · målt samme dag</p>
+<h1 class="stor">Sitet sætter cookies, når du logger ind eller sender en forespørgsel.</h1>
+<p class="meta mt3">Senest opdateret 20. september 2026 · målt i koden samme dag</p>
 
-<p class="lead mt4">Ingen sporings-cookies, ingen analyse-cookies, ingen samtykkeboks - fordi der ikke er noget at give samtykke til. Ingen Google Analytics, ingen Facebook-pixel, ingen profilering.</p>
+<p class="lead mt4">Ingen sporings-cookies, ingen analyse-cookies, ingen profilering. De cookies, vi sætter, er nødvendige for login og for at den offentlige formular ikke kan sendes fra et andet site.</p>
 
 <div class="stak mt4">
-<div><p class="sec">Hvad der hentes udefra</p><p class="small">Skrifttyper og video ligger på vores eget domæne. Det eneste, der hentes et andet sted fra, er Cloudflares besøgstælling fra <span class="mono">static.cloudflareinsights.com</span>. Den tæller sidevisninger uden cookies og uden at følge dig mellem sites.</p></div>
+<div><p class="sec">vh_session</p><p class="small">Sættes, når du logger ind på <span class="mono">/mit</span>. Holder dig logget ind i 90 dage. HttpOnly, Secure, SameSite=Lax. Gælder på hele sitet, så /sporene kan se, at du er inde.</p></div>
 
-<div><p class="sec">Log hos vores udbyder</p><p class="small">Cloudflare leverer sitet og logger som enhver webserver IP-adresse, tidspunkt og hvilken side der blev hentet, af drifts- og sikkerhedshensyn. Det er ikke noget, vi bruger til at genkende dig.</p></div>
+<div><p class="sec">vh_enhed</p><p class="small">Sættes, når du beder om et login-link. Binder linket til den browser, der bad om det, i én time. HttpOnly, Secure, SameSite=Lax. Gælder kun under /mit.</p></div>
 
-<div><p class="sec">Bag login</p><p class="small">Logger du ind på de interne sider, sætter Cloudflare Access en cookie, som holder dig logget ind. Den er nødvendig for at siderne virker, og den findes kun for medlemmer.</p></div>
+<div><p class="sec">vh_csrf</p><p class="small">Sættes, når du åbner en forespørgsel på <a href="/sporene">/sporene</a>. Tjekker, at formularen kommer herfra. Lever 8 timer. HttpOnly, Secure, SameSite=Lax. Gælder kun under /sporene.</p></div>
 
-<div><p class="sec">Sådan styrer du det</p><p class="small">Du kan altid slette eller blokere cookies i din browsers indstillinger. Datatilsynet har en vejledning på <a href="https://www.datatilsynet.dk/">datatilsynet.dk</a>.</p></div>
+<div><p class="sec">CF_Authorization</p><p class="small">Sættes af Cloudflare Access, ikke af os, når du logger ind på de interne sider. Holder dig inde bag Access. Vi læser den; vi sætter den ikke.</p></div>
+
+<div><p class="sec">Hvad der hentes udefra</p><p class="small">Skrifttyper og video ligger på vores eget domæne. Cloudflare leverer sitet og logger IP-adresse, tidspunkt og hvilken side der blev hentet, af drifts- og sikkerhedshensyn. Det er ikke noget, vi bruger til at genkende dig.</p></div>
+
+<div><p class="sec">Sådan styrer du det</p><p class="small">Du kan slette eller blokere cookies i din browsers indstillinger. Datatilsynet har en vejledning på <a href="https://www.datatilsynet.dk/">datatilsynet.dk</a>.</p></div>
 </div>
 
 <p class="meta mt4"><a href="/privatlivspolitik">Privatlivspolitik →</a></p>

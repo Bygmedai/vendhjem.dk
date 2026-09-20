@@ -24,16 +24,5 @@ playwright.config.js
 .assetsignore
 CNAME
 *.md
-agersoe.html
-blog.html
-faellesskab.html
-finddinvej.html
-integral.html
-integral-kvadranter.html
-integral-linjer.html
-integral-niveauer.html
-integral-tilstande.html
-integral-typer.html
-refleksion.html
 lai-yde.jpg
 internt-kilder
