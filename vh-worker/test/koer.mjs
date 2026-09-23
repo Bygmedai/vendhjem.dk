@@ -28,8 +28,9 @@ const loginSql = readFileSync(new URL("../migrations/0013_login_forsoeg.sql", im
 const fundSql = readFileSync(new URL("../migrations/0014_fund.sql", import.meta.url), "utf8");
 const vagterSql = readFileSync(new URL("../migrations/0015_vagter.sql", import.meta.url), "utf8");
 const foresporgHegnSql = readFileSync(new URL("../migrations/0016_foresporg_hegn.sql", import.meta.url), "utf8");
+const betalingerSql = readFileSync(new URL("../migrations/0017_betalinger.sql", import.meta.url), "utf8");
 const SKELET = [init, seed, peopleSql, mitSql, korpusSql, fondeE2, opholdSql, foresporgSql];
-const MIGRATIONER = [...SKELET, kalenderSql, breveSql, timerSql, loginSql, fundSql, vagterSql, foresporgHegnSql];
+const MIGRATIONER = [...SKELET, kalenderSql, breveSql, timerSql, loginSql, fundSql, vagterSql, foresporgHegnSql, betalingerSql];
 
 let ok = 0, fejl = 0;
 const t = (navn, betingelse, ekstra = "") => {
@@ -2583,6 +2584,158 @@ console.log("\n43 · Det praktiske: svarene ligger foer forespoergslen, ikke eft
      ["/faq", "/faq.html", "/spoergsmaal", "/spoergsmaal.html"]
        .every((k) => new RegExp(`^${k}\\s+/praktisk\\s`, "m").test(omdir)),
      omdir.match(/\/faq.*/g)?.join(" | ") || "ingen");
+}
+
+console.log("\n44 · Betalingsvejen: signaturen er hegnet, og databasen er idempotensen");
+{
+  // HVORFOR DEN HER PROEVE FINDES
+  //
+  // `pladser.status` kunne staa paa 'betalt', siden 0007 blev skrevet. Ingen
+  // kode har nogensinde sat den. Bekraeftelsen naevnte en pris og sagde ikke
+  // med ét ord, hvordan pengene skulle skifte haender.
+  //
+  // Det her er den eneste kode i repoet, hvor en fejl koster rigtige penge for
+  // et rigtigt menneske. Derfor er vidnerne skrevet efter, hvad en angriber
+  // eller et daarligt netvaerk ville goere — ikke efter, hvad der virker.
+  const { verificer, nySession, besvarWebhook, betalingsSti } =
+    await import("../src/betaling.js");
+  const { hmacSign } = await import("../src/krypto.js");
+
+  const HEM = "whsec_proeve_hemmelighed";
+  const hexSig = async (t, krop, hem = HEM) =>
+    [...await hmacSign(hem, `${t}.${krop}`)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  const nu = () => Math.floor(Date.now() / 1000);
+
+  const krop = JSON.stringify({ id: "evt_1", type: "ping" });
+  const t0 = nu();
+  t("en korrekt signatur godtages",
+     await verificer(krop, `t=${t0},v1=${await hexSig(t0, krop)}`, HEM));
+
+  // Uden det her tjek kan enhver paa internettet POST'e en «betalt» ind.
+  t("en forkert signatur afvises",
+     !await verificer(krop, `t=${t0},v1=${"0".repeat(64)}`, HEM));
+  t("en signatur fra en anden hemmelighed afvises",
+     !await verificer(krop, `t=${t0},v1=${await hexSig(t0, krop, "whsec_forkert")}`, HEM));
+  t("en aendret krop afvises",
+     !await verificer(krop + " ", `t=${t0},v1=${await hexSig(t0, krop)}`, HEM));
+
+  // Replay. Uden tolerancen kan en gammel, gyldig levering afspilles for evigt.
+  const gammel = t0 - 3600;
+  t("et gammelt tidsstempel afvises, selv med gyldig signatur",
+     !await verificer(krop, `t=${gammel},v1=${await hexSig(gammel, krop)}`, HEM));
+
+  // Nedgradering. Stripe sender et falsk v0 med til testbrug; accepteres det,
+  // er hegnet vaek.
+  t("v0 alene er ikke nok — nedgraderingsangreb",
+     !await verificer(krop, `t=${t0},v0=${await hexSig(t0, krop)}`, HEM));
+  t("en header uden signatur afvises", !await verificer(krop, `t=${t0}`, HEM));
+  t("ingen header afvises", !await verificer(krop, null, HEM));
+  t("ingen hemmelighed afvises — fail-closed",
+     !await verificer(krop, `t=${t0},v1=${await hexSig(t0, krop)}`, null));
+
+  // ── Selve vejen, med en rigtig plads ────────────────────────────────────
+  const bdb = lavD1(MIGRATIONER);
+  const benv = { ...env, FONDE_DB: bdb, STRIPE_WEBHOOK_SECRET: HEM, SESSION_NOEGLE: env.SESSION_NOEGLE };
+  await bdb.prepare(`INSERT INTO people (id, navn, mail, oprettet) VALUES ('bp-1','Bo Betaler','bo@example.com','2026-09-23T00:00:00Z')`).run();
+  await bdb.prepare(`INSERT INTO ophold (id, type_id, start_dato, slut_dato, status, kapacitet, pris, oprettet)
+                     VALUES ('bo-1','ot-mandegrupper','2027-11-05','2027-11-07','åben',15,850,'2026-09-23T00:00:00Z')`).run();
+  await bdb.prepare(`INSERT INTO pladser (id, ophold_id, person_id, status, pris, oprettet)
+                     VALUES ('11111111-1111-4111-8111-111111111111','bo-1','bp-1','bekræftet',NULL,'2026-09-23T00:00:00Z')`).run();
+  const PID = "11111111-1111-4111-8111-111111111111";
+
+  // Fail-closed. Uden noegle mintes ingen session, og der loves ingenting.
+  t("uden STRIPE_SECRET_KEY oprettes ingen session",
+     (await nySession({ ...benv }, bdb, PID, "https://vendhjem.dk")) === null);
+
+  const sti = await betalingsSti(benv, PID);
+  t("gaestens adresse er signeret, ikke bare et raat id",
+     /^\/betaling\/11111111-1111-4111-8111-111111111111\/[A-Za-z0-9_-]{8,}$/.test(sti), sti);
+
+  const send = async (evId, sessionId, status = "paid", hem = HEM) => {
+    const b = JSON.stringify({ id: evId, type: "checkout.session.completed",
+      data: { object: { id: sessionId, payment_status: status, metadata: { plads_id: PID } } } });
+    const tt = nu();
+    return besvarWebhook(new Request("https://vendhjem.dk/betaling/webhook", {
+      method: "POST", body: b,
+      headers: { "stripe-signature": `t=${tt},v1=${await hexSig(tt, b, hem)}` },
+    }), benv);
+  };
+
+  await bdb.prepare(`INSERT INTO betalinger (id, plads_id, belob_oere, valuta, session_id, status, oprettet)
+                     VALUES ('bt-1', ?1, 85000, 'dkk', 'cs_1', 'aabnet', '2026-09-23T00:00:00Z')`).bind(PID).run();
+
+  const r1 = await send("evt_a", "cs_1");
+  const efter1 = await bdb.prepare(`SELECT status FROM pladser WHERE id = ?1`).bind(PID).first();
+  const bet1 = await bdb.prepare(`SELECT status, event_id FROM betalinger WHERE session_id = 'cs_1'`).first();
+  t("en gyldig webhook markerer pladsen betalt",
+     r1.status === 200 && efter1?.status === "betalt" && bet1?.status === "betalt",
+     JSON.stringify({ kode: r1.status, plads: efter1?.status, betaling: bet1?.status }));
+  t("og bogfoerer hvilket event der gjorde det", bet1?.event_id === "evt_a", bet1?.event_id);
+
+  // Stripe sender det samme event om igen ved enhver tvivl. To raekker «betalt»
+  // paa den samme plads er 1700 kr. af en mand, der skyldte 850.
+  const r2 = await send("evt_a", "cs_1");
+  const antal = await bdb.prepare(
+    `SELECT count(*) n FROM betalinger WHERE plads_id = ?1 AND status = 'betalt'`).bind(PID).first();
+  t("det SAMME event igen aendrer intet og svarer 200",
+     r2.status === 200 && antal.n === 1, JSON.stringify({ kode: r2.status, betalte: antal.n }));
+
+  // Et NYT event paa en NY session for den samme plads. Hegnet ligger i
+  // databasen (betaling_hoejst_en_betalt), ikke i en if-saetning.
+  await bdb.prepare(`INSERT INTO betalinger (id, plads_id, belob_oere, valuta, session_id, status, oprettet)
+                     VALUES ('bt-2', ?1, 85000, 'dkk', 'cs_2', 'aabnet', '2026-09-23T00:00:00Z')`).bind(PID).run();
+  const r3 = await send("evt_b", "cs_2");
+  const antal2 = await bdb.prepare(
+    `SELECT count(*) n FROM betalinger WHERE plads_id = ?1 AND status = 'betalt'`).bind(PID).first();
+  t("den samme plads kan ikke betales to gange — hegnet staar i skemaet",
+     r3.status === 200 && antal2.n === 1, JSON.stringify({ kode: r3.status, betalte: antal2.n }));
+
+  // En falsk levering udefra.
+  const forfalsket = await send("evt_c", "cs_2", "paid", "whsec_forkert");
+  t("en webhook med forkert hemmelighed afvises med 400", forfalsket.status === 400, forfalsket.status);
+
+  // completed er ikke det samme som betalt.
+  const bdb2 = lavD1(MIGRATIONER);
+  const benv2 = { ...benv, FONDE_DB: bdb2 };
+  await bdb2.prepare(`INSERT INTO people (id, navn, mail, oprettet) VALUES ('bp-2','U Betalt','u@example.com','2026-09-23T00:00:00Z')`).run();
+  await bdb2.prepare(`INSERT INTO ophold (id, type_id, start_dato, slut_dato, status, kapacitet, pris, oprettet)
+                      VALUES ('bo-2','ot-mandegrupper','2028-11-12','2028-11-14','åben',15,850,'2026-09-23T00:00:00Z')`).run();
+  await bdb2.prepare(`INSERT INTO pladser (id, ophold_id, person_id, status, oprettet)
+                      VALUES (?1,'bo-2','bp-2','bekræftet','2026-09-23T00:00:00Z')`).bind(PID).run();
+  await bdb2.prepare(`INSERT INTO betalinger (id, plads_id, belob_oere, valuta, session_id, status, oprettet)
+                      VALUES ('bt-3', ?1, 85000, 'dkk', 'cs_3', 'aabnet', '2026-09-23T00:00:00Z')`).bind(PID).run();
+  const bU = JSON.stringify({ id: "evt_d", type: "checkout.session.completed",
+    data: { object: { id: "cs_3", payment_status: "unpaid", metadata: { plads_id: PID } } } });
+  const tU = nu();
+  await besvarWebhook(new Request("https://vendhjem.dk/betaling/webhook", {
+    method: "POST", body: bU, headers: { "stripe-signature": `t=${tU},v1=${await hexSig(tU, bU)}` },
+  }), benv2);
+  const uP = await bdb2.prepare(`SELECT status FROM pladser WHERE id = ?1`).bind(PID).first();
+  t("«completed» uden «paid» markerer INTET som betalt", uP?.status === "bekræftet", uP?.status);
+
+  // Uden hemmelighed svarer endpointet 503, ikke 200. Et 200 ville faa Stripe
+  // til at holde op med at proeve — og betalingen ville forsvinde i stilhed.
+  const uHem = await besvarWebhook(new Request("https://vendhjem.dk/betaling/webhook", {
+    method: "POST", body: "{}", headers: {} }), { ...benv, STRIPE_WEBHOOK_SECRET: null });
+  t("uden endpoint-hemmelighed svares 503, ikke 200", uHem.status === 503, uHem.status);
+
+  // Prisskyggen. `p.*` indeholder en kolonne `pris`, og SELECT'en hentede
+  // ogsaa `o.pris` under samme navn — SQLite lader den sidste vinde, saa
+  // PLADSENS egen pris blev aldrig brugt. Harmloest i en mail; ikke harmloest,
+  // naar det samme tal skal traekkes af et kort.
+  const bdb3 = lavD1(MIGRATIONER);
+  await bdb3.prepare(`INSERT INTO people (id, navn, mail, oprettet) VALUES ('bp-3','S Skygge','s@example.com','2026-09-23T00:00:00Z')`).run();
+  await bdb3.prepare(`INSERT INTO ophold (id, type_id, start_dato, slut_dato, status, kapacitet, pris, oprettet)
+                      VALUES ('bo-3','ot-mandegrupper','2028-12-01','2028-12-03','åben',15,850,'2026-09-23T00:00:00Z')`).run();
+  await bdb3.prepare(`INSERT INTO pladser (id, ophold_id, person_id, status, pris, oprettet)
+                      VALUES ('33333333-3333-4333-8333-333333333333','bo-3','bp-3','bekræftet',400,'2026-09-23T00:00:00Z')`).run();
+  const skygge = await bdb3.prepare(`
+    SELECT coalesce(p.pris, o.pris, t.pris_fra) AS belob_kr
+      FROM pladser p JOIN ophold o ON o.id = p.ophold_id
+      JOIN opholdstyper t ON t.id = o.type_id
+     WHERE p.id = '33333333-3333-4333-8333-333333333333'`).first();
+  t("pladsens egen pris vinder over opholdets — ikke omvendt",
+     skygge?.belob_kr === 400, JSON.stringify(skygge));
 }
 
 console.log(`\n${ok} bestået, ${fejl} fejlet\n`);

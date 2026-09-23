@@ -18,6 +18,7 @@ import {
   haandterRunde, listerRunder, saetAdgang, saetKlar, arkiverSag, historiskIndsendelse, FONDE,
 } from "./runde.js";
 import { erSporene, erOphold, besvarSporene, besvarOphold } from "./ophold.js";
+import { erBetaling, besvarBetaling } from "./betaling.js";
 import { erSkriv, erBreve, besvarSkriv, besvarBreve } from "./breve.js";
 import { erKopi, besvarKopi } from "./kopi-side.js";
 import { medSikkerhed } from "./hegn.js";
@@ -174,6 +175,17 @@ async function besvar(request, env, ctx) {
 
     // Offentlig kalender. Ingen Access — det er det, sitet sælger.
     if (erSporene(sti, url.pathname)) return besvarSporene(request, env);
+
+    // Betalingsvejen. Ingen Access: gaesten har ingen konto, og webhooken
+    // kommer fra Stripe, ikke fra en browser. Signaturen ER hegnet — paa
+    // gaestens link (HMAC af plads-id) og paa webhooken (Stripe-Signature).
+    if (erBetaling(sti)) {
+      try { return await besvarBetaling(request, env, url); }
+      catch (e) {
+        // Penge maa ikke fejle stille. Fejlen staar i svaret, ikke kun i loggen.
+        return new Response(`betaling: ${String(e.message || e)}`, { status: 500 });
+      }
+    }
 
     // Brevet fra /bliv-en-del. Ingen Access — det er en offentlig formular.
     if (erSkriv(sti)) {

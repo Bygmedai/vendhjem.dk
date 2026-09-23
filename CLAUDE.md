@@ -45,7 +45,7 @@ udtrykket, ikke efter linjen). Alt, der returnerer før den, ejer Workeren. Alt,
 der når ned til den, er en fil.
 
 Workeren ejer i dag: `/sporene`, `/sporene/*`, **`/sporene.html`**, `/mit`,
-`/mit/*`, `/bliv-en-del/skriv`, `/internt/ophold*`, `/internt/breve*`,
+`/mit/*`, `/bliv-en-del/skriv`, `/betaling/*`, `/internt/ophold*`, `/internt/breve*`,
 `/internt/fund*`, `/internt/vagter*`, `/internt/sikkerhedskopi*`,
 `/internt/fonde*`, `/internt/korpus*`, `/sundhed/fonde`,
 `/sundhed/sikkerhedskopi`. Resten er statiske filer.
@@ -78,7 +78,7 @@ gav 404. Matcher og generator er `FORESPORG_STI` i `ophold-sider.js`.
 
 ```
 python3 build.py                 # skriver siderne + fire genererede JS-moduler
-node vh-worker/test/koer.mjs     # 475 prøver. Kører i CI på hver PR — se «Porten»
+node vh-worker/test/koer.mjs     # 494 prøver. Kører i CI på hver PR — se «Porten»
 bash vh-worker/test/smoke-hegn.sh  # curl mod Worker under test (ASCII/301/404/CSRF)
 bash vh-worker/test/flader.sh    # måler den levende flade
 ```
@@ -266,6 +266,21 @@ hvad nogen er værd. Prøve 40 holder fladen til det.
   menneske skrev i dashboardet, forsvandt ved næste merge, og fallbacken i koden
   overtog i stilhed. En ny adresse i `[vars]` er persondata i et offentligt
   repos historik. Se §Persondata.
+- **Betalingen er fail-closed, og det skal den blive.** Hverken
+  `STRIPE_SECRET_KEY` eller `STRIPE_WEBHOOK_SECRET` findes. Uden dem bærer
+  bekræftelsen intet link, og `/betaling/webhook` svarer **503 — ikke 200**: et
+  200 ville få Stripe til at holde op med at prøve, og betalingen ville
+  forsvinde i stilhed. Sæt dem som **hemmeligheder**, aldrig i `[vars]` (hvor de
+  både ville blive slettet ved deploy og ligge i git-historik).
+  **Den eneste Stripe-konto, der er set fra denne session, hedder «Bygmedai» og
+  er i livemode** — ikke foreningens. Hvis pengene skal et andet sted hen, er
+  det en beslutning, ikke en konfiguration.
+- **Pengehegnene ligger i `0017_betalinger.sql`, ikke i en handler.**
+  `event_id UNIQUE` er idempotensen (Stripe sender det samme event om igen ved
+  enhver tvivl); `betaling_hoejst_en_betalt` er det, der står mellem os og at
+  trække 850 kr. to gange af den samme mand. Flytter du dem op i JavaScript,
+  holder de op med at virke i præcis de tilfælde, de er bygget til. Prøve 44
+  falder, hvis du gør.
 - **Copy på klientfladen er Lais.** Han har veto. Retter du en formulering, fordi
   den læser skævt, så sig det højt i PR'en — omskriv den ikke bare.
 - **[Haruki 18.09 — RETTET]** Der stod: «Ingen ejer nævnes ved navn på den

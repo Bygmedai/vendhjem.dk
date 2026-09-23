@@ -11,6 +11,7 @@ import { opholdOversigt, opholdSide, sporeneSide, sporeneForesporgSide,
 import { side, fejlTilstand } from "./flade.js";
 import { TEKST, kvitteringBrev, foresporgTilOs, bekraeftelsesBrev, afslagsBrev } from "./tekst.js";
 import { sendMail, sendTilMenneske, modtagere } from "./mail.js";
+import { betalingsSti } from "./betaling.js";
 import { sessionPerson } from "./session.js";
 import { lavCsrf, tjekCsrf, csrfCookie, CSRF_NAVN, klientIp } from "./hegn.js";
 import { laesCookie } from "./krypto.js";
@@ -115,8 +116,14 @@ async function sendKvittering(env, { person, o }) {
 async function sendBekraeftelse(env, pladsId) {
   const row = await env.FONDE_DB.prepare(`
     SELECT p.*, pe.navn AS person_navn, pe.mail AS person_mail,
-           o.start_dato, o.slut_dato, o.pris, t.navn AS type_navn,
-           t.inkluderet, t.pris_note, t.spor, t.pris_fra
+           o.start_dato, o.slut_dato, t.navn AS type_navn,
+           t.inkluderet, t.pris_note, t.spor,
+           -- EKSPLICIT. Foer 23.09.2026 hentede den her SELECT baade p.* og
+           -- o.pris, og p.* indeholder ogsaa en kolonne, der hedder pris. SQLite
+           -- lader den sidste vinde, saa PLADSENS egen pris var skygget af
+           -- opholdets. Harmloest i en mail; ikke harmloest, naar det samme
+           -- tal skal traekkes af et menneskes kort.
+           coalesce(p.pris, o.pris, t.pris_fra) AS belob_kr
       FROM pladser p
       JOIN people pe ON pe.id = p.person_id
       JOIN ophold o ON o.id = p.ophold_id
@@ -130,7 +137,13 @@ async function sendBekraeftelse(env, pladsId) {
     inkluderet: row.inkluderet,
     pris_note: row.pris_note,
     spor: row.spor,
-    vis_pris: row.pris ?? row.pris_fra,
+    vis_pris: row.belob_kr,
+    // VORES adresse, ikke Stripes. En Checkout Session udloeber efter et
+    // doegn; det her link goer ikke. Uden noegle er den tom, og brevet siger
+    // ingenting om betaling — vi lover ikke en vej, der ikke findes.
+    betalingsUrl: env.STRIPE_SECRET_KEY
+      ? `https://vendhjem.dk${await betalingsSti(env, pladsId)}`
+      : null,
   });
   await sendTilMenneske(env, { to: row.person_mail, ...brev });
 }
