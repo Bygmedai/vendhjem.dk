@@ -949,6 +949,30 @@ console.log("\n24 · Forespørgsel (BYG-562 C2)");
      mails.some((m) => m.to === "anna.ny@example.com" && /vender tilbage|tre dage|skriver/i.test(m.text || "")),
      JSON.stringify(mails.map((m) => ({ to: m.to, subject: m.subject }))));
 
+  // F1. Indtil 23.09.2026 blev der KUN sendt kvittering til den, der spurgte.
+  // Kvitteringen lover svar inden tre dage, og intet fortalte et menneske paa
+  // Agersoe, at uret var startet. Forespoergslen laa i D1, til nogen
+  // tilfaeldigvis aabnede /internt/ophold. Brevsporet gjorde det rigtigt fra
+  // dag ét; den side, der skal saelge 2027, gjorde ikke.
+  const tilOs = mails.find((m) => m.to === "laiydeh@gmail.com");
+  t("F1: huset faar besked, naar nogen foresporger",
+     Boolean(tilOs), JSON.stringify(mails.map((m) => ({ to: m.to, subject: m.subject }))));
+  t("F1: beskeden kan besvares direkte — reply_to er gaesten",
+     tilOs?.reply_to === "anna.ny@example.com", tilOs?.reply_to);
+  // Ordret, ikke refereret: et referat er en ekstra chance for at misforstaa.
+  t("F1: beskeden baerer gaestens ord, opholdet og perioden",
+     /Kommer med tog til Stigsnæs/.test(tilOs?.text || "")
+     && /Anna Ny/.test(tilOs?.text || "")
+     && /anna\.ny@example\.com/.test(tilOs?.text || "")
+     && /april/i.test(`${tilOs?.subject} ${tilOs?.text}`),
+     JSON.stringify({ subject: tilOs?.subject, text: (tilOs?.text || "").slice(0, 260) }));
+  // De to breve er uafhaengige. Falder det ene, staar det andet — og BEGGE
+  // fejl skal kunne staa paa pladsen, ellers skjuler den ene den anden.
+  t("F1: kvittering og besked til huset er to breve, ikke ét",
+     mails.filter((m) => m.to === "anna.ny@example.com").length === 1
+     && mails.filter((m) => m.to === "laiydeh@gmail.com").length === 1,
+     JSON.stringify(mails.map((m) => m.to)));
+
   const folkFoer = await db.prepare(
     `SELECT COUNT(*) n FROM people WHERE lower(mail) = 'steven@bygmedai.dk'`
   ).first();

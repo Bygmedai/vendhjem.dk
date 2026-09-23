@@ -29,7 +29,11 @@ export function erSkriv(sti) { return sti === STI_SKRIV; }
 export function erBreve(sti) { return sti === ROD_BREVE || sti.startsWith(ROD_BREVE + "/"); }
 
 /** Modtagere: BREV_TIL, kommasepareret. Uden var: samme adresse som den gamle mailto. */
-function modtagere(env) {
+/** Hvem paa Agersoe der faar post, naar nogen skriver eller foresporger.
+ *  ÉT sted. Kopieres den, siger brevsporet og forespoergselssporet en dag
+ *  hver sit om, hvem der skal have besked — samme fejlklasse som reglerne,
+ *  der stod to steder i Natten. */
+export function modtagere(env) {
   return String(env.BREV_TIL || "laiydeh@gmail.com").split(",").map((s) => s.trim()).filter(Boolean);
 }
 

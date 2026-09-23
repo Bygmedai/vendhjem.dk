@@ -9,7 +9,8 @@ import { opholdOversigt, opholdSide, sporeneSide, sporeneForesporgSide,
          sporeneTakSide, sporeneFuldtSide, sporeneFindesIkke,
          periodeTekst, FORESPORG_STI } from "./ophold-sider.js";
 import { side, fejlTilstand } from "./flade.js";
-import { TEKST, kvitteringBrev, bekraeftelsesBrev, afslagsBrev } from "./tekst.js";
+import { TEKST, kvitteringBrev, foresporgTilOs, bekraeftelsesBrev, afslagsBrev } from "./tekst.js";
+import { modtagere } from "./breve.js";
 import { sendMail } from "./mail.js";
 import { sessionPerson } from "./session.js";
 import { lavCsrf, tjekCsrf, csrfCookie, CSRF_NAVN, klientIp } from "./hegn.js";
@@ -77,6 +78,30 @@ function afkodSti(p) {
 
 export function erOphold(sti) {
   return sti === ROD || sti.startsWith(ROD + "/");
+}
+
+/**
+ * Beskeden til huset. Se `foresporgTilOs` om hvorfor den ikke fandtes foer.
+ *
+ * Fejl pr. modtager samles og kastes samlet: én adresse, der brokker sig,
+ * maa ikke skjule at de andre kom frem — og omvendt maa et delvist held
+ * ikke se ud som fuld succes.
+ */
+async function sendTilOs(env, { person, o, besked, oprettet }) {
+  const brev = foresporgTilOs({
+    navn: person.navn,
+    mail: person.mail,
+    type_navn: o.type_navn,
+    periode: periodeTekst(o.start_dato, o.slut_dato),
+    besked,
+    oprettet,
+  });
+  const fejl = [];
+  for (const to of modtagere(env)) {
+    try { await sendMail(env, { to, ...brev, reply_to: person.mail }); }
+    catch (e) { fejl.push(`${to}: ${String(e.message || e)}`); }
+  }
+  if (fejl.length) throw new Error(fejl.join(" · "));
 }
 
 async function sendKvittering(env, { person, o }) {
@@ -225,12 +250,16 @@ async function besvarForesporg(request, env, opholdId) {
     }
   }
 
-  try {
-    await sendKvittering(env, { person, o });
-    await saetPladsMailFejl(db, plads.id, null);
-  } catch (e) {
-    await saetPladsMailFejl(db, plads.id, String(e.message || e));
-  }
+  // Huset FOERST. Udebliver kvitteringen, kan mennesket skrive igen; udebliver
+  // beskeden til os, kan ingen gaette at nogen har spurgt. De to sendes
+  // uafhaengigt, og BEGGE fejl bliver staaende paa pladsen — en samlet
+  // try/catch ville lade den ene skjule den anden.
+  const mailFejl = [];
+  try { await sendTilOs(env, { person, o, besked, oprettet: plads.oprettet }); }
+  catch (e) { mailFejl.push(`til os: ${String(e.message || e)}`); }
+  try { await sendKvittering(env, { person, o }); }
+  catch (e) { mailFejl.push(`kvittering: ${String(e.message || e)}`); }
+  await saetPladsMailFejl(db, plads.id, mailFejl.length ? mailFejl.join(" · ") : null);
 
   return html(sporeneTakSide({ o, person }));
 }
