@@ -264,6 +264,7 @@ ${link ? `<p class="mt2"><a class="lnk" href="${esc(link.href)}">${esc(link.labe
 <h1>Det, der sker på stedet.</h1>
 <p class="lead maxw mt2">Seks spor på ét sted. Noget laver vi selv, noget lægger vi plads til, og det meste bliver til sammen med dem, der er her.</p>
 ${kalenderLead}
+<p class="small maxw mt3"><a href="/praktisk">Færgen, prisen og hvad du skal have med →</a></p>
 </div>
 <div class="media"><div class="horizon h-side" style="min-height:300px">
 ${billede("bordet-i-marken", "(max-width: 860px) 100vw, 420px")}
@@ -335,6 +336,7 @@ ${delingsKort({ titel, description, canonical })}
 <nav class="nav" aria-label="Hovedmenu">
 <a href="/fundamentet"${cur("fundamentet")}>Fundamentet</a>
 <a href="/sporene"${cur("sporene")}>Sporene</a>
+<a href="/praktisk"${cur("praktisk")}>Praktisk</a>
 <a href="/permakultur"${cur("permakultur")}>Permakultur</a>
 <a href="/bliv-en-del"${cur("bliv-en-del")}>Bliv en del</a>
 <a href="https://vendhjem.dk/internt/">Log ind →</a>

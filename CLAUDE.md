@@ -60,6 +60,12 @@ Bemærk `/sporene.html`: Workeren fanger også filnavnet, så selv den direkte v
 til filen giver den levende side. Du kan altså ikke omgå den ved at skrive `.html`
 i adresselinjen.
 
+**Siden, der IKKE er Workerens, men handler om den:** `/praktisk` er en statisk
+side fra `build.py` — men hvert svar på den er kopieret fra en mail, Workeren
+sender (`tekst.js`), eller fra `opholdstyper`. Retter du et løfte det ene sted,
+skal du rette det det andet. Prøve 43 holder de to sammen på antallet af dage;
+den fanger ikke færgen. Kilderne er listet i `build.py` over sidens blok.
+
 **Fælden i ø:** den offentlige formular ligger på `/sporene/foresporg/{id}`
 (ASCII). Href, canonical og POST-action er den sti. `/sporene/forespørg/{id}`
 og den procent-kodede ø 301'er (POST: 308). En ukendt `/sporene/...` er 404 —
@@ -72,7 +78,7 @@ gav 404. Matcher og generator er `FORESPORG_STI` i `ophold-sider.js`.
 
 ```
 python3 build.py                 # skriver siderne + fire genererede JS-moduler
-node vh-worker/test/koer.mjs     # 462 prøver. Kører i CI på hver PR — se «Porten»
+node vh-worker/test/koer.mjs     # 475 prøver. Kører i CI på hver PR — se «Porten»
 bash vh-worker/test/smoke-hegn.sh  # curl mod Worker under test (ASCII/301/404/CSRF)
 bash vh-worker/test/flader.sh    # måler den levende flade
 ```
