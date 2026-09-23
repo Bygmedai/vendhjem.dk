@@ -221,6 +221,35 @@ export function brevTilOs({ navn, mail, tekst, oprettet }) {
   };
 }
 
+/**
+ * Forespoergslen, til os.
+ *
+ * Indtil 23.09.2026 blev der KUN sendt en kvittering til den, der spurgte.
+ * Kvitteringen lover «inden tre dage skriver vi tilbage» — og intet i
+ * systemet fortalte et menneske paa Agersoe, at uret var startet.
+ * Forespoergslen laa i D1, til nogen tilfaeldigvis aabnede /internt/ophold.
+ *
+ * Brevsporet gjorde det rigtigt fra dag ét. Det her er den samme vej, paa
+ * den side der skal saelge 2027.
+ *
+ * `reply_to` er gaesten, saa Lai kan svare direkte fra sin indbakke uden at
+ * logge ind nogen steder. Beskeden staar ordret: et referat er en ekstra
+ * chance for at misforstaa.
+ */
+export function foresporgTilOs({ navn, mail, type_navn, periode, besked, oprettet }) {
+  return {
+    subject: `Forespørgsel: ${type_navn}, ${periode}`,
+    text:
+      `Fra: ${navn} <${mail}>\n` +
+      `Ophold: ${type_navn}, ${periode}\n` +
+      `Modtaget: ${oprettet}\n\n` +
+      (besked ? `${besked}\n\n` : `(Ingen besked.)\n\n`) +
+      `—\nSvar direkte på denne mail. ${navn} har fået en kvittering, der ` +
+      `lover svar inden tre dage.\nForespørgslen ligger på ` +
+      `vendhjem.dk/internt/ophold, hvor du kan bekræfte eller give afslag.`,
+  };
+}
+
 export function brevKvittering({ navn }) {
   return {
     subject: "Vi har dit brev",
