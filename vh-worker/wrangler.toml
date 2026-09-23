@@ -50,6 +50,23 @@ preview_urls = false
 [vars]
 BREV_TIL = "laiydeh@gmail.com"
 
+# Stripe. To HEMMELIGHEDER, ikke vars — de staar aldrig her og aldrig i repoet:
+#
+#   STRIPE_SECRET_KEY      sk_...    minter Checkout Sessions
+#   STRIPE_WEBHOOK_SECRET  whsec_... verificerer at et event kommer fra Stripe
+#
+# Hemmeligheder overlever et deploy; vars goer ikke. Cloudflares egen
+# dokumentation: «Wrangler will not delete your secrets … unless you run
+# wrangler secret delete». Det er ogsaa grunden til, at de IKKE maa staa i
+# [vars] ovenfor — der ville de baade blive slettet og ligge i git-historik.
+#
+# Saettes i dashboardet under Workers → vendhjem → Settings → Variables and
+# Secrets, eller med `wrangler secret put`. Ingen af dem findes i dag, og
+# koden er fail-closed: uden STRIPE_SECRET_KEY baerer bekraeftelsen intet
+# betalingslink, og uden STRIPE_WEBHOOK_SECRET svarer webhooken 503 — ikke
+# 200, for et 200 ville faa Stripe til at holde op med at proeve, og
+# betalingen ville forsvinde i stilhed.
+
 [assets]
 directory = "../"
 binding = "ASSETS"

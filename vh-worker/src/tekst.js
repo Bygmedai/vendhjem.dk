@@ -310,7 +310,7 @@ export function afslagsBrev({ navn, type_navn, periode }) {
   };
 }
 
-export function bekraeftelsesBrev({ navn, type_navn, periode, inkluderet, pris_note, spor, vis_pris }) {
+export function bekraeftelsesBrev({ navn, type_navn, periode, inkluderet, pris_note, spor, vis_pris, betalingsUrl }) {
   const med = inkluderet
     ? `Det der er inkluderet: ${inkluderet}.`
     : (pris_note || "Hvad der er med, skriver vi her, når det er sat.");
@@ -329,6 +329,12 @@ export function bekraeftelsesBrev({ navn, type_navn, periode, inkluderet, pris_n
       `Færgen går fra Stigsnæs. Et kvarter over vandet. Den betaler du selv — den er ikke med i opholdet.\n\n` +
       `${haveMed}\n\n` +
       `${med}${pris ? `\n${pris}` : ""}\n\n` +
+      // Indtil 23.09.2026 naevnte brevet en pris og sagde ikke med ét ord,
+      // hvordan pengene skulle skifte haender. Uden noegle staar der stadig
+      // ingenting — vi lover ikke en betalingsvej, der ikke findes.
+      (betalingsUrl
+        ? `Du kan betale her:\n${betalingsUrl}\n\nLinket udløber ikke. Betaler du ikke med det samme, kan du åbne det igen senere.\n\n`
+        : "") +
       `Vi ses på Agersø.\n\n` +
       `Vendhjem`,
   };
