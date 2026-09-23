@@ -113,10 +113,9 @@ img, video { max-width: 100%; display: block; }
 }
 .meta-s { font-family: var(--mono); font-size: 9px; letter-spacing: .18em; text-transform: uppercase; color: var(--blaek-svag); margin: 0; }
 .meta-500 { font-weight: 500; color: var(--blaek); }
-.sec { /* § sektionsmærke */
+.sec { /* sektionsmærke */
   font-family: var(--mono); font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--blaek-mat); margin: 0 0 14px;
 }
-.sec::before { content: "§ "; }
 .mono { font-family: var(--mono); }
 .lead { font-size: clamp(17px, 1.6vw, 19px); line-height: 1.6; color: var(--blaek-bloed); }
 .soft { color: var(--blaek-bloed); }

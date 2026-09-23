@@ -300,7 +300,7 @@ pages["index.html"] = head("Vend Hjem · Agersø", "Vi laver en gammel campingpl
 })();
 </script>
 <div class="over"><div class="inner">
-<p class="meta">§ Agersø · Storebælt · færgen fra Stigsnæs</p>
+<p class="meta">Agersø · Storebælt · færgen fra Stigsnæs</p>
 <h1>Vi laver en gammel campingplads på Agersø om til en <em>genkolonisering</em> af Jorden ud fra integrale modeller og humanistiske idealer.</h1>
 </div></div>
 </section>
