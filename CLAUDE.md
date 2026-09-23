@@ -72,7 +72,7 @@ gav 404. Matcher og generator er `FORESPORG_STI` i `ophold-sider.js`.
 
 ```
 python3 build.py                 # skriver siderne + fire genererede JS-moduler
-node vh-worker/test/koer.mjs     # 453 prøver. Kører i CI på hver PR — se «Porten»
+node vh-worker/test/koer.mjs     # 462 prøver. Kører i CI på hver PR — se «Porten»
 bash vh-worker/test/smoke-hegn.sh  # curl mod Worker under test (ASCII/301/404/CSRF)
 bash vh-worker/test/flader.sh    # måler den levende flade
 ```
@@ -245,6 +245,21 @@ hvad nogen er værd. Prøve 40 holder fladen til det.
   og hvad der kom tilbage.
 - **Rør ikke en anden bygmesters åbne PR.** Find en fejl, så sig det; ret den ikke
   under hånden.
+- **Huset hedder Vendhjem.** Steven, 23.09.2026. Alle mails underskriver sådan,
+  og prøverne fælder «Vend Hjem» i en mail til et menneske. Den offentlige flade
+  siger stadig «Vend Hjem» 32 steder — logoet, privatlivspolitikkens
+  dataansvarlige, foreningsnavnet i `0002_seed_ldp.sql` og Access-gruppen «Vend
+  Hjem – medlemmer». **Det er ikke afgjort**, og to af dem er formelle navne.
+  Rens ikke op på det, fordi det ser inkonsistent ud.
+- **Enhver mail til et menneske udefra går gennem `sendTilMenneske`** i
+  `mail.js`, som altid sætter `reply_to` til huset. Kald ikke `sendMail` direkte
+  med en gæst som `to`. Indtil 23.09.2026 gjorde fire af dem det, og et menneske,
+  der trykkede Reply, skrev til `besked@vendhjem.dk`, som ingen læser.
+- **Modtagerne står i `wrangler.toml`, ikke i dashboardet.** Wrangler sletter
+  alle vars ved hvert deploy, medmindre `keep_vars` er sat — så en adresse, et
+  menneske skrev i dashboardet, forsvandt ved næste merge, og fallbacken i koden
+  overtog i stilhed. En ny adresse i `[vars]` er persondata i et offentligt
+  repos historik. Se §Persondata.
 - **Copy på klientfladen er Lais.** Han har veto. Retter du en formulering, fordi
   den læser skævt, så sig det højt i PR'en — omskriv den ikke bare.
 - **[Haruki 18.09 — RETTET]** Der stod: «Ingen ejer nævnes ved navn på den

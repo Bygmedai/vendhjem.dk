@@ -973,6 +973,21 @@ console.log("\n24 · Forespørgsel (BYG-562 C2)");
      && mails.filter((m) => m.to === "laiydeh@gmail.com").length === 1,
      JSON.stringify(mails.map((m) => m.to)));
 
+  // Svarvejen den anden vej. Indtil 23.09.2026 satte kun mailen TIL huset et
+  // reply_to. Kvitteringen, bekraeftelsen og afslaget satte ingen: Lai kunne
+  // svare gaesten med ét klik, gaesten kunne kun svare besked@vendhjem.dk.
+  // Et menneske med et spoergsmaal — kan jeg komme dagen foer, har I plads
+  // til to — havde praecis den ene knap, og den gik ingen steder.
+  const kvit = mails.find((m) => m.to === "anna.ny@example.com");
+  t("kvitteringen kan besvares — reply_to er huset",
+     kvit?.reply_to === "laiydeh@gmail.com", kvit?.reply_to);
+  // Huset taler med én stemme. Stod «Vend Hjem» i det ene brev og «Vendhjem»
+  // i det andet, alt efter hvilken formular man kom ind ad. Steven 23.09.2026:
+  // huset hedder Vendhjem.
+  t("kvitteringen underskriver med husets navn, ikke en variant",
+     /Vendhjem/.test(kvit?.text || "") && !/Vend Hjem/.test(kvit?.text || ""),
+     (kvit?.text || "").slice(-80));
+
   const folkFoer = await db.prepare(
     `SELECT COUNT(*) n FROM people WHERE lower(mail) = 'steven@bygmedai.dk'`
   ).first();
@@ -1030,6 +1045,25 @@ console.log("\n24 · Forespørgsel (BYG-562 C2)");
   const intern = await tekst(await hent("/internt/ophold/"));
   t("intern oversigt har ét-tryks bekræft og afvis",
      intern.includes("Bekræft") && intern.includes("Afvis") && intern.includes("Anna Ny"));
+
+  // F4. Kvitteringen lover «inden tre dage skriver vi tilbage, om pladsen er
+  // din». Indtil 23.09.2026 talte ingen flade de tre dage: listen viste hvem
+  // der havde spurgt, aldrig hvornaar, saa en forespoergsel fra i gaar saa
+  // praecis ud som en fra i forfjor. /internt/breve har talt dage siden den
+  // blev bygget; det her er den samme taelling fra det samme sted (tid.js).
+  t("forespoergslen fra i dag siger I dag", /I dag/.test(intern), intern.slice(0, 0));
+  if (annaPlads) {
+    await db.prepare(`UPDATE pladser SET oprettet = ?2 WHERE id = ?1`)
+      .bind(annaPlads.id, new Date(Date.now() - 5 * 86400000).toISOString()).run();
+  }
+  const internGammel = await tekst(await hent("/internt/ophold/"));
+  t("en forespoergsel over de tre dage staar fremhaevet med sin alder",
+     /<strong>5 dage siden · over de tre<\/strong>/.test(internGammel),
+     (internGammel.match(/.{0,60}dage siden.{0,40}/) || ["intet"])[0]);
+  if (annaPlads) {
+    await db.prepare(`UPDATE pladser SET oprettet = ?2 WHERE id = ?1`)
+      .bind(annaPlads.id, annaPlads.oprettet).run();
+  }
   const sagApril = await tekst(await hent(`/internt/ophold/${april.id}`));
   t("siden har bekræft og afvis pr. person",
      sagApril.includes("Bekræft") && sagApril.includes("Afvis"));
@@ -1041,6 +1075,9 @@ console.log("\n24 · Forespørgsel (BYG-562 C2)");
   }) : { status: 0 };
   t("bekræft omdirigerer", bekraeft.status === 303, bekraeft.status);
   const bekraeftMail = mails.find((m) => m.to === "anna.ny@example.com");
+  t("bekræftelsen kan besvares — reply_to er huset",
+     mails.find((m) => m.to === "anna.ny@example.com")?.reply_to === "laiydeh@gmail.com",
+     mails.find((m) => m.to === "anna.ny@example.com")?.reply_to);
   t("bekræftelsesmail har det man skal bruge for at møde op",
      Boolean(bekraeftMail) &&
      /færge|Stigsnæs/i.test(bekraeftMail.text) &&
@@ -1252,6 +1289,14 @@ console.log("\n26 · Brevet på /bliv-en-del lander i systemet (BYG-558 B1)");
   t("brevet er sendt til os med reply-to afsender",
      mails.some((m) => m.to === "laiydeh@gmail.com" && m.reply_to === "mette.ny@example.com" && m.text.includes(brevTekst)),
      JSON.stringify(mails.map((m) => ({ to: m.to, subject: m.subject }))));
+  // Samme asymmetri som paa opholdssporet: Lai kunne svare, brevskriveren
+  // kunne ikke. Reply gik til besked@vendhjem.dk.
+  t("brevkvitteringen kan besvares — reply_to er huset",
+     mails.find((m) => m.to === "mette.ny@example.com")?.reply_to === "laiydeh@gmail.com",
+     mails.find((m) => m.to === "mette.ny@example.com")?.reply_to);
+  t("brevkvitteringen underskriver med husets navn",
+     !/Vend Hjem/.test(mails.find((m) => m.to === "mette.ny@example.com")?.text || ""),
+     (mails.find((m) => m.to === "mette.ny@example.com")?.text || "").slice(-60));
   t("afsenderen får kvittering",
      mails.some((m) => m.to === "mette.ny@example.com" && /vi har dit brev/i.test(m.subject)),
      JSON.stringify(mails.map((m) => m.to)));
@@ -2323,6 +2368,12 @@ console.log("\n41 · Nejet bliver sendt, og en ubesvaret forespoergsel ligner ik
   t("det lover ikke noget, ingen kode holder",
      afslag && !/holder øje med, hvem der har spurgt/.test(afslag.text));
   t("og det peger paa en doer, der er aaben", afslag && /\/sporene/.test(afslag.text));
+  // Et nej er praecis det brev, man vil svare paa. Uden reply_to gik svaret
+  // til besked@vendhjem.dk og ingen steder.
+  t("et nej kan besvares — reply_to er huset",
+     afslag?.reply_to === "laiydeh@gmail.com", afslag?.reply_to);
+  t("nejet underskriver med husets navn", afslag && !/Vend Hjem/.test(afslag.text),
+     afslag ? afslag.text.slice(-60) : "ingen mail");
 
   // --- Og pladsen er fri igen ---
   const efter = await opholdSag(db, aabent.id);

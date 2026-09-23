@@ -205,6 +205,13 @@ export const TEKST = {
   brevNyt: "Nyt",
   brevBesvaret: "Besvaret",
   brevVenter: (d) => `Nyt · har ventet ${d} dage`,
+
+  // Uret paa forespoergslen. Kvitteringen lover «inden tre dage skriver vi
+  // tilbage, om pladsen er din», og indtil 23.09.2026 var der ingen flade,
+  // der talte de tre dage. Et loefte, ingen mekanisme baerer, er et haab.
+  pladsIDag: "I dag",
+  pladsDage: (d) => `${d} ${d === 1 ? "dag" : "dage"} siden`,
+  pladsOverskredet: (d) => `${d} dage siden · over de tre`,
   markerBesvaret: "Markér besvaret",
   markerNyt: "Markér nyt",
   tomBreve: "Ingen breve endnu.",
@@ -212,7 +219,7 @@ export const TEKST = {
 
 export function brevTilOs({ navn, mail, tekst, oprettet }) {
   return {
-    subject: `Brev til Vend Hjem fra ${navn}`,
+    subject: `Brev til Vendhjem fra ${navn}`,
     text:
       `Fra: ${navn} <${mail}>\n` +
       `Modtaget: ${oprettet}\n\n` +
@@ -256,7 +263,7 @@ export function brevKvittering({ navn }) {
     text:
       `Hej ${navn}\n\n` +
       `Vi har dit brev. Lai svarer inden 7 dage, på den mail du skrev fra.\n\n` +
-      `Lai Yde\nVend Hjem, Agersø`,
+      `Lai Yde\nVendhjem, Agersø`,
   };
 }
 
@@ -299,7 +306,7 @@ export function afslagsBrev({ navn, type_navn, periode }) {
       `Vi kan ikke give dig en plads den her gang.\n\n` +
       `Du er velkommen til at spørge igen til et andet ophold. De åbne datoer ` +
       `står på vendhjem.dk/sporene.\n\n` +
-      `Vend Hjem\nAgersø`,
+      `Vendhjem\nAgersø`,
   };
 }
 

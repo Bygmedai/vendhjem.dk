@@ -10,8 +10,7 @@ import { opholdOversigt, opholdSide, sporeneSide, sporeneForesporgSide,
          periodeTekst, FORESPORG_STI } from "./ophold-sider.js";
 import { side, fejlTilstand } from "./flade.js";
 import { TEKST, kvitteringBrev, foresporgTilOs, bekraeftelsesBrev, afslagsBrev } from "./tekst.js";
-import { modtagere } from "./breve.js";
-import { sendMail } from "./mail.js";
+import { sendMail, sendTilMenneske, modtagere } from "./mail.js";
 import { sessionPerson } from "./session.js";
 import { lavCsrf, tjekCsrf, csrfCookie, CSRF_NAVN, klientIp } from "./hegn.js";
 import { laesCookie } from "./krypto.js";
@@ -110,7 +109,7 @@ async function sendKvittering(env, { person, o }) {
     type_navn: o.type_navn,
     periode: periodeTekst(o.start_dato, o.slut_dato),
   });
-  await sendMail(env, { to: person.mail, ...brev });
+  await sendTilMenneske(env, { to: person.mail, ...brev });
 }
 
 async function sendBekraeftelse(env, pladsId) {
@@ -133,7 +132,7 @@ async function sendBekraeftelse(env, pladsId) {
     spor: row.spor,
     vis_pris: row.pris ?? row.pris_fra,
   });
-  await sendMail(env, { to: row.person_mail, ...brev });
+  await sendTilMenneske(env, { to: row.person_mail, ...brev });
 }
 
 /**
@@ -163,7 +162,7 @@ async function sendAfslag(env, pladsId) {
     type_navn: row.type_navn,
     periode: periodeTekst(row.start_dato, row.slut_dato),
   });
-  await sendMail(env, { to: row.person_mail, ...brev });
+  await sendTilMenneske(env, { to: row.person_mail, ...brev });
 }
 
 async function formSvar(env, { o, person, advarsel }, status = 200) {

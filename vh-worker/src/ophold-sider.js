@@ -5,6 +5,7 @@ import { side, esc, tabel, felt, knap, statusPil, tomTilstand } from "./flade.js
 import { billede, fotoBaand } from "./fotos.js";
 import { TEKST } from "./tekst.js";
 import { FOD } from "./fod.js";
+import { dageSiden } from "./tid.js";
 
 const kr = (n) => (n == null ? null : n.toLocaleString("da-DK") + " kr.");
 
@@ -47,6 +48,25 @@ const SPOR_LINKS = {
   mandegrupper: { href: "/maend", label: "Sådan ligger en weekend →" },
 };
 
+const SVARFRIST_DAGE = 3;
+
+/**
+ * Hvor laenge forespoergslen har ligget.
+ *
+ * Kvitteringen lover svar inden tre dage. Uret stod ingen steder: listen
+ * viste hvem der havde spurgt, aldrig hvornaar — og en forespoergsel fra i
+ * gaar saa praecis ud som en fra i forfjor. /internt/breve har talt dage
+ * siden den blev bygget; det her er den samme taelling, fra det samme sted.
+ *
+ * Over de tre dage staar der fed. Ikke roed: et brudt loefte er ikke en fejl
+ * i systemet, det er et menneske, der venter.
+ */
+function alderCelle(p) {
+  const d = dageSiden(p.oprettet);
+  if (d >= SVARFRIST_DAGE) return `<strong>${esc(TEKST.pladsOverskredet(d))}</strong>`;
+  return `<span class="meta">${esc(d === 0 ? TEKST.pladsIDag : TEKST.pladsDage(d))}</span>`;
+}
+
 export function opholdOversigt({ bruger, liste, typer, advarsel, forespurgte = [] }) {
   const rk = liste.map((o) => `<tr>
 <td><a href="/internt/ophold/${esc(o.id)}">${esc(o.type_navn)}</a>
@@ -67,6 +87,7 @@ ${p.besked ? `<p class="small soft mt1">${esc(p.besked)}</p>` : ""}
 ${p.mail_fejl ? `<p class="small mt1" style="color:var(--accent)">${esc(TEKST.mailFejl)}: ${esc(p.mail_fejl)}</p>` : ""}</td>
 <td><a href="/internt/ophold/${esc(p.ophold_id)}">${esc(p.type_navn)}</a>
   <span class="meta" style="display:block;margin-top:4px">${esc(periodeTekst(p.start_dato, p.slut_dato))}</span></td>
+<td class="mono">${alderCelle(p)}</td>
 <td>${p.status === "forespurgt" ? `
 <form method="post" action="/internt/ophold/${esc(p.ophold_id)}/plads/${esc(p.id)}/status" style="margin:0">
   ${knap({ label: TEKST.bekraeft, name: "status", value: "bekræftet", accent: true })}
@@ -90,7 +111,7 @@ ${advarsel ? `<section class="stage" style="padding-top:18px"><div class="ramme"
 
 ${forespurgte.length ? `<section class="stage blok sektion">
 <p class="sec">${esc(TEKST.forespørgsler)}</p>
-${tabel({ hoved: ["Person", "Ophold", ""], raekker: forespurgtRk, tom: TEKST.tomPladser, klasse: "mt2" })}
+${tabel({ hoved: ["Person", "Ophold", "Spurgte", ""], raekker: forespurgtRk, tom: TEKST.tomPladser, klasse: "mt2" })}
 </section>` : ""}
 
 <section class="stage">

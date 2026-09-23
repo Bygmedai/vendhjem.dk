@@ -11,7 +11,8 @@ import { findEllerOpretPerson, opretBrev, saetBrevMailFejl, saetBrevStatus, brev
 import { offentligSkal } from "./ophold-sider.js";
 import { side, esc, tabel, knap, tomTilstand, fejlTilstand } from "./flade.js";
 import { TEKST, brevTilOs, brevKvittering } from "./tekst.js";
-import { sendMail } from "./mail.js";
+import { sendMail, sendTilMenneske, modtagere } from "./mail.js";
+import { dageSiden } from "./tid.js";
 
 export const STI_SKRIV = "/bliv-en-del/skriv";
 export const ROD_BREVE = "/internt/breve";
@@ -27,15 +28,6 @@ const redirect = (til, besked) =>
 
 export function erSkriv(sti) { return sti === STI_SKRIV; }
 export function erBreve(sti) { return sti === ROD_BREVE || sti.startsWith(ROD_BREVE + "/"); }
-
-/** Modtagere: BREV_TIL, kommasepareret. Uden var: samme adresse som den gamle mailto. */
-/** Hvem paa Agersoe der faar post, naar nogen skriver eller foresporger.
- *  ÉT sted. Kopieres den, siger brevsporet og forespoergselssporet en dag
- *  hver sit om, hvem der skal have besked — samme fejlklasse som reglerne,
- *  der stod to steder i Natten. */
-export function modtagere(env) {
-  return String(env.BREV_TIL || "laiydeh@gmail.com").split(",").map((s) => s.trim()).filter(Boolean);
-}
 
 function takSide({ navn }) {
   return offentligSkal({
@@ -100,7 +92,7 @@ export async function besvarSkriv(request, env) {
     try { await sendMail(env, { to, ...tilOs, reply_to: mail }); }
     catch (e) { fejl.push(`${to}: ${String(e.message || e)}`); }
   }
-  try { await sendMail(env, { to: mail, ...brevKvittering({ navn }) }); }
+  try { await sendTilMenneske(env, { to: mail, ...brevKvittering({ navn }) }); }
   catch (e) { fejl.push(`kvittering: ${String(e.message || e)}`); }
   await saetBrevMailFejl(db, brev.id, fejl.length ? fejl.join(" · ") : null);
 
@@ -114,14 +106,6 @@ function dato(iso) {
 }
 
 const VENTER_DAGE = 7;
-
-/** Hele dage siden brevet kom. Siden lover svar inden 7 dage; efter det
- *  står det på listen, så løftet ikke glider i stilhed. */
-function dageSiden(iso, nu = Date.now()) {
-  const t = new Date(iso).getTime();
-  if (Number.isNaN(t)) return 0;
-  return Math.floor((nu - t) / 86400000);
-}
 
 function statusTekst(b) {
   if (b.status !== "nyt") return TEKST.brevBesvaret;
@@ -156,7 +140,7 @@ function breveSide({ bruger, breve, forsoeg = [], advarsel }) {
     const nyt = b.status === "nyt";
     return `<tr>
 <td>${esc(dato(b.oprettet))}</td>
-<td>${esc(b.navn)}<br><a class="lnk" href="mailto:${esc(b.mail)}?subject=${encodeURIComponent("Sv: dit brev til Vend Hjem")}">${esc(b.mail)}</a></td>
+<td>${esc(b.navn)}<br><a class="lnk" href="mailto:${esc(b.mail)}?subject=${encodeURIComponent("Sv: dit brev til Vendhjem")}">${esc(b.mail)}</a></td>
 <td><details><summary>${esc(b.tekst.slice(0, 90))}${b.tekst.length > 90 ? "…" : ""}</summary><p class="small mt2" style="white-space:pre-wrap">${esc(b.tekst)}</p></details>${b.mail_fejl ? `<p class="small mt2">${esc(TEKST.mailFejl)}: ${esc(b.mail_fejl)}</p>` : ""}</td>
 <td>${nyt && dageSiden(b.oprettet) >= VENTER_DAGE ? `<strong>${esc(statusTekst(b))}</strong>` : esc(statusTekst(b))}</td>
 <td><form method="post" action="${ROD_BREVE}/${esc(b.id)}/status">${knap({ label: nyt ? TEKST.markerBesvaret : TEKST.markerNyt, name: "status", value: nyt ? "besvaret" : "nyt" })}</form></td>

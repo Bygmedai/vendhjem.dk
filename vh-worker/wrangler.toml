@@ -31,6 +31,25 @@ account_id = "e91b41e73aafbedf6e0512076e0544c2"
 workers_dev = false
 preview_urls = false
 
+# Hvem paa Agersoe der faar post, naar nogen skriver eller foresporger.
+# Kommasepareret.
+#
+# SKAL staa her, ikke i dashboardet. Wrangler sletter alle vars foer den
+# saetter dem fra konfigurationen, medmindre keep_vars er sat — saa en adresse,
+# et menneske skrev i dashboardet, forsvandt ved naeste merge, og fallbacken i
+# koden overtog i stilhed. Maalt i Cloudflares egen dokumentation 23.09.2026:
+# «When not used (or set to false), Wrangler will delete all vars before
+# setting those found in the Wrangler configuration.»
+#
+# Frem til i dag var variablen udeklareret overalt. Ingen kunne laese ud af
+# repoet, hvem der faktisk fik besked om penge i 2027. Det kan man nu.
+#
+# Vil nogen have en kopi, er det ét komma — men en mailadresse her ligger i
+# git-historik for altid paa et offentligt repo. Det er en beslutning, ikke en
+# tilfoejelse. Se CLAUDE.md §Persondata.
+[vars]
+BREV_TIL = "laiydeh@gmail.com"
+
 [assets]
 directory = "../"
 binding = "ASSETS"
