@@ -364,10 +364,6 @@ pages["index.html"] = head("Vend Hjem · Agersø", "Vi laver en gammel campingpl
 
 # ───────────────────────────── FUNDAMENTET (1d) ─────────────────────────────
 pages["fundamentet.html"] = head("Fundamentet · Vend Hjem", "Det, stedet hviler på: fire perspektiver, to måder at beslutte på, og fem energier.", "fundamentet.html", current="fundamentet") + '''
-<section class="stage topmeta">
-<p class="meta">Fundamentet · manifestet lægges op med version og dato</p>
-</section>
-
 <section class="stage blok">
 <p class="sec">Fire perspektiver på alt, der er stort nok</p>
 <h1 style="font-size:clamp(26px,3.4vw,34px)">Hvert rum og hvert projekt beskrives fire gange.</h1>
@@ -454,7 +450,7 @@ pages["fundamentet.html"] = head("Fundamentet · Vend Hjem", "Det, stedet hviler
 <p class="sec">Typer</p>
 <p class="small">De mønstre, man bærer med sig overalt: præferencer, tendenser, maskulin og feminin energi uafhængigt af køn. Ikke bokse. Type er det, du starter med; niveau er det, du vokser til. At kende begge dele er at kende sig selv uden at reducere sig selv.</p>
 </div>
-<div class="loeft"><p class="small soft">Fem linser på det samme. Ingen af dem er hele billedet, og det er pointen.</p><p class="meta mt2">Landkortet og manifestet · dateret version · kommer</p></div>
+<div class="loeft"><p class="small soft">Fem linser på det samme. Ingen af dem er hele billedet, og det er pointen.</p></div>
 </div>
 </section>
 ''' + foot()
@@ -466,10 +462,6 @@ pages["fundamentet.html"] = head("Fundamentet · Vend Hjem", "Det, stedet hviler
 # Vendhjem bygger ikke boliger. Artslister og principper er taget derfra.
 # Alt her er et sigte, ikke noget der er anlagt. Målt: intet endnu.
 pages["permakultur.html"] = head("Permakultur · Vend Hjem", "Jorden på Agersø som styrende princip: fem landskabsprincipper, tre lag, seks beplantningstyper og et driftsår, hvor naturpleje er noget, vi gør sammen.", "permakultur.html", current="permakultur") + '''
-<section class="stage topmeta">
-<p class="meta">Permakultur · sigtet for de 6 hektar · udkast 18. september 2026</p>
-</section>
-
 <section class="stage blok">
 <div class="g g-32 nb">
 <div>
@@ -482,7 +474,6 @@ pages["permakultur.html"] = head("Permakultur · Vend Hjem", "Jorden på Agersø
 <img src="/images/permakultur/tre-lag.webp" width="900" height="1250" alt="Tre lag oven på hinanden: nederst vandet og den beskyttede natur, så veje og stier, øverst jordlodderne." loading="lazy" style="width:100%;max-width:420px;height:auto;">
 </div>
 </div>
-<p class="xs soft mt2">Tegninger på siden: fra Lais og Eriks landskabsoplæg for stedet, maj 2021.</p>
 </section>
 
 <section class="stage">
