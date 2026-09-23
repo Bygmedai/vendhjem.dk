@@ -50,6 +50,19 @@
 /finddinvej.html https://www.humandirection.dk/ 301
 /finddinvej https://www.humandirection.dk/ 301
 
+# Det praktiske hedder /praktisk. Folk gaetter paa noget andet.
+#
+# Der har aldrig ligget en FAQ paa sitet — «Alt du vil vide om BuddhiCamp» laa
+# paa agersoe.html og gik med i den store oprydning. Men /faq er det, et
+# menneske skriver i adresselinjen, og det er det, en anden skriver i en sms.
+# Billigere at fange gaettet end at forsvare navnet.
+/faq /praktisk 301
+/faq.html /praktisk 301
+/spoergsmaal /praktisk 301
+/spoergsmaal.html /praktisk 301
+/praktiske-oplysninger /praktisk 301
+/praktiske-oplysninger.html /praktisk 301
+
 # Korte veje, folk skriver i hånden
 /index.html / 301
 /stedet /internt/stedet 301

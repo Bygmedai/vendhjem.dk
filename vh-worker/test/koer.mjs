@@ -1798,7 +1798,8 @@ console.log("\n35 · .assetsignore er en deny-liste — og den skal rammes af en
   const OFFENTLIGT = new Set([
     // Byggede sider fra build.py
     "index.html", "fundamentet.html", "permakultur.html", "sporene.html",
-    "maend.html", "bliv-en-del.html", "privatlivspolitik.html", "cookies.html",
+    "maend.html", "praktisk.html", "bliv-en-del.html", "privatlivspolitik.html",
+    "cookies.html",
     "noter.html", "404.html",
     // Appen paa telefonen — statiske med vilje, se «Faelden i navnet» i CLAUDE.md
     "mit-offline.html", "mit-sw.js",
@@ -1884,8 +1885,8 @@ console.log("\n36 · Ingen gammel adresse peger ud i ingenting");
   // Sider build.py skriver, plus appens egne. De skal IKKE omdirigeres.
   const LEVENDE = new Set([
     "index.html", "fundamentet.html", "permakultur.html", "sporene.html",
-    "maend.html", "bliv-en-del.html", "privatlivspolitik.html", "cookies.html",
-    "noter.html", "404.html", "mit-offline.html",
+    "maend.html", "praktisk.html", "bliv-en-del.html", "privatlivspolitik.html",
+    "cookies.html", "noter.html", "404.html", "mit-offline.html",
   ]);
 
   const foraeldreloese = readdirSync(rod, { withFileTypes: true })
@@ -2508,6 +2509,80 @@ console.log("\n42 · Hegn om forespørgslen og sikkerhedshoveder");
   t("OG/Twitter genbruger den eksisterende description",
      sporHtml.includes('property="og:description" content="Det, der sker på stedet:') &&
      sporHtml.includes('name="twitter:description" content="Det, der sker på stedet:'));
+}
+
+console.log("\n43 · Det praktiske: svarene ligger foer forespoergslen, ikke efter (F6)");
+{
+  // HVORFOR DEN HER PROEVE FINDES
+  //
+  // Faergen, sengetoejet og maden stod i bekraeftelsesBrev — altsaa i den mail,
+  // et menneske foerst faar, NAAR det allerede har sagt ja. Den information,
+  // der faar nogen til at turde, blev leveret efter at de turde. Der fandtes
+  // ingen side at laese den paa: «Alt du vil vide om BuddhiCamp» laa paa
+  // agersoe.html og blev 301'et til /sporene, som ikke svarer paa noget
+  // praktisk.
+  //
+  // Proeven maaler ikke, at siden er PAEN. Den maaler, at de fire ting, folk
+  // faktisk spoerger om, staar der — og at der er en vej dertil fra den side,
+  // hvor spoergsmaalet opstaar.
+  const { readFileSync: laes } = await import("node:fs");
+  const rod = new URL("../../", import.meta.url);
+  const side = laes(new URL("praktisk.html", rod), "utf8");
+
+  t("siden findes og har et hoved", /<h1[^>]*>/.test(side) && side.includes("</html>"));
+  t("faergen staar der — den er den foerste hindring, ikke prisen",
+     /Stigsn(æ|ae)s/.test(side) && /kvarter/.test(side));
+  t("prisen staar der med det, den daekker",
+     /850 kr/.test(side) && /sauna/.test(side));
+  t("hvad man skal have med staar der for begge slags ophold",
+     /sovepose/.test(side) && /ingen mad/.test(side));
+  t("loeftet om tre dage staar der, i samme ord som kvitteringen",
+     /tre dage/.test(side));
+
+  // Loefterne maa ikke drive fra hinanden. Staar der tre dage i mailen og fem
+  // paa siden, er den ene af dem en loegn — og ingen opdager hvilken.
+  //
+  // Foerste udgave af de to vidner her maalte `/tre dage/` mod HELE tekst.js.
+  // Den passerede paa en KOMMENTAR: ordene staar seks steder i filen, og kun
+  // to af dem er loefter. Falsifikationen afsloerede det — «tre dage» aendret
+  // til «fem» i selve brevet gav groent. Et vidne, der maaler sin egen
+  // kommentar, er ikke et vidne. Derfor koeres funktionerne nu.
+  const { kvitteringBrev, brevKvittering } = await import("../src/tekst.js");
+  const kvitTekst = kvitteringBrev({ navn: "N", type_navn: "T", periode: "P" }).text;
+  const brevTekst2 = brevKvittering({ navn: "N" }).text;
+  t("siden og kvitteringen lover det SAMME antal dage",
+     /tre dage/.test(side) && /tre dage/.test(kvitTekst),
+     kvitTekst.slice(0, 120));
+  t("siden og brevkvitteringen lover det samme om brevet",
+     /syv/.test(side) && /7 dage/.test(brevTekst2),
+     brevTekst2.slice(0, 120));
+
+  // Det, vi ikke ved, skal staa som det, vi ikke ved. En FAQ, der gaetter paa
+  // bad og wifi, er ikke en service — det er et loefte, nogen skal indfri.
+  t("siden indroemmer det, den ikke svarer paa",
+     /ikke har svaret paa|ikke har svaret på/.test(side) && /wifi/i.test(side));
+
+  // En side, ingen kan finde, er ingen side.
+  t("der er en vej dertil fra hver statisk side (menuen)",
+     laes(new URL("index.html", rod), "utf8").includes('href="/praktisk"'));
+  const sporHtml2 = await tekst(await hent("/sporene"));
+  // IKKE bare `href="/praktisk"` — menuen staar paa hver side, saa det vidne
+  // bestod, da linjen i broedteksten blev fjernet. Falsifikationen viste det.
+  // Det, der maales, er linjen i selve indholdet, over Forespoerg-knapperne.
+  t("og fra den levende /sporene, i broedteksten hvor spoergsmaalet opstaar",
+     /<a href="\/praktisk">F(æ|ae)rgen, prisen/.test(sporHtml2),
+     "ingen vej fra /sporene ud over menuen");
+  t("menuen paa den levende side har ogsaa punktet",
+     /<a href="\/praktisk"[^>]*>Praktisk<\/a>/.test(sporHtml2));
+  t("siden staar i sitemap",
+     laes(new URL("sitemap.xml", rod), "utf8").includes("/praktisk"));
+
+  // Folk skriver /faq. Billigere at fange gaettet end at forsvare navnet.
+  const omdir = laes(new URL("_redirects", rod), "utf8");
+  t("gaettene /faq og /spoergsmaal lander paa siden — i begge former",
+     ["/faq", "/faq.html", "/spoergsmaal", "/spoergsmaal.html"]
+       .every((k) => new RegExp(`^${k}\\s+/praktisk\\s`, "m").test(omdir)),
+     omdir.match(/\/faq.*/g)?.join(" | ") || "ingen");
 }
 
 console.log(`\n${ok} bestået, ${fejl} fejlet\n`);

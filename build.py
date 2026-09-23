@@ -137,6 +137,7 @@ def head(title, desc, path, intern=False, current=None, noindex=False):
         nav = f'''<nav class="nav" aria-label="Hovedmenu">
 <a href="{depth}fundamentet"{' aria-current="page"' if current=="fundamentet" else ""}>Fundamentet</a>
 <a href="{depth}sporene"{' aria-current="page"' if current=="sporene" else ""}>Sporene</a>
+<a href="{depth}praktisk"{' aria-current="page"' if current=="praktisk" else ""}>Praktisk</a>
 <a href="{depth}permakultur"{' aria-current="page"' if current=="permakultur" else ""}>Permakultur</a>
 <a href="{depth}bliv-en-del"{' aria-current="page"' if current=="bliv" else ""}>Bliv en del</a>
 <a href="{INTERN_BASE or depth}{"/" if INTERN_BASE else ""}internt/">Log ind →</a>
@@ -756,6 +757,68 @@ pages["maend.html"] = head("Mandegrupper · Vend Hjem", "Femten mænd, en weeken
 ''' + foot()
 
 # ───────────────────────────── BLIV EN DEL (1f) ─────────────────────────────
+# ───────────────────────── DET PRAKTISKE (F6) ──────────────────────────────
+# FAQ'en, der aldrig fandtes. «Alt du vil vide om BuddhiCamp» laa paa
+# agersoe.html og blev 301'et til /sporene i #63 — og /sporene svarer ikke paa
+# noget praktisk. Et menneske, der overvejer en weekend paa en oe, det aldrig
+# har set, har spoergsmaal FOER det har en kalender.
+#
+# Det vaerste ved hullet var ikke, at svarene manglede. De fandtes — i
+# bekraeftelsesmailen. Faergen, sengetoejet, maden: alt sammen skrevet ned, og
+# alt sammen sendt FOERST naar mennesket allerede havde sagt ja. Den
+# information, der faar nogen til at turde, blev leveret efter at de turde.
+#
+# HVER LINJE HER HAR EN KILDE I REPOET. Intet er opfundet:
+#   faergen, sengetoej, mad ....... tekst.js bekraeftelsesBrev
+#   850 kr, seng, mad, sauna ...... 0007_ophold.sql opholdstyper
+#   tre dage, ja eller nej ........ tekst.js kvitteringBrev
+#   afslaget siger ikke hvorfor ... tekst.js afslagsBrev og dens begrundelse
+#   syv lukkede uger .............. ophold-sider.js
+#   syv dage paa et brev .......... tekst.js brevKvittering
+#   ingen selvbetjent afbud ....... ophold.js — knappen findes kun internt
+#
+# Det, vi IKKE ved, staar som det, vi ikke ved. En FAQ, der gaetter paa bad og
+# wifi, er ikke en service; det er et loefte, nogen skal indfri paa stedet.
+pages["praktisk.html"] = head(
+    "Det praktiske · Vend Hjem",
+    "Færgen, prisen, hvad du skal have med, og hvad der sker, når du forespørger.",
+    "praktisk.html", current="praktisk") + '''
+<section class="stage stage-n sektion">
+<p class="sec">Det praktiske</p>
+<h1 class="stor">Det, du har brug for at vide, før du spørger om en plads.</h1>
+
+<p class="lead mt4">Stedet har ingen anmeldelser, ingen reception og ingen brochure. Så her står det, vi ved — og der står også, hvad vi ikke har skrevet ned endnu.</p>
+
+<div class="stak mt4">
+<div><p class="sec">Hvordan kommer jeg derud</p><p class="small">Færgen går fra Stigsnæs. Et kvarter over vandet. Den betaler du selv — den er ikke med i opholdet.</p></div>
+
+<div><p class="sec">Hvad koster det</p><p class="small">Mandegrupper og rites of passage: 850 kr. Seng og al mad indgår, sauna med. De andre spor har endnu ingen pris — den bliver sat, når den første dato ligger fast, og den står på <a href="/sporene">/sporene</a>, før du forespørger. Du bliver ikke bedt om penge, før du har fået et ja.</p></div>
+
+<div><p class="sec">Hvad skal jeg have med</p><p class="small">Til mandegrupperne: seng og mad indgår, men tag sovepose eller eget sengetøj med. Der er ingen, der brokker sig over det. Til de stille uger er der ingen mad i opholdet — tag det med, du skal spise, og det sengetøj du sover i.</p></div>
+
+<div><p class="sec">Hvad sker der, når jeg forespørger</p><p class="small">Du får en kvittering med det samme. Inden tre dage skriver vi tilbage, om pladsen er din. Ja eller nej — ikke et måske. Svarer du på kvitteringen, lander det hos den, der har din forespørgsel.</p></div>
+
+<div><p class="sec">Hvad hvis I siger nej</p><p class="small">Så hører du det. Afslaget siger ikke hvorfor, og det er med vilje: der siges også nej af andre grunde end plads, og en forklaring, der ikke passer, er værre end ingen. Du er velkommen til at spørge igen til et andet ophold.</p></div>
+
+<div><p class="sec">Kan jeg fortryde</p><p class="small">Skriv til os, så snart du ved det. Der er ingen knap, du kan trykke på selv — et afbud går gennem et menneske her.</p></div>
+
+<div><p class="sec">Er stedet åbent hele året</p><p class="small">Nej. Syv uger om året er lukkede. Datoerne står nederst på <a href="/sporene">/sporene</a>.</p></div>
+
+<div><p class="sec">Hvem skriver jeg til</p><p class="small">Lai Yde er vært og den, man skriver til. En forespørgsel om et ophold besvares inden tre dage. Et brev på <a href="/bliv-en-del">/bliv-en-del</a> besvares inden syv — det er to forskellige løfter, og de holdes hver for sig.</p></div>
+
+<div><p class="sec">Hvad sker der med mine oplysninger</p><p class="small">Navn og mail gemmes, så vi kan svare dig. Hvad der ellers behandles, og hvor længe, står i <a href="/privatlivspolitik">privatlivspolitikken</a>.</p></div>
+</div>
+</section>
+
+<section class="stage blok sektion">
+<p class="sec">Det, vi ikke har svaret på her</p>
+<h2 class="mt2">Bad, strøm, wifi. Om du kan tage hund eller barn med. Hvornår på dagen du kan komme.</h2>
+<p class="lead maxw mt3">Det står der ikke noget om, fordi vi ikke har skrevet det ned endnu. Et gæt på en side er ikke en service — det er et løfte, nogen skal indfri, når du står der.</p>
+<p class="small maxw mt3">Spørg i stedet. Skriver du på <a href="/bliv-en-del">/bliv-en-del</a>, går brevet til Lai, og han svarer på den mail, du skrev fra. Er du allerede i gang med at forespørge på et ophold, kan du skrive spørgsmålet i beskedfeltet — det følger med forespørgslen.</p>
+<p class="meta mt4"><a href="/sporene">Se datoerne og forespørg →</a></p>
+</section>
+''' + foot()
+
 pages["bliv-en-del.html"] = head("Bliv en del · Vend Hjem", "Forløbet fra brev til medlem. Slutdato og udtræden kendes fra begyndelsen.", "bliv-en-del.html", current="bliv") + '''
 <section class="stage blok">
 <div class="maxw">
@@ -952,7 +1015,7 @@ pages["noter.xml"] = _rss()
 
 # Sitemap genereres her, saa den ikke er en fil, nogen skal huske at rette.
 # /noter staar kun i den, naar der er noget at laese.
-_SITEMAP = ["", "fundamentet", "sporene", "permakultur", "maend", "bliv-en-del"] \
+_SITEMAP = ["", "fundamentet", "sporene", "praktisk", "permakultur", "maend", "bliv-en-del"] \
     + (["noter"] if NOTER else []) + ["privatlivspolitik", "cookies"]
 pages["sitemap.xml"] = ('<?xml version="1.0" encoding="UTF-8"?>\n'
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
