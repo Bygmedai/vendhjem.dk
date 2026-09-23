@@ -7,23 +7,7 @@ import json as _json
 import os, re
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
-import subprocess as _sp, datetime as _dt
-
-# «Senest ændret» i foden. Datoen kom fra hukommelsen («Udkast · 15. sep-
-# tember») og blev ikke rettet, mens sitet aendrede sig hver dag. Nu tages
-# den fra det seneste commit; Udrul koerer build.py paa main, saa den
-# levende side viser dagen for den seneste merge. Uden git: i dag.
-_MDR = ["januar", "februar", "marts", "april", "maj", "juni", "juli",
-        "august", "september", "oktober", "november", "december"]
-def _senest():
-    try:
-        iso = _sp.check_output(["git", "log", "-1", "--format=%cs"], cwd=ROOT,
-                               stderr=_sp.DEVNULL, text=True).strip()
-        d = _dt.date.fromisoformat(iso)
-    except Exception:
-        d = _dt.date.today()
-    return f"{d.day}. {_MDR[d.month - 1]} {d.year}"
-FOOT_DATE = _senest()
+import datetime as _dt
 
 NOTER_DIR = os.path.join(ROOT, "noter-kilder")
 
@@ -81,7 +65,7 @@ def fod_offentlig():
     return f'''<footer class="site-foot">
 <div class="stage row">
 <p>Vend Hjem · Agersø · Slagelse Kommune</p>
-<p>Senest ændret {FOOT_DATE} · Lederudvikling og foredrag ligger på <a href="https://www.humandirection.dk/">humandirection.dk</a></p>
+<p>Lederudvikling og foredrag ligger på <a href="https://www.humandirection.dk/">humandirection.dk</a></p>
 <p><a href="/privatlivspolitik">Privatlivspolitik</a> · <a href="/cookies">Cookies</a></p>
 </div>
 </footer>'''
@@ -364,10 +348,6 @@ pages["index.html"] = head("Vend Hjem · Agersø", "Vi laver en gammel campingpl
 
 # ───────────────────────────── FUNDAMENTET (1d) ─────────────────────────────
 pages["fundamentet.html"] = head("Fundamentet · Vend Hjem", "Det, stedet hviler på: fire perspektiver, to måder at beslutte på, og fem energier.", "fundamentet.html", current="fundamentet") + '''
-<section class="stage topmeta">
-<p class="meta">Fundamentet · manifestet lægges op med version og dato</p>
-</section>
-
 <section class="stage blok">
 <p class="sec">Fire perspektiver på alt, der er stort nok</p>
 <h1 style="font-size:clamp(26px,3.4vw,34px)">Hvert rum og hvert projekt beskrives fire gange.</h1>
@@ -454,22 +434,17 @@ pages["fundamentet.html"] = head("Fundamentet · Vend Hjem", "Det, stedet hviler
 <p class="sec">Typer</p>
 <p class="small">De mønstre, man bærer med sig overalt: præferencer, tendenser, maskulin og feminin energi uafhængigt af køn. Ikke bokse. Type er det, du starter med; niveau er det, du vokser til. At kende begge dele er at kende sig selv uden at reducere sig selv.</p>
 </div>
-<div class="loeft"><p class="small soft">Fem linser på det samme. Ingen af dem er hele billedet, og det er pointen.</p><p class="meta mt2">Landkortet og manifestet · dateret version · kommer</p></div>
+<div class="loeft"><p class="small soft">Fem linser på det samme. Ingen af dem er hele billedet, og det er pointen.</p></div>
 </div>
 </section>
 ''' + foot()
 
 
 # ───────────────────────────── PERMAKULTUR ─────────────────────────────
-# Kilde: Lais og Eriks ideoplæg «Buddhi Camp / BUILD / Nature» (URBANCORE,
-# maj 2021) — landskabsdelen. Bygningerne derfra er udeladt med vilje;
+# Kilde: landskabsdelen af et ideoplæg for stedet, maj 2021. Bygningerne derfra er udeladt med vilje;
 # Vendhjem bygger ikke boliger. Artslister og principper er taget derfra.
 # Alt her er et sigte, ikke noget der er anlagt. Målt: intet endnu.
 pages["permakultur.html"] = head("Permakultur · Vend Hjem", "Jorden på Agersø som styrende princip: fem landskabsprincipper, tre lag, seks beplantningstyper og et driftsår, hvor naturpleje er noget, vi gør sammen.", "permakultur.html", current="permakultur") + '''
-<section class="stage topmeta">
-<p class="meta">Permakultur · sigtet for de 6 hektar · udkast 18. september 2026</p>
-</section>
-
 <section class="stage blok">
 <div class="g g-32 nb">
 <div>
@@ -482,7 +457,6 @@ pages["permakultur.html"] = head("Permakultur · Vend Hjem", "Jorden på Agersø
 <img src="/images/permakultur/tre-lag.webp" width="900" height="1250" alt="Tre lag oven på hinanden: nederst vandet og den beskyttede natur, så veje og stier, øverst jordlodderne." loading="lazy" style="width:100%;max-width:420px;height:auto;">
 </div>
 </div>
-<p class="xs soft mt2">Tegninger på siden: fra Lais og Eriks landskabsoplæg for stedet, maj 2021.</p>
 </section>
 
 <section class="stage">
@@ -1400,22 +1374,12 @@ ${celler}
     print("genererede vh-worker/src/fotos.js")
 
 # Generér Workerens fod fra samme kilde som de statiske sider. Foden stod
-# hardcodet i offentligSkal med «Udkast · 15. september» i tre dage efter
-# sitet gik live. Redigér ALDRIG vh-worker/src/fod.js i hånden.
+# Redigér ALDRIG vh-worker/src/fod.js i hånden.
 _fodjs = os.path.join(ROOT, "vh-worker", "src", "fod.js")
 if os.path.isdir(os.path.dirname(_fodjs)):
     with open(_fodjs, "w", encoding="utf-8") as f:
         f.write("// GENERERET af build.py. Ret ikke her — ret fod_offentlig() i build.py.\n")
-        f.write("export const SENEST = " + _json.dumps(FOOT_DATE, ensure_ascii=False) + ";\n")
-        # Datoen staar KUN i SENEST-linjen. FOD baerer en pladsholder og saetter
-        # datoen ind ved indlaesning, saa porten kan holde datolinjerne uden for
-        # sammenligningen (test.yml, -I) og stadig fange enhver aendring i fodens
-        # ord. Maalt 18.09 (run #163): merge-commitets dato != PR'ens dato, og
-        # ti filer + fod.js gik roede over en dato alene.
-        _fod_skabelon = fod_offentlig().replace(FOOT_DATE, "__SENEST__")
-        assert "__SENEST__" in _fod_skabelon, "foden mangler datoen"
-        f.write("export const FOD = " + _json.dumps(_fod_skabelon, ensure_ascii=False)
-                + ".replace(\"__SENEST__\", SENEST);\n")
+        f.write("export const FOD = " + _json.dumps(fod_offentlig(), ensure_ascii=False) + ";\n")
     print("genererede vh-worker/src/fod.js")
 
 # Generér Workerens stige fra stigen.json. Redigér ALDRIG vh-worker/src/stigen.js.

@@ -104,16 +104,22 @@ hinanden.
 `Worker-prøver` kører `build.py` og fejler, hvis et committet resultat ændrer sig.
 Det dækker alle fire moduler og de byggede sider på én gang.
 
-**[Vilde 19.09] — undtagen datoen.** «Senest ændret» i foden er HEAD-committets
-dato. Den skifter ved merge: Stevens merge-commit får merge-dagens dato, PR'en
-havde sin egen, og porten gik rød på main (run #163, 18.09 22:07 UTC) over ti
-sider og `fod.js`, der kun afveg i datoen. Merge udruller, så main var rød og
-live på samme tid. Porten holder derfor de to datolinjer uden for
-sammenligningen (`git diff -I`), og `fod.js` bærer datoen kun i `SENEST` —
-`FOD` har en pladsholder, der udfyldes ved indlæsning, så fodens *ord* stadig
-fanges. Konsekvens: kører du `build.py` på en anden dag end det seneste commit,
-ser du datoen ændre sig i elleve filer. Det er ikke drift, og du behøver ikke
-committe det. Alt andet, `build.py` ændrer, er drift.
+**Alt, `build.py` ændrer, er drift — uden undtagelser.** Porten sammenligner
+hele det byggede resultat mod kilden.
+
+**[Vilde 23.09] — undtagelsen er væk, fordi datoen er væk.** Indtil i dag bar
+foden «Senest ændret <dato>» fra HEAD-committet. Den skiftede ved merge —
+Stevens merge-commit fik merge-dagens dato, PR'en havde sin egen — og porten
+gik rød på main (run #163, 18.09 22:07 UTC) over elleve filer og `fod.js`, der
+kun afveg i datoen. Merge udruller, så main var rød og live på samme tid.
+Svaret dengang var to `git diff -I`-undtagelser og en `__SENEST__`-pladsholder
+i `fod.js`.
+
+Steven fjernede datoen 23.09: *«det er AI meta og meningsløst for et menneske
+der læser siden.»* Med den væk er foden determineret af kilden alene.
+`_senest()`, `FOOT_DATE`, `SENEST` og de to undtagelser er fjernet med den —
+en undtagelse, der ikke længere undtager noget, skjuler bare den næste ægte
+drift. `fod.js` er nu en ren streng. Facit: `docs/facit/foden-uden-dato.md`.
 
 Beskrivelsen af prøverne var til gengæld for optimistisk. Prøve 28 sammenligner
 `stigen.json` med `stigen.js` — den er en ægte kilde-mod-genereret-prøve. Prøve 27

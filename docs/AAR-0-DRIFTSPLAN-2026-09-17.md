@@ -284,6 +284,6 @@ Rettet efter Toppers review 17/9. **Platform-køen er `C2 → (CVR) → D1 + tæ
 
 ## 8. Hvad jeg ikke har gjort
 
-Ikke rettet `vh-worker/README.md`, som stadig påstår at `0007_ophold` ikke er applied remote — den påstand kostede mig en time og rettes i egen lille PR, som Topper bad om. Ikke skrevet kode. Ikke oprettet eller ændret Linear-sager — forslagene i §3 er forslag, og køen er Stevens. Ikke rørt `bygmedai-adskillelse`; det produkt har sine egne hegn og sin egen frist, og Agersø må ikke låne af det. Ikke læst Eriks materiale — det hører til Lais advokat. Ikke moderet §0: du bad om, at jeg ikke gætter, og det, der er værd at vide i dag, er at maskinen kører, kalenderen er tom, og året hænger på en uge i juli.
+Ikke rettet `vh-worker/README.md`, som stadig påstår at `0007_ophold` ikke er applied remote — den påstand kostede mig en time og rettes i egen lille PR, som Topper bad om. Ikke skrevet kode. Ikke oprettet eller ændret Linear-sager — forslagene i §3 er forslag, og køen er Stevens. Ikke rørt `bygmedai-adskillelse`; det produkt har sine egne hegn og sin egen frist, og Agersø må ikke låne af det. Ikke moderet §0: du bad om, at jeg ikke gætter, og det, der er værd at vide i dag, er at maskinen kører, kalenderen er tom, og året hænger på en uge i juli.
 
 *— Vilde Serra, 17. september 2026. Målinger med kald eller kilde; vurderinger mærket; ingen regler.*

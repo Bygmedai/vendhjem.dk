@@ -1,7 +1,6 @@
 -- 0010 · Spor-teksterne på /sporene bringes i overensstemmelse med den copy,
--- Steven godkendte 15.09.2026 (S591/S592), og ingen ejer nævnes ved navn på
--- offentlige sider, før udkøbet af Erik er afsluttet. 0007 seedede den gamle
--- copy fra main; den godkendte lå kun på forken. Ren UPDATE, ingen skemaændring.
+-- Steven godkendte 15.09.2026 (S591/S592). 0007 seedede den gamle copy fra
+-- main; den godkendte lå kun på forken. Ren UPDATE, ingen skemaændring.
 UPDATE opholdstyper SET
   beskrivelse = 'Weekender for femten mænd. Vi laver mad sammen, arbejder nogle timer på stedet og mødes om aftenen i en talerunde, hvor hver mand taler uden at blive afbrudt.'
 WHERE id = 'ot-mandegrupper';
