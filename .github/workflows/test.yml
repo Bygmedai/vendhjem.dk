@@ -32,19 +32,24 @@ jobs:
       - name: Byg siderne (internt/ findes ikke i checkout)
         run: python3 build.py
       - name: Er de byggede filer i sync med kilderne?
-        # «Senest ændret» er HEAD-committets dato og skifter ved merge (run #163,
-        # 18.09: main rød og live på samme tid over elleve filer, der kun afveg i
-        # datoen). De to datolinjer holdes uden for sammenligningen; alt andet,
-        # build.py ændrer, er drift. Nye, ukendte filer er også drift.
+        # Alt, build.py ændrer, er drift. Nye, ukendte filer er også drift.
+        #
+        # Indtil 23.09 stod her to -I-undtagelser for «Senest ændret» og
+        # «export const SENEST», fordi foden bar HEAD-committets dato og
+        # derfor skiftede ved merge (run #163, 18.09: main rød og live på
+        # samme tid over elleve filer, der kun afveg i datoen). Datoen er
+        # fjernet fra foden, så foden er nu determineret af kilden alene, og
+        # undtagelserne er væk med den. En undtagelse, der ikke længere
+        # undtager noget, skjuler bare den næste ægte drift.
         run: |
           NYE="$(git ls-files --others --exclude-standard)"
-          if [ -n "$NYE" ] || ! git diff --quiet -I '^<p>Senest ændret ' -I '^export const SENEST = '; then
+          if [ -n "$NYE" ] || ! git diff --quiet; then
             echo "::error::build.py aendrede filer, der er committet. Koer 'python3 build.py' og commit resultatet."
             [ -n "$NYE" ] && { echo "Nye filer:"; echo "$NYE"; }
-            git diff --stat -I '^<p>Senest ændret ' -I '^export const SENEST = '
+            git diff --stat
             exit 1
           fi
-          echo "Kilder og byggede filer er i sync (de to datolinjer undtaget)."
+          echo "Kilder og byggede filer er i sync."
       - name: Prøver
         run: node vh-worker/test/koer.mjs
       - name: Hegn-røg (Worker under test, ikke produktion)
